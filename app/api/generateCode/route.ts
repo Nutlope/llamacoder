@@ -2,17 +2,11 @@ import {
   TogetherAIStream,
   TogetherAIStreamPayload,
 } from "@/utils/TogetherAIStream";
-import { z } from "zod";
+
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  let json = await req.json();
-
-  let { prompt, model } = z
-    .object({
-      prompt: z.string(),
-      model: z.string(),
-    })
-    .parse(json);
+  let { prompt, model } = await req.json();
 
   const payload: TogetherAIStreamPayload = {
     model,
