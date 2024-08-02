@@ -22,17 +22,28 @@ export async function TogetherAIStream(payload: TogetherAIStreamPayload) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
-  console.log("helicone key", process.env.HELICONE_API_KEY);
+  let res;
 
-  const res = await fetch("https://together.helicone.ai/v1/chat/completions", {
-    headers: {
-      "Content-Type": "application/json",
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      Authorization: `Bearer ${process.env.TOGETHER_API_KEY ?? ""}`,
-    },
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  if (process.env.HELICONE_API_KEY) {
+    res = await fetch("https://together.helicone.ai/v1/chat/completions", {
+      headers: {
+        "Content-Type": "application/json",
+        "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+        Authorization: `Bearer ${process.env.TOGETHER_API_KEY ?? ""}`,
+      },
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } else {
+    res = await fetch("https://api.together.xyz/v1/chat/completions", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.TOGETHER_API_KEY ?? ""}`,
+      },
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
 
   const readableStream = new ReadableStream({
     async start(controller) {
