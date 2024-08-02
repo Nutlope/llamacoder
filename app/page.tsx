@@ -176,7 +176,7 @@ export default function Home() {
       let end = el.scrollHeight - el.clientHeight;
       el.scrollTo({ top: end });
     }
-  }, [generatedCode]);
+  }, [loading]);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center py-2">
@@ -205,6 +205,7 @@ export default function Home() {
               <div className="relative flex rounded-3xl bg-white shadow-sm">
                 <div className="relative flex flex-grow items-stretch focus-within:z-10">
                   <input
+                    required
                     name="prompt"
                     className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     defaultValue="Build a calculator app"
@@ -303,6 +304,7 @@ export default function Home() {
                     <div className="relative flex rounded-3xl bg-white shadow-sm group-disabled:bg-gray-50">
                       <div className="relative flex flex-grow items-stretch focus-within:z-10">
                         <input
+                          required
                           name="prompt"
                           className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed"
                           placeholder="Make changes to your app here"
