@@ -1,18 +1,18 @@
 "use client";
 
 import Footer from "@/components/Footer";
-import * as Tooltip from "@radix-ui/react-tooltip";
 import Header from "@/components/Header";
 import { useScrollTo } from "@/hooks/use-scroll-to";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
 import { CheckIcon } from "@heroicons/react/16/solid";
 import {
-  ArrowRightIcon,
+  ArrowLongRightIcon,
   ChevronDownIcon,
   PlusIcon,
 } from "@heroicons/react/20/solid";
 import * as Select from "@radix-ui/react-select";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import {
   createParser,
   ParsedEvent,
@@ -219,7 +219,7 @@ export default function Home() {
                   {status === "creating" ? (
                     <LoadingDots color="black" style="large" />
                   ) : (
-                    <ArrowRightIcon className="-ml-0.5 h-5 w-5" />
+                    <ArrowLongRightIcon className="-ml-0.5 size-6" />
                   )}
                 </button>
               </div>
@@ -316,7 +316,7 @@ export default function Home() {
                         {loading ? (
                           <LoadingDots color="black" style="large" />
                         ) : (
-                          <ArrowRightIcon className="-ml-0.5 h-5 w-5" />
+                          <ArrowLongRightIcon className="-ml-0.5 size-6" />
                         )}
                       </button>
                     </div>
