@@ -24,7 +24,6 @@
 
 ## Future Tasks
 
-- [ ] Add tooltip to the plus button to make it more clear that it's starting a new app
 - [ ] Fix "Open Sandbox" button by making it open with the tailwindcss external resource
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
