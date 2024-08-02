@@ -22,10 +22,9 @@
 2. Create a `.env` file and add your [Together AI API key]([Together AI](https://dub.sh/together-ai)): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
-## TODOs - hassan
-
 ## Future Tasks
 
 - [ ] Add extra input (for followups) w/ messages support
 - [ ] Add the plus-sign for new chat + github icon
 - [ ] Fix "Open Sandbox" button by making it open with the tailwindcss external resource
+- [ ] Support different kinds of apps (not just React) & scripts with Python for example
