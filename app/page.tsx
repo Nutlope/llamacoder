@@ -21,13 +21,20 @@ export default function Home() {
   let [loading, setLoading] = useState(false);
   let [generatedCode, setGeneratedCode] = useState("");
   let [ref, scrollTo] = useScrollTo();
+  let [messages, setMessages] = useState<{ role: string; content: string }[]>(
+    [],
+  );
 
   async function generateCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     let formData = new FormData(e.currentTarget);
-    let prompt = formData.get("prompt");
     let model = formData.get("model");
+    let prompt = formData.get("prompt");
+    if (typeof prompt !== "string") {
+      return;
+    }
+    let newMessages = [...messages, { role: "user", content: prompt }];
 
     setGeneratedCode("");
     setLoading(true);
@@ -37,11 +44,10 @@ export default function Home() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        prompt,
+        messages: newMessages,
         model,
       }),
     });
-    console.log("Edge function returned.");
     if (!chatRes.ok) {
       throw new Error(chatRes.statusText);
     }
@@ -75,44 +81,21 @@ export default function Home() {
       const chunkValue = decoder.decode(value);
       parser.feed(chunkValue);
     }
+
+    newMessages = [
+      ...newMessages,
+      { role: "assistant", content: generatedCode },
+    ];
+
+    setMessages(newMessages);
     setLoading(false);
   }
 
-  // let [bufferedGeneratedCode, setBufferedGeneratedCode] = useState("");
-  // let [index, setIndex] = useState(0);
-  // let charsPerUpdate = 4;
-
-  // useEffect(() => {
-  //   if (index < generatedCode.length) {
-  //     const timeout = setTimeout(() => {
-  //       setBufferedGeneratedCode(
-  //         (prev) => prev + generatedCode.slice(index, index + charsPerUpdate),
-  //       );
-  //       setIndex((prev) => prev + charsPerUpdate);
-  //     }, 1);
-
-  //     return () => clearTimeout(timeout);
-  //   }
-  // }, [index, generatedCode]);
-
-  // let previousEnd = useRef(0);
   useEffect(() => {
     let el = document.querySelector(".cm-scroller");
     if (el && loading) {
-      // Not animated
       let end = el.scrollHeight - el.clientHeight;
       el.scrollTo({ top: end });
-
-      // Animated
-      // let start = el.scrollTop;
-      // let end = el.scrollHeight - el.clientHeight;
-      // let controls = animate(start, end, {
-      //   onUpdate: (latest) => el.scrollTo({ top: latest }),
-      // });
-
-      // return () => {
-      //   controls.cancel();
-      // };
     }
   }, [generatedCode]);
 
@@ -192,10 +175,6 @@ export default function Home() {
                           label: "Gemma 2 27B",
                           value: "google/gemma-2-27b-it",
                         },
-                        // {
-                        //   label: "Qwen 72B Instruct",
-                        //   value: "Qwen/Qwen2-72B-Instruct",
-                        // },
                       ].map((model) => (
                         <Select.Item
                           key={model.value}
@@ -244,7 +223,6 @@ export default function Home() {
                       "https://unpkg.com/@tailwindcss/ui/dist/tailwind-ui.min.css",
                     ],
                     editorHeight: "80vh",
-                    wrapContent: true,
                   }}
                   files={{
                     "App.tsx": generatedCode,

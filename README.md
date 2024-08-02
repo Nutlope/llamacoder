@@ -27,4 +27,7 @@
 - [ ] Add extra input (for followups) w/ messages support
 - [ ] Add the plus-sign for new chat + github icon
 - [ ] Fix "Open Sandbox" button by making it open with the tailwindcss external resource
+
+- [ ] Save previous versions so people can go back and forth
+- [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
 - [ ] Support different kinds of apps (not just React) & scripts with Python for example
