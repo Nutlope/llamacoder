@@ -1,7 +1,7 @@
 "use client";
 
-import Footer from "@/components/footer";
-import Header from "@/components/header";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 import { useScrollTo } from "@/hooks/use-scroll-to";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
