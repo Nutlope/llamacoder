@@ -1,19 +1,34 @@
-# Llama Coder
+<a href="https://www.llamacoder.io">
+  <img alt="Llama Coder" src="./public/og-image.png">
+  <h1 align="center">Llama Coder</h1>
+</a>
 
-This project is a simple Claude Artifacts clone using Llama 3.1 405b.
+<p align="center">
+  An open source Claude Artifacts – generate small apps with one prompt. Powered by Llama 3 405B & Together.ai.
+</p>
 
-## How it works
+## Tech stack
 
-Takes the user's query, adds a system promt, and sends it to Llama 405b to code. After doing some parsing, it displays it to Sandpack to be viewed as an interactive code editor.
+- [Llama 3.1 405B](https://ai.meta.com/blog/meta-llama-3-1/) from Meta for the LLM
+- [Together AI](https://dub.sh/together-ai) for LLM inference
+- [Sandpack](https://sandpack.codesandbox.io/) for the code sandbox
+- Next.js app router with Tailwind
+- Helicone for observability
+- Plausible for website analytics
+
+## Cloning & running
+
+1. Clone the repo: `git clone https://github.com/Nutlope/llamacoder`
+2. Create a `.env` file and add your [Together AI API key]([Together AI](https://dub.sh/together-ai)): `TOGETHER_API_KEY=`
+3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
 ## TODOs - hassan
 
 - [ ] Finish styling main hero – mostly GitHub at top right
-- [ ] Make README nice
 - [ ] Edit the footer to look nicer
+
+## Future Tasks
+
 - [ ] Add extra input (for followups) w/ messages support
 - [ ] Add the plus-sign for new chat + github icon
-
-## Future TODOs
-
 - [ ] Fix "Open Sandbox" button by making it open with the tailwindcss external resource
