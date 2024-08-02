@@ -296,7 +296,7 @@ export default function Home() {
             onAnimationComplete={scrollTo}
             ref={ref}
           >
-            <div className="mt-5 flex gap-2">
+            <div className="mt-5 flex gap-4">
               <form className="w-full" onSubmit={modifyCode}>
                 <fieldset disabled={loading} className="group">
                   <div className="relative">
