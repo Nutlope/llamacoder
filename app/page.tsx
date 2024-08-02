@@ -216,7 +216,7 @@ export default function Home() {
                   disabled={loading}
                   className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
                 >
-                  {loading ? (
+                  {status === "creating" ? (
                     <LoadingDots color="black" style="large" />
                   ) : (
                     <ArrowRightIcon className="-ml-0.5 h-5 w-5" />
@@ -234,7 +234,7 @@ export default function Home() {
                 <Select.Trigger className="group flex w-full max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
                   <Select.Value />
                   <Select.Icon className="ml-auto">
-                    <ChevronDownIcon className="size-6 text-gray-300 group-hover:text-gray-500 group-focus-visible:text-gray-500" />
+                    <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
                   </Select.Icon>
                 </Select.Trigger>
                 <Select.Portal>
@@ -286,9 +286,13 @@ export default function Home() {
         {status !== "initial" && (
           <motion.div
             initial={{ height: 0 }}
-            animate={{ height: "auto" }}
+            animate={{
+              height: "auto",
+              overflow: "hidden",
+              transitionEnd: { overflow: "visible" },
+            }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="w-full overflow-hidden pb-[25vh] pt-10"
+            className="w-full pb-[25vh] pt-10"
             onAnimationComplete={scrollTo}
             ref={ref}
           >
@@ -349,7 +353,7 @@ export default function Home() {
                 </Tooltip.Provider>
               </div>
             </div>
-            <div className="relative mt-8 w-full">
+            <div className="relative mt-8 w-full overflow-hidden">
               <div className="isolate">
                 <Sandpack
                   theme={draculaTheme}
@@ -379,7 +383,7 @@ export default function Home() {
                       duration: 0.85,
                       delay: 0.5,
                     }}
-                    className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center rounded-r border border-gray-800 bg-gradient-to-br from-gray-100 to-gray-300 md:inset-y-0 md:left-1/2 md:right-0"
+                    className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center rounded-r border border-gray-400 bg-gradient-to-br from-gray-100 to-gray-300 md:inset-y-0 md:left-1/2 md:right-0"
                   >
                     <p className="animate-pulse text-3xl font-bold">
                       {status === "creating"
