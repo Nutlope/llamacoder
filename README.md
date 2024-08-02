@@ -24,9 +24,6 @@
 
 ## TODOs - hassan
 
-- [ ] Finish styling main hero – mostly GitHub at top right
-- [ ] Edit the footer to look nicer
-
 ## Future Tasks
 
 - [ ] Add extra input (for followups) w/ messages support
