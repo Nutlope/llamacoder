@@ -24,7 +24,6 @@
 
 ## Future Tasks
 
-- [ ] Fix "Open Sandbox" button by making it open with the tailwindcss external resource
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
 - [ ] Save previous versions so people can go back and forth between the generated ones
