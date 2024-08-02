@@ -38,7 +38,12 @@ export default function Home() {
   async function generateCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    if (status !== "initial") {
+      scrollTo({ delay: 0.5 });
+    }
+
     setStatus("creating");
+    setGeneratedCode("");
 
     let formData = new FormData(e.currentTarget);
     let model = formData.get("model");
@@ -47,8 +52,6 @@ export default function Home() {
       return;
     }
     let newMessages = [{ role: "user", content: prompt }];
-
-    setGeneratedCode("");
 
     const chatRes = await fetch("/api/generateCode", {
       method: "POST",
@@ -176,7 +179,7 @@ export default function Home() {
       let end = el.scrollHeight - el.clientHeight;
       el.scrollTo({ top: end });
     }
-  }, [loading]);
+  }, [loading, generatedCode]);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center py-2">
@@ -294,7 +297,7 @@ export default function Home() {
             }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
             className="w-full pb-[25vh] pt-10"
-            onAnimationComplete={scrollTo}
+            onAnimationComplete={() => scrollTo()}
             ref={ref}
           >
             <div className="mt-5 flex gap-4">
