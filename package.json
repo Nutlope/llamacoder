@@ -13,6 +13,7 @@
     "@codesandbox/sandpack-themes": "^2.0.21",
     "@heroicons/react": "^2.1.5",
     "@radix-ui/react-select": "^2.1.1",
+    "@radix-ui/react-tooltip": "^1.1.2",
     "eventsource-parser": "^1.1.2",
     "framer-motion": "^11.3.19",
     "next": "14.2.5",

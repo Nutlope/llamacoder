@@ -1,6 +1,7 @@
 "use client";
 
 import Footer from "@/components/Footer";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import Header from "@/components/Header";
 import { useScrollTo } from "@/hooks/use-scroll-to";
 import { Sandpack } from "@codesandbox/sandpack-react";
@@ -319,18 +320,33 @@ export default function Home() {
                 </fieldset>
               </form>
               <div>
-                <button
-                  onClick={() => {
-                    location.reload();
+                <Tooltip.Provider>
+                  <Tooltip.Root delayDuration={0}>
+                    <Tooltip.Trigger asChild>
+                      <button
+                        onClick={() => {
+                          location.reload();
 
-                    // TODO: Cancel stream and reset this state
-                    // setMessages([]);
-                    // setStatus("initial");
-                  }}
-                  className="inline-flex size-[68px] items-center justify-center rounded-3xl bg-blue-500"
-                >
-                  <PlusIcon className="size-10 text-white" />
-                </button>
+                          // TODO: Cancel stream and reset this state
+                          // setMessages([]);
+                          // setStatus("initial");
+                        }}
+                        className="inline-flex size-[68px] items-center justify-center rounded-3xl bg-blue-500"
+                      >
+                        <PlusIcon className="size-10 text-white" />
+                      </button>
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content
+                        className="select-none rounded bg-white px-4 py-2.5 text-sm leading-none shadow-md shadow-black/20"
+                        sideOffset={5}
+                      >
+                        Create a new app
+                        <Tooltip.Arrow className="fill-white" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                </Tooltip.Provider>
               </div>
             </div>
             <div className="relative mt-8 w-full">
