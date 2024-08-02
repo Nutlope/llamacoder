@@ -6,38 +6,49 @@ import { useScrollTo } from "@/hooks/use-scroll-to";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
 import { CheckIcon } from "@heroicons/react/16/solid";
-import { ArrowRightIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
+import {
+  ArrowRightIcon,
+  ChevronDownIcon,
+  PlusIcon,
+} from "@heroicons/react/20/solid";
 import * as Select from "@radix-ui/react-select";
 import {
+  createParser,
   ParsedEvent,
   ReconnectInterval,
-  createParser,
 } from "eventsource-parser";
-import { animate, AnimatePresence, motion } from "framer-motion";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { FormEvent, useEffect, useState } from "react";
 import LoadingDots from "../components/loading-dots";
 
 export default function Home() {
-  let [loading, setLoading] = useState(false);
+  let [status, setStatus] = useState<
+    "initial" | "creating" | "created" | "updating" | "updated"
+  >("initial");
   let [generatedCode, setGeneratedCode] = useState("");
+  let [modelUsedForInitialCode, setModelUsedForInitialCode] = useState("");
   let [ref, scrollTo] = useScrollTo();
   let [messages, setMessages] = useState<{ role: string; content: string }[]>(
     [],
   );
 
+  let loading = status === "creating" || status === "updating";
+
   async function generateCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    setStatus("creating");
 
     let formData = new FormData(e.currentTarget);
     let model = formData.get("model");
     let prompt = formData.get("prompt");
-    if (typeof prompt !== "string") {
+    if (typeof prompt !== "string" || typeof model !== "string") {
       return;
     }
-    let newMessages = [...messages, { role: "user", content: prompt }];
+    let newMessages = [{ role: "user", content: prompt }];
 
     setGeneratedCode("");
-    setLoading(true);
+
     const chatRes = await fetch("/api/generateCode", {
       method: "POST",
       headers: {
@@ -87,8 +98,75 @@ export default function Home() {
       { role: "assistant", content: generatedCode },
     ];
 
+    setModelUsedForInitialCode(model);
     setMessages(newMessages);
-    setLoading(false);
+    setStatus("created");
+  }
+
+  async function modifyCode(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    setStatus("updating");
+
+    let formData = new FormData(e.currentTarget);
+    let prompt = formData.get("prompt");
+    if (typeof prompt !== "string") {
+      return;
+    }
+    let newMessages = [...messages, { role: "user", content: prompt }];
+
+    setGeneratedCode("");
+    const chatRes = await fetch("/api/generateCode", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: newMessages,
+        model: modelUsedForInitialCode,
+      }),
+    });
+    if (!chatRes.ok) {
+      throw new Error(chatRes.statusText);
+    }
+
+    // This data is a ReadableStream
+    const data = chatRes.body;
+    if (!data) {
+      return;
+    }
+    const onParse = (event: ParsedEvent | ReconnectInterval) => {
+      if (event.type === "event") {
+        const data = event.data;
+        try {
+          const text = JSON.parse(data).text ?? "";
+          setGeneratedCode((prev) => prev + text);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+
+    // https://web.dev/streams/#the-getreader-and-read-methods
+    const reader = data.getReader();
+    const decoder = new TextDecoder();
+    const parser = createParser(onParse);
+    let done = false;
+
+    while (!done) {
+      const { value, done: doneReading } = await reader.read();
+      done = doneReading;
+      const chunkValue = decoder.decode(value);
+      parser.feed(chunkValue);
+    }
+
+    newMessages = [
+      ...newMessages,
+      { role: "assistant", content: generatedCode },
+    ];
+
+    setMessages(newMessages);
+    setStatus("updated");
   }
 
   useEffect(() => {
@@ -204,7 +282,7 @@ export default function Home() {
 
         <hr className="border-1 mb-20 h-px bg-gray-700 dark:bg-gray-700" />
 
-        {generatedCode && (
+        {status !== "initial" && (
           <motion.div
             initial={{ height: 0 }}
             animate={{ height: "auto" }}
@@ -213,6 +291,48 @@ export default function Home() {
             onAnimationComplete={scrollTo}
             ref={ref}
           >
+            <div className="mt-5 flex gap-2">
+              <form className="w-full" onSubmit={modifyCode}>
+                <fieldset disabled={loading} className="group">
+                  <div className="relative">
+                    <div className="relative flex rounded-3xl bg-white shadow-sm group-disabled:bg-gray-50">
+                      <div className="relative flex flex-grow items-stretch focus-within:z-10">
+                        <input
+                          name="prompt"
+                          className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed"
+                          placeholder="Make changes to your app here"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
+                      >
+                        {loading ? (
+                          <LoadingDots color="black" style="large" />
+                        ) : (
+                          <ArrowRightIcon className="-ml-0.5 h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </fieldset>
+              </form>
+              <div>
+                <button
+                  onClick={() => {
+                    location.reload();
+
+                    // TODO: Cancel stream and reset this state
+                    // setMessages([]);
+                    // setStatus("initial");
+                  }}
+                  className="inline-flex size-[68px] items-center justify-center rounded-3xl bg-blue-500"
+                >
+                  <PlusIcon className="size-10 text-white" />
+                </button>
+              </div>
+            </div>
             <div className="relative mt-8 w-full">
               <div className="isolate">
                 <Sandpack
@@ -234,6 +354,8 @@ export default function Home() {
               <AnimatePresence>
                 {loading && (
                   <motion.div
+                    initial={status === "updating" ? { x: "100%" } : undefined}
+                    animate={status === "updating" ? { x: "0%" } : undefined}
                     exit={{ x: "100%" }}
                     transition={{
                       type: "spring",
@@ -244,7 +366,9 @@ export default function Home() {
                     className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center rounded-r border border-gray-800 bg-gradient-to-br from-gray-100 to-gray-300 md:inset-y-0 md:left-1/2 md:right-0"
                   >
                     <p className="animate-pulse text-3xl font-bold">
-                      Building your app...
+                      {status === "creating"
+                        ? "Building your app..."
+                        : "Updating your app..."}
                     </p>
                   </motion.div>
                 )}
