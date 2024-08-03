@@ -24,12 +24,12 @@
 
 ## Future Tasks
 
-- [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Make it generate more consistent apps by only importing from a component library like shadcn
 - [ ] Look into a way to export the app or deploy it in a single click
-- [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
+- [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Save previous versions so people can go back and forth between the generated ones
-- [ ] Apply code diffs directly instead of asking the model to generate the code from scratch'
+- [ ] Support different kinds of apps/languages & scripts with Python, maybe w/ E2B
+- [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
+- [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
 - [ ] Add the ability to upload things like a screenshot to it for it to start from that
-- [ ] Try multiple shot prompting in weaker models
-- [ ] Support different kinds of apps (not just React) & scripts with Python for example
+- [ ] Try multiple shot prompting in weaker models or finetuning a smaller model
