@@ -26,10 +26,10 @@
 
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Make it generate more consistent apps by only importing from a component library like shadcn
-- [ ] Try to resolve the npm libraries issue, look into how Claude Artifacts and others deal with it
 - [ ] Look into a way to export the app or deploy it in a single click
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
 - [ ] Save previous versions so people can go back and forth between the generated ones
 - [ ] Apply code diffs directly instead of asking the model to generate the code from scratch'
 - [ ] Add the ability to upload things like a screenshot to it for it to start from that
+- [ ] Try multiple shot prompting in weaker models
 - [ ] Support different kinds of apps (not just React) & scripts with Python for example
