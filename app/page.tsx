@@ -211,7 +211,6 @@ export default function Home() {
                     required
                     name="prompt"
                     className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                    defaultValue="Build a calculator app"
                     placeholder="Build me a calculator app..."
                   />
                 </div>
