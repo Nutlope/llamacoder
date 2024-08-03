@@ -385,6 +385,12 @@ export default function Home() {
 </html>`,
                   }}
                   template="react-ts"
+                  customSetup={{
+                    dependencies: {
+                      "lucide-react": "0.263.1",
+                      recharts: "latest",
+                    },
+                  }}
                 />
               </div>
 
