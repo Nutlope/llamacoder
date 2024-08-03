@@ -32,15 +32,13 @@ export async function POST(req: Request) {
         role: "system",
         content: systemPrompt,
       },
-      ...(model === "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
-        ? messages
-        : messages.map((message: any) => {
-            if (message.role === "user") {
-              message.content +=
-                "\nPlease ONLY return code, NO backticks or language names.";
-            }
-            return message;
-          })),
+      ...messages.map((message: any) => {
+        if (message.role === "user") {
+          message.content +=
+            "\nPlease ONLY return code, NO backticks or language names.";
+        }
+        return message;
+      }),
     ],
     stream: true,
   };
