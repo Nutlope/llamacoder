@@ -27,7 +27,7 @@
 - [ ] Make it generate more consistent apps by only importing from a component library like shadcn
   - [x] Partially working
   - [x] Need to figure out a way to use the @
-  - [ ] Need to import all the CSS stuff (main CSS file + tailwind css file)
+  - [x] Need to import all the CSS stuff (main CSS file + tailwind css file)
   - [ ] Need to add in all the shadcn components
 - [ ] Look into a way to export the app or deploy it in a single click – try two things
   - [ ] The codesandbox way where I put the link in another way like the react docs, then I can infer the link and have people go check it out
