@@ -30,8 +30,8 @@
   - [ ] Need to import all the CSS stuff (main CSS file + tailwind css file)
   - [ ] Need to add in all the shadcn components
 - [ ] Look into a way to export the app or deploy it in a single click – try two things
-  - The codesandbox way where I put the link in another way like the react docs, then I can infer the link and have people go check it out
-  - The non-codesandbox way where i try to do it myself with a dynamic route by doing some hashing
+  - [ ] The codesandbox way where I put the link in another way like the react docs, then I can infer the link and have people go check it out
+  - [ ] The non-codesandbox way where i try to do it myself with a dynamic route by doing some hashing
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Add a bring your own key version in case traffic gets too high
 - [ ] Save previous versions so people can go back and forth between the generated ones
