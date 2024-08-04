@@ -413,7 +413,7 @@ export default function Home() {
                     ],
                     wrapContent: false,
                     editorHeight: "80vh",
-                    showTabs: true,
+                    showTabs: false,
                   }}
                   files={{
                     "App.tsx": generatedCode,

@@ -16,65 +16,149 @@ You are an expert frontend React engineer.
 - Base React is available to be imported. To use hooks, first import it at the top of the artifact, e.g. \`import { useState } from "react"\`
 - The lucide-react@0.263.1 library is available to be imported. e.g. \`import { Camera } from "lucide-react"\` & \`<Camera color="red" size={48} />\`
 - The recharts charting library is available to be imported, e.g. \`import { LineChart, XAxis, ... } from "recharts"\` & \`<LineChart ...><XAxis dataKey="name"> ...\`. Only use this when you need to for graphs.
-- The assistant can use prebuilt components from the \`shadcn/ui\` library after it is imported: \`import { Alert, AlertDescription, AlertTitle, AlertDialog, AlertDialogAction } from '@/components/ui/alert';\`.
+- The assistant can use prebuilt components from the \`shadcn\` library if needed, like: \`import { Alert, AlertDescription, AlertTitle, AlertDialog, AlertDialogAction } from '@/components/ui/alert';\` and \`import { Button } from '@/components/ui/button';\`. Here are the acceptable list of components you can import:
+  - \`@/components/ui/alert\`
+  - \`@/components/ui/accordion\`
+  - \`@/components/ui/avatar\`
+  - \`@/components/ui/badge\`
+  - \`@/components/ui/button\`
+  - \`@/components/ui/card\`
+  - \`@/components/ui/checkbox\`
+  - \`@/components/ui/collapse\`
+  - \`@/components/ui/context-menu\`
+  - \`@/components/ui/dialog\`
+  - \`@/components/ui/dropdown-menu\`
+  - \`@/components/ui/input\`
+  - \`@/components/ui/label\`
+  - \`@/components/ui/menubar\`
+  - \`@/components/ui/navigation-menu\`
+  - \`@/components/ui/popover\`
+  - \`@/components/ui/progress\`
+  - \`@/components/ui/radio-group\`
+  - \`@/components/ui/scroll-area\`
+  - \`@/components/ui/select\`
+  - \`@/components/ui/separator\`
+  - \`@/components/ui/sheet\`
+  - \`@/components/ui/skeleton\`
+  - \`@/components/ui/slider\`
+  - \`@/components/ui/switch\`
+  - \`@/components/ui/tabs\`
+  - \`@/components/ui/textarea\`
+  - \`@/components/ui/toast\`
+  - \`@/components/ui/toggle\`
+  - \`@/components/ui/tooltip\`
 - NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
-- Do not make fetch calls to other websites in the code. Just use mock data locally.
+- Always add a little padding to components to make them look nicer
+- Use a consistent color palette for all the components that compliment each other
+- Do not make fetch calls to other websites in your code. Just use mock data locally.
 - Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so \`<img src="/api/placeholder/400/320" alt="placeholder" />\`
 - Please ONLY return the full React code starting with the imports, nothing else. It's very important for my job that you only return the React code with imports. DO NOT START WITH \`\`\`typescript or \`\`\`javascript or \`\`\`tsx or \`\`\`.
 
 Here is an example:
 
-<example_1>
-
 <user>
-Create a login form
+Make a quiz app about the olympics
 </user>
 
 <assistant>
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-const LoginForm = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Here you would typically handle the login logic
-    console.log('Login attempted with:', { username, password });
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+
+interface Question {
+  question: string;
+  options: string[];
+  answer: string;
+}
+
+const questions: Question[] = [
+  {
+    question: "What is the Olympic motto?",
+    options: ["Citius, Altius, Fortius", "Faster, Higher, Stronger", "United We Stand", "Friendship, Unity, Progress"],
+    answer: "Citius, Altius, Fortius"
+  },
+  {
+    question: "Which city hosted the first modern Olympic Games?",
+    options: ["Athens", "Paris", "London", "Berlin"],
+    answer: "Athens"
+  },
+  {
+    question: "What is the name of the Olympic symbol?",
+    options: ["The Olympic Rings", "The Olympic Torch", "The Olympic Flag", "The Olympic Oath"],
+    answer: "The Olympic Rings"
+  }
+];
+
+const QuizApp = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [selectedOption, setSelectedOption] = useState("");
+  const [quizCompleted, setQuizCompleted] = useState(false);
+
+  const handleNextQuestion = () => {
+    if (selectedOption === questions[currentQuestion].answer) {
+      setScore(score + 1);
+    }
+
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedOption("");
+    } else {
+      setQuizCompleted(true);
+    }
   };
+
+  const handleSelectOption = (value: string) => {
+    setSelectedOption(value);
+  };
+
+  const handleRestartQuiz = () => {
+    setCurrentQuestion(0);
+    setScore(0);
+    setSelectedOption("");
+    setQuizCompleted(false);
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm mx-auto">
-      <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
-        <Input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      <Button type="submit" className="w-full">
-        Log In
-      </Button>
-    </form>
+    <div className="p-4 max-w-md mx-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle>Olympic Quiz</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!quizCompleted ? (
+            <>
+              <p className="text-sm mb-4">Test your knowledge of the Olympics!</p>
+              <p className="text-lg font-bold mb-2">{questions[currentQuestion].question}</p>
+              <RadioGroup value={selectedOption} onValueChange={handleSelectOption} className="space-y-2">
+                {questions[currentQuestion].options.map((option, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <RadioGroupItem value={option} id={\`option-\${index}\`} />
+                    <Label htmlFor={\`option-\${index}\`}>{option}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+              <Button className="mt-4 w-full" onClick={handleNextQuestion} disabled={!selectedOption}>
+                {currentQuestion === questions.length - 1 ? "Finish Quiz" : "Next Question"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-bold mb-2">Quiz Complete!</p>
+              <p className="text-sm mb-4">Your final score is {score} out of {questions.length}.</p>
+              <Button className="mt-4 w-full" onClick={handleRestartQuiz}>Start Again</Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
-export default LoginForm;
-</assistant>
 
-</example_1>
+export default QuizApp;
+</assistant>
 `;
 
 export async function POST(req: Request) {
