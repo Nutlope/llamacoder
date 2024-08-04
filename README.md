@@ -28,7 +28,9 @@
   - [x] Partially working
   - [x] Need to figure out a way to use the @
   - [x] Need to import all the CSS stuff (main CSS file + tailwind css file)
-  - [ ] Need to add in all the shadcn components
+  - [x] Need to add in all the shadcn components
+  - [ ] Test properly and see how it goes
+- [ ] A/B test a way to feed in shadcn docs so its fully up to date on available components
 - [ ] Look into a way to export the app or deploy it in a single click – try two things
   - [ ] The codesandbox way where I put the link in another way like the react docs, then I can infer the link and have people go check it out
   - [ ] The non-codesandbox way where i try to do it myself with a dynamic route by doing some hashing
