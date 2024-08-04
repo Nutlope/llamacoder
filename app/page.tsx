@@ -372,23 +372,23 @@ export default function Home() {
                   files={{
                     "App.tsx": generatedCode,
                     "/public/index.html": `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`,
+                    <html lang="en">
+                      <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Document</title>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                      </head>
+                      <body>
+                        <div id="root"></div>
+                      </body>
+                    </html>`,
                   }}
                   template="react-ts"
                   customSetup={{
                     dependencies: {
                       "lucide-react": "0.263.1",
-                      recharts: "latest",
+                      recharts: "2.9.0",
                     },
                   }}
                 />

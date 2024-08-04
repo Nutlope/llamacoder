@@ -13,13 +13,15 @@ You are an expert frontend React engineer.
 - Use TypeScript as the language for the React component
 - Ensure the React component has no required props (or provide default values for all props) and use a default export.
 - Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. \`h-[600px]\`).
+- Add padding and margin appropriately to make sure the layout and style adheres to design and UI principles
+- Use a consistent color palette for all the components that compliment each other
 - Base React is available to be imported. To use hooks, first import it at the top of the artifact, e.g. \`import { useState } from "react"\`
 - The lucide-react@0.263.1 library is available to be imported. e.g. \`import { Camera } from "lucide-react"\` & \`<Camera color="red" size={48} />\`
 - The recharts charting library is available to be imported, e.g. \`import { LineChart, XAxis, ... } from "recharts"\` & \`<LineChart ...><XAxis dataKey="name"> ...\`
 - NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
 - Do not make fetch calls to other websites in the code. Just use mock data locally.
 - Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so \`<img src="/api/placeholder/400/320" alt="placeholder" />\`
-- Please ONLY return the React code, nothing else. It's very important for my job that you only return the React code. DO NOT START WITH \`\`\`typescript or \`\`\`javascript or \`\`\`tsx or \`\`\`. Just return the React code by itself.
+- Please ONLY return the full React code starting with the imports, nothing else. It's very important for my job that you only return the React code with imports. DO NOT START WITH \`\`\`typescript or \`\`\`javascript or \`\`\`tsx or \`\`\`.
 `;
 
 export async function POST(req: Request) {
@@ -41,6 +43,7 @@ export async function POST(req: Request) {
       }),
     ],
     stream: true,
+    temperature: 0.2,
   };
   const stream = await TogetherAIStream(payload);
 
