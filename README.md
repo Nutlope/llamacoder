@@ -19,14 +19,17 @@
 ## Cloning & running
 
 1. Clone the repo: `git clone https://github.com/Nutlope/llamacoder`
-2. Create a `.env` file and add your [Together AI API key]([Together AI](https://dub.sh/together-ai)): `TOGETHER_API_KEY=`
+2. Create a `.env` file and add your [Together AI API key](https://dub.sh/together-ai): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
 ## Future Tasks
 
-- [ ] Make it generate more consistent apps by only importing from a component library like shadcn
-- [ ] Look into a way to export the app or deploy it in a single click
+- [ ] Make it generate more consistent apps by only importing from a component library like shadcn, can checkout repos like openv0 for inspo
+- [ ] Look into a way to export the app or deploy it in a single click – try two things
+  - The codesandbox way where I put the link in another way like the react docs, then I can infer the link and have people go check it out
+  - The non-codesandbox way where i try to do it myself with a dynamic route by doing some hashing
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
+- [ ] Add a bring your own key version in case traffic gets too high
 - [ ] Save previous versions so people can go back and forth between the generated ones
 - [ ] Support different kinds of apps/languages & scripts with Python, maybe w/ E2B
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code

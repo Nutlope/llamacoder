@@ -21,6 +21,18 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import LoadingDots from "../components/loading-dots";
+import Hello from "@/components/Shadcn";
+import {
+  button,
+  Button,
+  card,
+  fullStyles,
+  input,
+  label,
+  tailwindConfig,
+  tsconfig,
+  utils,
+} from "@/utils/Shadcn";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -334,7 +346,6 @@ export default function Home() {
                       <button
                         onClick={() => {
                           location.reload();
-
                           // TODO: Cancel stream and reset this state
                           // setMessages([]);
                           // setStatus("initial");
@@ -367,28 +378,42 @@ export default function Home() {
                       "https://unpkg.com/@tailwindcss/ui/dist/tailwind-ui.min.css",
                     ],
                     editorHeight: "80vh",
-                    showTabs: false,
+                    showTabs: true,
                   }}
                   files={{
                     "App.tsx": generatedCode,
+                    "styles.css": fullStyles,
+                    "tailwind.config.ts": tailwindConfig,
+                    "tsconfig.json": tsconfig,
+                    "/lib/utils.ts": utils,
+                    "/components/ui/button.tsx": button,
+                    "/components/ui/card.tsx": card,
+                    "/components/ui/label.tsx": label,
+                    "/components/ui/input.tsx": input,
                     "/public/index.html": `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`,
+                    <html lang="en">
+                      <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Document</title>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                      </head>
+                      <body>
+                        <div id="root"></div>
+                      </body>
+                    </html>`,
                   }}
                   template="react-ts"
                   customSetup={{
                     dependencies: {
                       "lucide-react": "0.263.1",
-                      recharts: "latest",
+                      // "lucide-react": "^0.424.0",
+                      recharts: "2.12.7",
+                      "@radix-ui/react-label": "^2.1.0",
+                      "tailwind-merge": "latest",
+                      "@radix-ui/react-slot": "^1.1.0",
+                      "class-variance-authority": "^0.7.0",
+                      clsx: "^2.1.1",
                     },
                   }}
                 />
