@@ -27,10 +27,10 @@
 - [ ] Look into a way to export/deploy the app in a single click. Can try extracting the codesandbox URL and displaying it to the user (check React docs) or can try to do it myself with a dynamic route + some hashing
 - [ ] Save previous versions so people can go back and forth between the generated ones
 - [ ] Add dark mode to the site overall, nice design change
-- [ ] Could be nice to show a "featured apps" sections on the site like artifactbin
+- [ ] Could be nice to show a "featured apps" sections on the site
 - [ ] Support more languages starting with Python, check out E2B
-- [ ] Think about how to have 405B correct itself (sometimes it makes up imports)
 - [ ] Try finetuning a smaller model on good prompts from 405b or GPT-4/Claude
+- [ ] Think about how to have 405B correct itself (sometimes it makes up imports)
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
 - [ ] Add rate limiting with redis upstash if the traffic gets too high
