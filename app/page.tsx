@@ -76,7 +76,8 @@ export default function Home() {
       if (event.type === "event") {
         const data = event.data;
         try {
-          const text = JSON.parse(data).text ?? "";
+          let text = JSON.parse(data).text ?? "";
+          text = text.replace(/```(tsx|typescript|javascript)/g, "");
           setGeneratedCode((prev) => prev + text);
         } catch (e) {
           console.error(e);
