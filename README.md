@@ -24,12 +24,12 @@
 
 ## Future Tasks
 
-- [ ] Look into a way to export/deploy the app in a single click. Can try extracting the codesandbox URL and displaying it to the user (check React docs) or can try to do it myself with a dynamic route + some hashing
+- [ ] Look into a way to export/deploy the app in a single click. Can try to do it myself with a dynamic route + some hashing, or try to use Replit/Vercel
 - [ ] Save previous versions so people can go back and forth between the generated ones
-- [ ] Add dark mode to the site overall, nice design change
-- [ ] Could be nice to show a "featured apps" sections on the site
+- [ ] Could be nice to show a "featured apps" route on the site on `/featured`. Have a `/id/${prompt}` dynamic route that can display a bunch of nice example apps in the sandbox ready to go
 - [ ] Support more languages starting with Python, check out E2B
 - [ ] Try finetuning a smaller model on good prompts from 405b or GPT-4/Claude
+- [ ] Add dark mode to the site overall, nice design change
 - [ ] Think about how to have 405B correct itself (sometimes it makes up imports)
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
