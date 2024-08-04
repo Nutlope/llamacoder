@@ -29,6 +29,7 @@
 - [ ] Add dark mode to the site overall, nice design change
 - [ ] Could be nice to show a "featured apps" sections on the site like artifactbin
 - [ ] Support more languages starting with Python, check out E2B
+- [ ] Think about how to have 405B correct itself (sometimes it makes up imports)
 - [ ] Try finetuning a smaller model on good prompts from 405b or GPT-4/Claude
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
