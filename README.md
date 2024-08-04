@@ -24,12 +24,15 @@
 
 ## Future Tasks
 
-- [ ] Make it generate more consistent apps by only importing from a component library like shadcn
-- [ ] Look into a way to export the app or deploy it in a single click
-- [ ] New route for updateCode that only sends the latest generated code + the modify request
+- [ ] Look into a way to export/deploy the app in a single click. Can try extracting the codesandbox URL and displaying it to the user (check React docs) or can try to do it myself with a dynamic route + some hashing
 - [ ] Save previous versions so people can go back and forth between the generated ones
-- [ ] Support different kinds of apps/languages & scripts with Python, maybe w/ E2B
+- [ ] Add dark mode to the site overall, nice design change
+- [ ] Could be nice to show a "featured apps" sections on the site like artifactbin
+- [ ] Support more languages starting with Python, check out E2B
+- [ ] Try finetuning a smaller model on good prompts from 405b or GPT-4/Claude
+- [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
+- [ ] Add rate limiting with redis upstash if the traffic gets too high
+- [ ] Try to add a consistent component library like shadcn
 - [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
-- [ ] Add the ability to upload things like a screenshot to it for it to start from that
-- [ ] Try multiple shot prompting in weaker models or finetuning a smaller model
+- [ ] Add the ability to upload things like a screenshot for it to start from that
