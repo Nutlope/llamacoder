@@ -21,10 +21,8 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import LoadingDots from "../components/loading-dots";
-import Hello from "@/components/Shadcn";
 import {
   button,
-  Button,
   card,
   fullStyles,
   input,
@@ -109,6 +107,9 @@ export default function Home() {
       parser.feed(chunkValue);
     }
 
+    // Replace all occurrences of "@/components" with "/components" in the generated code
+    setGeneratedCode((prev) => prev.replace(/@\/components/g, "/components"));
+
     newMessages = [
       ...newMessages,
       { role: "assistant", content: generatedCode },
@@ -175,6 +176,9 @@ export default function Home() {
       const chunkValue = decoder.decode(value);
       parser.feed(chunkValue);
     }
+
+    // Replace all occurrences of "@/components" with "/components" in the generated code
+    setGeneratedCode((prev) => prev.replace(/@\/components/g, "/components"));
 
     newMessages = [
       ...newMessages,
@@ -377,6 +381,7 @@ export default function Home() {
                     externalResources: [
                       "https://unpkg.com/@tailwindcss/ui/dist/tailwind-ui.min.css",
                     ],
+                    wrapContent: false,
                     editorHeight: "80vh",
                     showTabs: true,
                   }}
