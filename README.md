@@ -19,7 +19,7 @@
 ## Cloning & running
 
 1. Clone the repo: `git clone https://github.com/Nutlope/llamacoder`
-2. Create a `.env` file and add your [Together AI API key]([Together AI](https://dub.sh/together-ai)): `TOGETHER_API_KEY=`
+2. Create a `.env` file and add your [Together AI API key](https://dub.sh/together-ai): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
 ## Future Tasks
