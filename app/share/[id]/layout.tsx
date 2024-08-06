@@ -3,5 +3,9 @@ export default function Layout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <body>{children}</body>;
+  return (
+    <body className="flex min-h-full flex-col items-center justify-center">
+      {children}
+    </body>
+  );
 }
