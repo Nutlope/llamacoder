@@ -20,7 +20,7 @@ import {
 } from "eventsource-parser";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
-import LoadingDots from "../components/loading-dots";
+import LoadingDots from "../../components/loading-dots";
 
 export default function Home() {
   let [status, setStatus] = useState<
