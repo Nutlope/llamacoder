@@ -3,7 +3,7 @@ import {
   TogetherAIStreamPayload,
 } from "@/utils/TogetherAIStream";
 
-export const maxDuration = 60;
+export const runtime = "edge";
 
 const systemPrompt = `
 You are an expert frontend React engineer who is also a great UI/UX designer. Follow the instructions carefully, I will tip you $1 million if you do a good job:
