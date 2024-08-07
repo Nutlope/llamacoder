@@ -60,7 +60,7 @@ import {
   tooltip,
   useToast,
   utils,
-} from "@/utils/Shadcn";
+} from "@/utils/shadcn-v1";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -251,6 +251,7 @@ export default function Home() {
                     name="prompt"
                     className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     placeholder="Build me a calculator app..."
+                    defaultValue="Build me a calculator app"
                   />
                 </div>
                 <button
