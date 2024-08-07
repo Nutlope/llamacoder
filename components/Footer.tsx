@@ -7,14 +7,14 @@ export default function Footer() {
         <div className="font-medium">
           Built with{" "}
           <a
-            href="https://dub.sh/together-ai"
+            href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
             className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
           >
             Llama 3.1 405B
           </a>{" "}
           and{" "}
           <a
-            href="https://dub.sh/together-ai"
+            href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
             className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
           >
             Together AI
