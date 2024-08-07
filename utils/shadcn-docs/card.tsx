@@ -1,6 +1,6 @@
 export const name = "Card";
 
-export const usage = `
+export const importDocs = `
 import {
   Card,
   CardContent,
@@ -9,7 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "/components/ui/card"
+ `;
 
+export const usageDocs = `
 <Card>
   <CardHeader>
     <CardTitle>Card Title</CardTitle>

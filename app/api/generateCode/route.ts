@@ -21,19 +21,23 @@ You are an expert frontend React engineer who is also a great UI/UX designer. Fo
 
 There are some prestyled components available for use. Please use your best judgement to use any of these components if the app calls for one.
 
-Here are the components that are available, along with how to use them:
+Here are the components that are available, along with how to import them, and how to use them:
 
 ${shadcnDocs
-  .map(
-    (component) => `
+  .map((component) =>
+    `
   <component>
   <name>
   ${component.name}
   </name>
-  <usage>
-  ${component.usage}
+  <import-instructions>
+  ${component.importDocs}
+  </import-instructions>
+  <usage-instructions>
+  ${component.usageDocs}
+  </usage-instructions>
   </component>
-`,
+`.trim(),
   )
   .join("\n")}
 
