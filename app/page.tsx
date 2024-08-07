@@ -137,9 +137,6 @@ export default function Home() {
       parser.feed(chunkValue);
     }
 
-    // Replace all occurrences of "@/components" with "/components" in the generated code
-    setGeneratedCode((prev) => prev.replace(/@\/components/g, "/components"));
-
     newMessages = [
       ...newMessages,
       { role: "assistant", content: generatedCode },
@@ -206,10 +203,6 @@ export default function Home() {
       const chunkValue = decoder.decode(value);
       parser.feed(chunkValue);
     }
-
-    // Replace all occurrences of "@/components" with "/components" in the generated code
-    setGeneratedCode((prev) => prev.replace(/@\/components/g, "/components"));
-
     newMessages = [
       ...newMessages,
       { role: "assistant", content: generatedCode },
