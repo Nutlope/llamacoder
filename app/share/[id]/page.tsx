@@ -11,7 +11,7 @@ async function getCode(id: string) {
   Database schemahttp://localhost:3000/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fhalo.c1bc0835.png&w=3840&q=75
 
   id (@uuid) | model (TEXT) |  prompt (TEXT)  | code (TEXT) | createdAt (auto datetime)
-  ------------------------------------------------------------------------------------- 
+  -------------------------------------------------------------------------------------
   abkens     | llama-405b   | Build me a.... | function.... | now()
   islkns     | llama-405b   | Build me a.... | function.... | now()
 
