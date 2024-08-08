@@ -20,7 +20,11 @@ export default async function Page({ params }: { params: { id: string } }) {
     },
   });
 
-  return <CodeViewer code={generatedApp?.code} />;
+  if (!generatedApp) {
+    return <div>App not found</div>;
+  }
+
+  return <CodeViewer code={generatedApp.code} />;
 }
 
 let sampleCode = `
