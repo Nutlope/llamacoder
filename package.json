@@ -20,7 +20,8 @@
     "next": "14.2.5",
     "next-plausible": "^3.12.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "sonner": "^1.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",

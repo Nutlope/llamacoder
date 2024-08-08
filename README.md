@@ -24,7 +24,8 @@
 
 ## Future Tasks
 
-- [ ] Change the way sharability is done by copying a URL – do "Publish" and similar flow to Claude
+- [ ] Add dynamic OG images to the specific generations & include the prompt
+- [ ] Address issue of publishing the same app repeatedly
 - [ ] Try chain of thought reasoning to see if it works better overall
 - [ ] Encourage best practices by making the input and textarea & having pills to generate apps w/ good prompts
 - [ ] Save previous versions so people can go back and forth between the generated ones

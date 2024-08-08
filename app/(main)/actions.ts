@@ -20,5 +20,5 @@ export async function shareApp({
     },
   });
 
-  return redirect(`/share/${newApp.id}`);
+  return newApp.id;
 }

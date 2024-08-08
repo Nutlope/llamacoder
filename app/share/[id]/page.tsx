@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import CodeViewer from "./code-viewer";
 import client from "@/lib/prisma";
+import { Toaster, toast } from "sonner";
 
 async function getCode(id: string) {
   await new Promise((resolve) => setTimeout(resolve, 1000));

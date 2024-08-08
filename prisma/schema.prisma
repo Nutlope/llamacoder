@@ -8,7 +8,7 @@ datasource db {
 }
 
 model GeneratedApp {
-  id        String   @id @default(uuid())
+  id        String   @id @default(nanoid(5))
   model     String
   prompt    String
   code      String
