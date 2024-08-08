@@ -1,5 +1,6 @@
 "use client";
 
+import { Toaster, toast } from "sonner";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { useScrollTo } from "@/hooks/use-scroll-to";
@@ -9,8 +10,9 @@ import { CheckIcon } from "@heroicons/react/16/solid";
 import {
   ArrowLongRightIcon,
   ChevronDownIcon,
-  PlusIcon,
+  ArrowUpOnSquareIcon,
 } from "@heroicons/react/20/solid";
+// import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
 import * as Select from "@radix-ui/react-select";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import {
@@ -20,7 +22,8 @@ import {
 } from "eventsource-parser";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
-import LoadingDots from "../components/loading-dots";
+import LoadingDots from "../../components/loading-dots";
+import { shareApp } from "./actions";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -328,20 +331,38 @@ export default function Home() {
                 </fieldset>
               </form>
               <div>
+                <Toaster richColors />
                 <Tooltip.Provider>
                   <Tooltip.Root delayDuration={0}>
                     <Tooltip.Trigger asChild>
                       <button
-                        onClick={() => {
-                          location.reload();
+                        disabled={loading}
+                        onClick={async () => {
+                          let userMessages = messages.filter(
+                            (message) => message.role === "user",
+                          );
+                          let prompt =
+                            userMessages[userMessages.length - 1].content;
 
-                          // TODO: Cancel stream and reset this state
-                          // setMessages([]);
-                          // setStatus("initial");
+                          const appId = await shareApp({
+                            generatedCode,
+                            prompt,
+                            model: modelUsedForInitialCode,
+                          });
+
+                          toast.success(
+                            `Your app has been published & copied to your clipboard! llamacoder.io/share/${appId}`,
+                          );
+                          navigator.clipboard.writeText(
+                            `llamacoder.io/share/${appId}`,
+                          );
                         }}
-                        className="inline-flex size-[68px] items-center justify-center rounded-3xl bg-blue-500"
+                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500"
                       >
-                        <PlusIcon className="size-10 text-white" />
+                        <ArrowUpOnSquareIcon className="size-5 text-xl text-white" />
+                        <p className="text-lg font-medium text-white">
+                          Publish app
+                        </p>
                       </button>
                     </Tooltip.Trigger>
                     <Tooltip.Portal>
@@ -349,7 +370,7 @@ export default function Home() {
                         className="select-none rounded bg-white px-4 py-2.5 text-sm leading-none shadow-md shadow-black/20"
                         sideOffset={5}
                       >
-                        Create a new app
+                        Publishes your app to the internet
                         <Tooltip.Arrow className="fill-white" />
                       </Tooltip.Content>
                     </Tooltip.Portal>

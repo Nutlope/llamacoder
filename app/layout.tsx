@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import "./globals.css";
-import Image from "next/image";
-import bgImg from "@/public/halo.png";
 import PlausibleProvider from "next-plausible";
+import "./globals.css";
 
 let title = "Llama Coder – AI Code Generator";
 let description = "Generate your next app with Llama 3.1 405B";
@@ -40,21 +38,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="h-full">
       <head>
         <PlausibleProvider domain="llamacoder.io" />
       </head>
-      <body className="bg-brand antialiased">
-        <div className="absolute inset-x-0 flex justify-center">
-          <Image
-            src={bgImg}
-            alt=""
-            className="w-full max-w-[1200px] mix-blend-screen"
-            priority
-          />
-        </div>
-        <div className="isolate">{children}</div>
-      </body>
+
+      {children}
     </html>
   );
 }
