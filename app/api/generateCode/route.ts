@@ -19,6 +19,9 @@ You are an expert frontend React engineer who is also a great UI/UX designer. Fo
 - Make sure to write the name of File and Component in the comment at the top of the file, e.g. \`//Button.tsx\`
 - Separate the files by using the following structure: -%-%- (e.g. \`//Button.tsx MultilineContents... -%-%- //ButtonGroup.tsx MultilineContents...\`)
 - Always make sure to Start app from 'App.tsx' (then main file which will be mounted in 'index.tsx')
+- Add .tsx extension to all files when importing in another file
+- You can generate as many files as you need, but make sure to export the component from the file.
+- You can genrate any text-based files. For example, if you need to generate a CSS file, you can generate a CSS file with the content you need.
 `;
 
 export async function POST(req: Request) {

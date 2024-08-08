@@ -20,8 +20,10 @@ import {
 } from "eventsource-parser";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
-import LoadingDots from "../components/loading-dots";
-
+import LoadingDots from "@/components/loading-dots";
+import ExportToZip from "@/utils/ExportToZip"
+import ReactAllFiles from "@/utils/ReactAllFiles";
+import sendToSrc from "@/utils/SrcCode";
 const CODES = {
   "App.tsx": "",
   "/public/index.html": `<!DOCTYPE html>
@@ -50,7 +52,13 @@ export default function Home() {
   let [messages, setMessages] = useState<{ role: string; content: string }[]>(
     []
   );
-
+  const [downloadloading, setDownloadLoading] = useState(false);
+  // TODO: Dynamically add dependencies based on the model
+  const dependencies = {
+    "lucide-react": "latest",
+    "react-router-dom": "latest",
+    recharts: "2.9.0",
+  }
   let loading = status === "creating" || status === "updating";
 
   function SetCodesFiless(data: any) {
@@ -126,7 +134,30 @@ export default function Home() {
     setMessages(newMessages);
     setStatus("created");
   }
+  async function handleExport() {
+    setDownloadLoading(true);
+    let name="App";
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === "user") {
+        name = messages[i].content;
+      }
+    }
+    const updetedName=name.replaceAll(" ","-").replaceAll(".","-").replaceAll("/","-").replaceAll("\\","-").replaceAll(":","-").replaceAll("*","-").replaceAll("?","-").replaceAll("\"","-").replaceAll("<","-").replaceAll(">","-").replaceAll("|","-")
+    const files={
+      ...sendToSrc(CodeFiles),
+      ...ReactAllFiles(updetedName.toLowerCase(), name, dependencies),
+    }
+    console.log(files);
+      try{
+        await ExportToZip(files,updetedName);
 
+      }catch{
+        await ExportToZip(files,"App");
+      }
+    setDownloadLoading(false);
+
+  
+}
   async function modifyCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -203,7 +234,9 @@ export default function Home() {
         if (match) {
           const fileName = match[1];
           const fileContent = codeFile.replace(match[0], "");
-          
+          if( fileName.trim() === "index") {
+            continue;
+          }
           const fullName=fileName.trim() + ".tsx";
           newCodeFiles[fullName] = fileContent;
           activeFile_=fullName;
@@ -418,13 +451,15 @@ export default function Home() {
                   files={CodeFiles}
                   template="react-ts"
                   customSetup={{
-                    dependencies: {
-                      "lucide-react": "latest",
-                      "react-router-dom": "latest",
-                      recharts: "2.9.0",
-                    },
+                    dependencies: dependencies,
                   }}
                 />
+                {!loading&&<button
+                  onClick={handleExport}
+                  className="inline-flex items-center justify-center px-4 py-2 mt-4 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-md hover:bg-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
+                >
+                  {!downloadloading? "Download App":<LoadingDots color="white" style="small" />}
+                </button>}
               </div>
 
               <AnimatePresence>

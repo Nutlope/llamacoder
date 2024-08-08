@@ -24,7 +24,8 @@
 
 ## Future Tasks
 
-- [ ] Look into a way to export/deploy the app in a single click. Can try to do it myself with a dynamic route + some hashing, or try to use Replit/Vercel
+- [✅] Look into a way to export  the app. 
+- [ ] Look into a way to deploy the app in a single click. Can try to do it myself with a dynamic route + some hashing, or try to use Replit/Vercel
 - [ ] Save previous versions so people can go back and forth between the generated ones
 - [ ] Could be nice to show a "featured apps" route on the site on `/featured`. Have a `/id/${prompt}` dynamic route that can display a bunch of nice example apps in the sandbox ready to go
 - [ ] Support more languages starting with Python, check out E2B
