@@ -15,7 +15,7 @@ import {
 export const essentialShadcnComponents = {
   utils: utils,
   avatar: avatar,
-  badge: badge,
+  // badge: badge,
   button: button,
   card: card,
   checkbox: checkbox,

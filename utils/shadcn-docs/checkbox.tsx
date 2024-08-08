@@ -1,25 +1,9 @@
 export const name = "Checkbox";
 
-export const usage = `
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "/components/ui/card"
+export const importDocs = `
+import { Checkbox } from "/components/ui/checkbox"
+`;
 
-<Card>
-  <CardHeader>
-    <CardTitle>Card Title</CardTitle>
-    <CardDescription>Card Description</CardDescription>
-  </CardHeader>
-  <CardContent>
-    <p>Card Content</p>
-  </CardContent>
-  <CardFooter>
-    <p>Card Footer</p>
-  </CardFooter>
-</Card>
+export const usageDocs = `
+<Checkbox />
 `;

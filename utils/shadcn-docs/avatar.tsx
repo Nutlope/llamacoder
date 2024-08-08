@@ -1,14 +1,12 @@
 export const name = "Avatar";
 
-export const usage = `
+export const importDocs = `
 import { Avatar, AvatarFallback, AvatarImage } from "/components/ui/avatar";
- 
-export function Demo() {
-  return (
-    <Avatar>
-      <AvatarImage src="https://github.com/nutlope.png" />
-      <AvatarFallback>CN</AvatarFallback>
-    </Avatar>
-  )
-}
+`;
+
+export const usageDocs = `
+<Avatar>
+  <AvatarImage src="https://github.com/nutlope.png" />
+  <AvatarFallback>CN</AvatarFallback>
+</Avatar>
 `;
