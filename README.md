@@ -22,27 +22,23 @@
 2. Create a `.env` file and add your [Together AI API key](https://dub.sh/together-ai): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
-## Actively working on
+## Future Tasks
 
 - [ ] Make it generate more consistent apps by only importing from a component library like shadcn
   - [x] Partially working
   - [x] Need to figure out a way to use the @
   - [x] Need to import all the CSS stuff (main CSS file + tailwind css file)
   - [x] Need to add in all the shadcn components
-  - [ ] Try it with a few components and see if it works well FIRST, then refine it
-  - [ ] Test properly and see how it goes
-- [ ] Look into a way to export the app or deploy it in a single click – try two things:
-  - [ ] The codesandbox way where I put the link in another way like the react docs, then I can infer the link and have people go check it out
-  - [ ] The non-codesandbox way where i try to do it myself with a dynamic route by doing some hashing
-
-## Future Tasks
-
+  - [x] Try it with a few components and see if it works well FIRST, then refine it
+  - [x] Test properly and see how it goes
+  - [ ] Check out that checkbox & radio funcitonality
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
-- [ ] A/B test a way to feed in shadcn docs so its fully up to date on available components
+- [ ] Surface errors better in codesandbox to the user so people know what is wrong
+- [ ] Launch support for different themes – somehow pass down variables to components
 - [ ] Could be nice to show a "featured apps" sections on the site like artifactbin.com
-- [ ] Add dark mode
-- [ ] Add a bring your own key version in case traffic gets too high
+- [ ] Add dark mode to the site overall to make it have a nice feel
 - [ ] Save previous versions so people can go back and forth between the generated ones
+- [ ] Potentially do some rate limiting if it continues to be expensive
 - [ ] Support different kinds of apps/languages & scripts with Python, maybe w/ E2B
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
 - [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
