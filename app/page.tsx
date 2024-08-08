@@ -22,18 +22,45 @@ import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import LoadingDots from "../components/loading-dots";
 
+const CODES = {
+  "App.tsx": "",
+  "/public/index.html": `<!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Document</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body>
+      <div id="root"></div>
+    </body>
+  </html>`,
+};
+
 export default function Home() {
   let [status, setStatus] = useState<
     "initial" | "creating" | "created" | "updating" | "updated"
   >("initial");
   let [generatedCode, setGeneratedCode] = useState("");
+  let [CodeFiles, setCodeFiles] = useState(CODES);
   let [modelUsedForInitialCode, setModelUsedForInitialCode] = useState("");
   let [ref, scrollTo] = useScrollTo();
+  let [activeFile, setActiveFile] = useState<String>("App.tsx");
   let [messages, setMessages] = useState<{ role: string; content: string }[]>(
-    [],
+    []
   );
 
   let loading = status === "creating" || status === "updating";
+
+  function SetCodesFiless(data: any) {
+    try {
+      const text = JSON.parse(data).text ?? "";
+      setGeneratedCode((prev) => prev + text);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   async function generateCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,7 +94,6 @@ export default function Home() {
       throw new Error(chatRes.statusText);
     }
 
-    // This data is a ReadableStream
     const data = chatRes.body;
     if (!data) {
       return;
@@ -75,16 +101,10 @@ export default function Home() {
     const onParse = (event: ParsedEvent | ReconnectInterval) => {
       if (event.type === "event") {
         const data = event.data;
-        try {
-          const text = JSON.parse(data).text ?? "";
-          setGeneratedCode((prev) => prev + text);
-        } catch (e) {
-          console.error(e);
-        }
+        SetCodesFiless(data);
       }
     };
 
-    // https://web.dev/streams/#the-getreader-and-read-methods
     const reader = data.getReader();
     const decoder = new TextDecoder();
     const parser = createParser(onParse);
@@ -134,7 +154,6 @@ export default function Home() {
       throw new Error(chatRes.statusText);
     }
 
-    // This data is a ReadableStream
     const data = chatRes.body;
     if (!data) {
       return;
@@ -142,16 +161,10 @@ export default function Home() {
     const onParse = (event: ParsedEvent | ReconnectInterval) => {
       if (event.type === "event") {
         const data = event.data;
-        try {
-          const text = JSON.parse(data).text ?? "";
-          setGeneratedCode((prev) => prev + text);
-        } catch (e) {
-          console.error(e);
-        }
+        SetCodesFiless(data);
       }
     };
 
-    // https://web.dev/streams/#the-getreader-and-read-methods
     const reader = data.getReader();
     const decoder = new TextDecoder();
     const parser = createParser(onParse);
@@ -179,8 +192,36 @@ export default function Home() {
       let end = el.scrollHeight - el.clientHeight;
       el.scrollTo({ top: end });
     }
+    let activeFile_="App.tsx";
+    try {
+      const codeFiles = generatedCode.split("-%-%-");
+      const newCodeFiles: { [key: string]: string } = {};
+      for (let i = 0; i < codeFiles.length; i++) {
+        const codeFile = codeFiles[i];
+        const regex = /\/\/(.*).tsx/g;
+        const match = regex.exec(codeFile);
+        if (match) {
+          const fileName = match[1];
+          const fileContent = codeFile.replace(match[0], "");
+          
+          const fullName=fileName.trim() + ".tsx";
+          newCodeFiles[fullName] = fileContent;
+          activeFile_=fullName;
+        }
+      }
+      setCodeFiles((prevCodeFiles) => ({
+        ...CODES,
+        ...newCodeFiles,
+      }));
+      setActiveFile(activeFile_);
+    } catch (e) {
+      console.error(e);
+    }
   }, [loading, generatedCode]);
 
+  useEffect(() => {
+    console.log("CodeFiles",CodeFiles);
+  },[CodeFiles]);
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center py-2">
       <Header />
@@ -359,6 +400,7 @@ export default function Home() {
             </div>
             <div className="relative mt-8 w-full overflow-hidden">
               <div className="isolate">
+
                 <Sandpack
                   theme={draculaTheme}
                   options={{
@@ -367,27 +409,18 @@ export default function Home() {
                       "https://unpkg.com/@tailwindcss/ui/dist/tailwind-ui.min.css",
                     ],
                     editorHeight: "80vh",
-                    showTabs: false,
+                    showTabs: true,
+                    // @ts-ignore
+                    activeFile:activeFile,
+                    
+
                   }}
-                  files={{
-                    "App.tsx": generatedCode,
-                    "/public/index.html": `<!DOCTYPE html>
-                    <html lang="en">
-                      <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Document</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                      </head>
-                      <body>
-                        <div id="root"></div>
-                      </body>
-                    </html>`,
-                  }}
+                  files={CodeFiles}
                   template="react-ts"
                   customSetup={{
                     dependencies: {
                       "lucide-react": "latest",
+                      "react-router-dom": "latest",
                       recharts: "2.9.0",
                     },
                   }}
