@@ -6,11 +6,8 @@ import { useScrollTo } from "@/hooks/use-scroll-to";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
 import { CheckIcon } from "@heroicons/react/16/solid";
-import {
-  ArrowLongRightIcon,
-  ChevronDownIcon,
-  PlusIcon,
-} from "@heroicons/react/20/solid";
+import { ArrowLongRightIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
+import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
 import * as Select from "@radix-ui/react-select";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import {
@@ -21,6 +18,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import LoadingDots from "../../components/loading-dots";
+import { shareApp } from "./actions";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -332,16 +330,22 @@ export default function Home() {
                   <Tooltip.Root delayDuration={0}>
                     <Tooltip.Trigger asChild>
                       <button
-                        onClick={() => {
-                          location.reload();
+                        onClick={async () => {
+                          let userMessages = messages.filter(
+                            (message) => message.role === "user",
+                          );
+                          let prompt =
+                            userMessages[userMessages.length - 1].content;
 
-                          // TODO: Cancel stream and reset this state
-                          // setMessages([]);
-                          // setStatus("initial");
+                          await shareApp({
+                            generatedCode,
+                            prompt,
+                            model: modelUsedForInitialCode,
+                          });
                         }}
                         className="inline-flex size-[68px] items-center justify-center rounded-3xl bg-blue-500"
                       >
-                        <PlusIcon className="size-10 text-white" />
+                        <ArrowUpOnSquareIcon className="size-6 text-white" />
                       </button>
                     </Tooltip.Trigger>
                     <Tooltip.Portal>
@@ -349,7 +353,7 @@ export default function Home() {
                         className="select-none rounded bg-white px-4 py-2.5 text-sm leading-none shadow-md shadow-black/20"
                         sideOffset={5}
                       >
-                        Create a new app
+                        Share your app
                         <Tooltip.Arrow className="fill-white" />
                       </Tooltip.Content>
                     </Tooltip.Portal>

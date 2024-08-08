@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import CodeViewer from "./code-viewer";
+import client from "@/lib/prisma";
 
 async function getCode(id: string) {
   await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -13,9 +14,13 @@ export default async function Page({ params }: { params: { id: string } }) {
     notFound();
   }
 
-  let code = await getCode(params.id);
+  const generatedApp = await client.generatedApp.findUnique({
+    where: {
+      id: params.id,
+    },
+  });
 
-  return <CodeViewer code={code} />;
+  return <CodeViewer code={generatedApp?.code} />;
 }
 
 let sampleCode = `
