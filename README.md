@@ -24,23 +24,21 @@
 
 ## Future Tasks
 
-- [ ] Make it generate more consistent apps by only importing from a component library like shadcn
-  - [x] Partially working
-  - [x] Need to figure out a way to use the @
-  - [x] Need to import all the CSS stuff (main CSS file + tailwind css file)
-  - [x] Need to add in all the shadcn components
-  - [x] Try it with a few components and see if it works well FIRST, then refine it
-  - [x] Test properly and see how it goes
-  - [ ] Check out that checkbox & radio funcitonality
-- [ ] New route for updateCode that only sends the latest generated code + the modify request
-- [ ] Surface errors better in codesandbox to the user so people know what is wrong
+- [ ] Check out that checkbox & radio funcitonality for shadcn
+- [ ] Add sharability to people can take their apps and share them publicly
 - [ ] Launch support for different themes – somehow pass down variables to components
-- [ ] Could be nice to show a "featured apps" sections on the site like artifactbin.com
-- [ ] Add dark mode to the site overall to make it have a nice feel
+- [ ] Encourage best practices by making the input and textarea & having pills to generate apps w/ good prompts
 - [ ] Save previous versions so people can go back and forth between the generated ones
-- [ ] Potentially do some rate limiting if it continues to be expensive
-- [ ] Support different kinds of apps/languages & scripts with Python, maybe w/ E2B
+- [ ] Could be nice to show a "featured apps" route on the site on /featured. Have a /id/${prompt} dynamic route that can display a bunch of nice example apps in the sandbox ready to go
+- [ ] Support more languages starting with Python, check out E2B
+- [ ] Try chain of thought reasoning to see if it works better overall
+- [ ] Try finetuning a smaller model on good prompts from 405b or GPT-4/Claude
+- [ ] Add dark mode to the site overall, nice design change
+- [ ] Surface errors better in codesandbox to the user so people know what is wrong
+- [ ] Think about how to have 405B correct itself (sometimes it makes up imports)
+- [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
+- [ ] Add rate limiting with redis upstash if the traffic gets too high
+- [ ] Try to add a consistent component library like shadcn
 - [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
-- [ ] Add the ability to upload things like a screenshot to it for it to start from that
-- [ ] Try multiple shot prompting in weaker models or finetuning a smaller model
+- [ ] Add the ability to upload things like a screenshot for it to start from that

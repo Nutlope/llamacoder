@@ -60,7 +60,7 @@ import {
   tooltip,
   useToast,
   utils,
-} from "@/utils/shadcn-v1";
+} from "@/utils/shadcn";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -251,7 +251,6 @@ export default function Home() {
                     name="prompt"
                     className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     placeholder="Build me a calculator app..."
-                    defaultValue="Build me a calculator app"
                   />
                 </div>
                 <button
@@ -466,8 +465,8 @@ export default function Home() {
                   template="react-ts"
                   customSetup={{
                     dependencies: {
-                      "lucide-react": "^0.424.0",
-                      // "lucide-react": "0.263.1",
+                      // "lucide-react": "^0.424.0",
+                      "lucide-react": "0.263.1",
                       recharts: "2.12.7",
                       "@radix-ui/react-accordion": "^1.2.0",
                       "@radix-ui/react-alert-dialog": "^1.1.1",
