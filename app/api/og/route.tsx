@@ -12,7 +12,7 @@ export async function GET(request: Request) {
           backgroundSize: "1200px 630px",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center center",
-          fontSize: 40,
+          fontSize: 50,
           color: "black",
           background: "white",
           width: "100%",
