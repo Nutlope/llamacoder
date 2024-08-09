@@ -25,7 +25,8 @@
 ## Future Tasks
 
 - [ ] Add dynamic OG images to the specific generations & include the prompt
-- [ ] Address issue of publishing the same app repeatedly
+- [ ] Add more dynamic OG images for playwright
+- [ ] Address issue of ability to publish the same app repeatedly
 - [ ] Try chain of thought reasoning to see if it works better overall
 - [ ] Encourage best practices by making the input and textarea & having pills to generate apps w/ good prompts
 - [ ] Save previous versions so people can go back and forth between the generated ones

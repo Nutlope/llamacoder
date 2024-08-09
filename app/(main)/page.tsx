@@ -35,6 +35,7 @@ export default function Home() {
   let [messages, setMessages] = useState<{ role: string; content: string }[]>(
     [],
   );
+  let [isPublishing, setIsPublishing] = useState(false);
 
   let loading = status === "creating" || status === "updating";
 
@@ -331,25 +332,29 @@ export default function Home() {
                 </fieldset>
               </form>
               <div>
-                <Toaster richColors />
+                <Toaster invert={true} />
                 <Tooltip.Provider>
                   <Tooltip.Root delayDuration={0}>
                     <Tooltip.Trigger asChild>
                       <button
-                        disabled={loading}
+                        disabled={loading || isPublishing}
                         onClick={async () => {
+                          setIsPublishing(true);
                           let userMessages = messages.filter(
                             (message) => message.role === "user",
                           );
                           let prompt =
                             userMessages[userMessages.length - 1].content;
 
-                          const appId = await shareApp({
-                            generatedCode,
-                            prompt,
-                            model: modelUsedForInitialCode,
-                          });
-
+                          const appId = await minDelay(
+                            shareApp({
+                              generatedCode,
+                              prompt,
+                              model: modelUsedForInitialCode,
+                            }),
+                            1000,
+                          );
+                          setIsPublishing(false);
                           toast.success(
                             `Your app has been published & copied to your clipboard! llamacoder.io/share/${appId}`,
                           );
@@ -357,9 +362,20 @@ export default function Home() {
                             `llamacoder.io/share/${appId}`,
                           );
                         }}
-                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500"
+                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition disabled:grayscale"
                       >
-                        <ArrowUpOnSquareIcon className="size-5 text-xl text-white" />
+                        <span className="relative">
+                          {isPublishing && (
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <LoadingDots color="white" style="large" />
+                            </span>
+                          )}
+
+                          <ArrowUpOnSquareIcon
+                            className={`${isPublishing ? "invisible" : ""} size-5 text-xl text-white`}
+                          />
+                        </span>
+
                         <p className="text-lg font-medium text-white">
                           Publish app
                         </p>
@@ -444,4 +460,11 @@ export default function Home() {
       <Footer />
     </div>
   );
+}
+
+async function minDelay<T>(promise: Promise<T>, ms: number) {
+  let delay = new Promise((resolve) => setTimeout(resolve, ms));
+  let [p] = await Promise.all([promise, delay]);
+
+  return p;
 }
