@@ -34,6 +34,8 @@ Look into a way to export/deploy the app in a single click. Steps:
 
 ## Future Tasks
 
+- [ ] Experiment with a prompt rewriter and launch this as well
+- [ ] Make the toast that opens better like a modal for sharability
 - [ ] Add sharability to people can take their apps and share them publicly
 - [ ] Add the ability to toggle on and off shadcn components and others
 - [ ] Launch support for different themes – somehow pass down variables to components
