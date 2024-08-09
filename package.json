@@ -15,6 +15,7 @@
     "@prisma/client": "^5.18.0",
     "@radix-ui/react-select": "^2.1.1",
     "@radix-ui/react-tooltip": "^1.1.2",
+    "@vercel/og": "^0.6.2",
     "eventsource-parser": "^1.1.2",
     "framer-motion": "^11.3.19",
     "next": "14.2.5",
