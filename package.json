@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -12,14 +12,17 @@
     "@codesandbox/sandpack-react": "^2.18.2",
     "@codesandbox/sandpack-themes": "^2.0.21",
     "@heroicons/react": "^2.1.5",
+    "@prisma/client": "^5.18.0",
     "@radix-ui/react-select": "^2.1.1",
     "@radix-ui/react-tooltip": "^1.1.2",
+    "@vercel/og": "^0.6.2",
     "eventsource-parser": "^1.1.2",
     "framer-motion": "^11.3.19",
     "next": "14.2.5",
     "next-plausible": "^3.12.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "sonner": "^1.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -30,6 +33,7 @@
     "postcss": "^8",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.5",
+    "prisma": "^5.18.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

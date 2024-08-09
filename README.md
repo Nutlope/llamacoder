@@ -22,18 +22,11 @@
 2. Create a `.env` file and add your [Together AI API key](https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
-## Exporting app feature (working on it)
-
-Look into a way to export/deploy the app in a single click. Steps:
-
-1. Generate a UUID
-2. Write the code + ID to a database
-3. Dynamic route that fetches code
-4. Use sandpack for now (but hide the code view)
-5. Dynamic OG image
-
 ## Future Tasks
 
+- [ ] Add dynamic OG images to the specific generations & include the prompt
+- [ ] Add more dynamic OG images for playwright
+- [ ] Address issue of ability to publish the same app repeatedly
 - [ ] Try chain of thought reasoning to see if it works better overall
 - [ ] Encourage best practices by making the input and textarea & having pills to generate apps w/ good prompts
 - [ ] Save previous versions so people can go back and forth between the generated ones
