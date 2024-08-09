@@ -24,6 +24,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
+import { domain } from "@/utils/domain";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -359,7 +360,7 @@ export default function Home() {
                             `Your app has been published & copied to your clipboard! llamacoder.io/share/${appId}`,
                           );
                           navigator.clipboard.writeText(
-                            `llamacoder.io/share/${appId}`,
+                            `${domain}/share/${appId}`,
                           );
                         }}
                         className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition disabled:grayscale"
