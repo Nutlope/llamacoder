@@ -8,6 +8,10 @@ export async function GET(request: Request) {
     (
       <div
         style={{
+          backgroundImage: `url(${"https://llamacoder.io/dynamic-og.png"})`,
+          backgroundSize: "1200px 630px",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center center",
           fontSize: 40,
           color: "black",
           background: "white",
@@ -19,7 +23,7 @@ export async function GET(request: Request) {
           alignItems: "center",
         }}
       >
-        {prompt}
+        {prompt && prompt.length > 100 ? prompt.slice(0, 97) + "..." : prompt}
       </div>
     ),
     {
