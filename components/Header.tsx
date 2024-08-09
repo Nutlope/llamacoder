@@ -13,7 +13,7 @@ export default function Header() {
         </h1>
       </Link>
       <a
-        href="https://github.com/nutlope/llamacoder"
+        href="https://github.com/iamthehimansh/llamacoder"
         target="_blank"
         className="ml-auto hidden items-center gap-3 rounded-2xl bg-white px-6 py-2 sm:flex"
       >

@@ -18,13 +18,12 @@
 
 ## Cloning & running
 
-1. Clone the repo: `git clone https://github.com/Nutlope/llamacoder`
+1. Clone the repo: `git clone https://github.com/iamthehimansh/llamacoder`
 2. Create a `.env` file and add your [Together AI API key](https://dub.sh/together-ai): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
 ## Future Tasks
 
-- [✅] Look into a way to export  the app. 
 - [ ] Look into a way to deploy the app in a single click. Can try to do it myself with a dynamic route + some hashing, or try to use Replit/Vercel
 - [ ] Save previous versions so people can go back and forth between the generated ones
 - [ ] Could be nice to show a "featured apps" route on the site on `/featured`. Have a `/id/${prompt}` dynamic route that can display a bunch of nice example apps in the sandbox ready to go
