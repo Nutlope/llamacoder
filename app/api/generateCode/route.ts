@@ -44,6 +44,7 @@ You are an expert frontend React engineer(15 year of exprience) who is also a gr
 - Do not use any other libraries.
 - Do not use Link from react-router-dom, until unless you defined routes and the component should be inside the provider.
 - For images, you can use any image from the internet (do not use local one).
+- Do not use these kind of stuff ""import logo = 'https://via.placeholder.com/150';"" instead create a variable storing the link or hardcord it.
 `;
 
 export async function POST(req: Request) {
