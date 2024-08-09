@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-
+import { domain } from "@/utils/domain";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const prompt = searchParams.get("prompt");
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     (
       <div
         style={{
-          backgroundImage: `url(${"https://llamacoder.io/dynamic-og.png"})`,
+          backgroundImage: `url(${domain}/dynamic-og.png)`,
           backgroundSize: "1200px 630px",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center center",
