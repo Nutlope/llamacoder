@@ -16,6 +16,7 @@ export interface TogetherAIStreamPayload {
   messages: ChatGPTMessage[];
   temperature: number;
   stream: boolean;
+  max_tokens: number;
 }
 
 export async function TogetherAIStream(payload: TogetherAIStreamPayload) {

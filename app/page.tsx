@@ -58,7 +58,25 @@ export default function Home() {
     "lucide-react": "latest",
     "react-router-dom": "latest",
     recharts: "2.9.0",
+    "@mui/material": "latest",
+    "@emotion/react":"latest",
+    "@emotion/styled":"latest",
+    "@mui/icons-material":"latest",
+    // other ui libraries
+    "@headlessui/react": "latest",
+    "@heroicons/react": "latest",
+    "@radix-ui/react-tooltip": "latest",
+    "@radix-ui/react-select": "latest",
+    "framer-motion": "latest",
+    "react-icons": "latest",
+    // "@chakra-ui/react": "latest",
+    "react-spring": "latest",
+    "@fortawesome/react-fontawesome": "latest",
+    
+
+
   }
+  
   let loading = status === "creating" || status === "updating";
 
   function SetCodesFiless(data: any) {
@@ -244,6 +262,7 @@ export default function Home() {
       }
       setCodeFiles((prevCodeFiles) => ({
         ...CODES,
+        ...prevCodeFiles,
         ...newCodeFiles,
       }));
       setActiveFile(activeFile_);
@@ -440,6 +459,7 @@ export default function Home() {
                     showNavigator: true,
                     externalResources: [
                       "https://unpkg.com/@tailwindcss/ui/dist/tailwind-ui.min.css",
+                      
                     ],
                     editorHeight: "80vh",
                     showTabs: true,
@@ -453,6 +473,7 @@ export default function Home() {
                   customSetup={{
                     dependencies: dependencies,
                   }}
+                  
                 />
                 {!loading&&<button
                   onClick={handleExport}
