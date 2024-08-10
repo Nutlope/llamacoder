@@ -1,17 +1,18 @@
 "use client";
 
-import { Toaster, toast } from "sonner";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { useScrollTo } from "@/hooks/use-scroll-to";
+import { domain } from "@/utils/domain";
+import * as shadcnComponents from "@/utils/shadcn";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
 import { CheckIcon } from "@heroicons/react/16/solid";
 import { ArrowLongRightIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
 import * as Select from "@radix-ui/react-select";
+import * as Switch from "@radix-ui/react-switch";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import * as shadcnComponents from "@/utils/shadcn";
 import {
   createParser,
   ParsedEvent,
@@ -19,16 +20,19 @@ import {
 } from "eventsource-parser";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
+import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
-import { domain } from "@/utils/domain";
 
 export default function Home() {
   let [status, setStatus] = useState<
     "initial" | "creating" | "created" | "updating" | "updated"
   >("initial");
   let [generatedCode, setGeneratedCode] = useState("");
-  let [modelUsedForInitialCode, setModelUsedForInitialCode] = useState("");
+  let [initialAppConfig, setInitialAppConfig] = useState({
+    model: "",
+    shadcn: false,
+  });
   let [ref, scrollTo] = useScrollTo();
   let [messages, setMessages] = useState<{ role: string; content: string }[]>(
     [],
@@ -50,6 +54,7 @@ export default function Home() {
     let formData = new FormData(e.currentTarget);
     let model = formData.get("model");
     let prompt = formData.get("prompt");
+    let shadcn = !!formData.get("shadcn");
     if (typeof prompt !== "string" || typeof model !== "string") {
       return;
     }
@@ -63,6 +68,7 @@ export default function Home() {
       body: JSON.stringify({
         messages: newMessages,
         model,
+        shadcn,
       }),
     });
     if (!chatRes.ok) {
@@ -104,7 +110,7 @@ export default function Home() {
       { role: "assistant", content: generatedCode },
     ];
 
-    setModelUsedForInitialCode(model);
+    setInitialAppConfig({ model, shadcn });
     setMessages(newMessages);
     setStatus("created");
   }
@@ -129,7 +135,8 @@ export default function Home() {
       },
       body: JSON.stringify({
         messages: newMessages,
-        model: modelUsedForInitialCode,
+        model: initialAppConfig.model,
+        shadcn: initialAppConfig.shadcn,
       }),
     });
     if (!chatRes.ok) {
@@ -229,59 +236,75 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <p className="text-xs text-gray-500">Model:</p>
-              <Select.Root
-                name="model"
-                defaultValue="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
-                disabled={loading}
-              >
-                <Select.Trigger className="group flex w-full max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
-                  <Select.Value />
-                  <Select.Icon className="ml-auto">
-                    <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
-                  </Select.Icon>
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
-                    <Select.Viewport className="p-2">
-                      {[
-                        {
-                          label: "Llama 3.1 405B",
-                          value:
-                            "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
-                        },
-                        {
-                          label: "Llama 3.1 70B",
-                          value: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-                        },
-                        {
-                          label: "Gemma 2 27B",
-                          value: "google/gemma-2-27b-it",
-                        },
-                      ].map((model) => (
-                        <Select.Item
-                          key={model.value}
-                          value={model.value}
-                          className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
-                        >
-                          <Select.ItemText asChild>
-                            <span className="inline-flex items-center gap-2 text-gray-500">
-                              <div className="size-2 rounded-full bg-green-500" />
-                              {model.label}
-                            </span>
-                          </Select.ItemText>
-                          <Select.ItemIndicator className="ml-auto">
-                            <CheckIcon className="size-5 text-blue-600" />
-                          </Select.ItemIndicator>
-                        </Select.Item>
-                      ))}
-                    </Select.Viewport>
-                    <Select.ScrollDownButton />
-                    <Select.Arrow />
-                  </Select.Content>
-                </Select.Portal>
-              </Select.Root>
+            <div className="mt-6 flex items-center justify-center gap-8">
+              <div className="flex items-center justify-center gap-3">
+                <p className="text-xs text-gray-500">Model:</p>
+                <Select.Root
+                  name="model"
+                  defaultValue="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
+                  disabled={loading}
+                >
+                  <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                    <Select.Value />
+                    <Select.Icon className="ml-auto">
+                      <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
+                    </Select.Icon>
+                  </Select.Trigger>
+                  <Select.Portal>
+                    <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
+                      <Select.Viewport className="p-2">
+                        {[
+                          {
+                            label: "Llama 3.1 405B",
+                            value:
+                              "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+                          },
+                          {
+                            label: "Llama 3.1 70B",
+                            value:
+                              "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+                          },
+                          {
+                            label: "Gemma 2 27B",
+                            value: "google/gemma-2-27b-it",
+                          },
+                        ].map((model) => (
+                          <Select.Item
+                            key={model.value}
+                            value={model.value}
+                            className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                          >
+                            <Select.ItemText asChild>
+                              <span className="inline-flex items-center gap-2 text-gray-500">
+                                <div className="size-2 rounded-full bg-green-500" />
+                                {model.label}
+                              </span>
+                            </Select.ItemText>
+                            <Select.ItemIndicator className="ml-auto">
+                              <CheckIcon className="size-5 text-blue-600" />
+                            </Select.ItemIndicator>
+                          </Select.Item>
+                        ))}
+                      </Select.Viewport>
+                      <Select.ScrollDownButton />
+                      <Select.Arrow />
+                    </Select.Content>
+                  </Select.Portal>
+                </Select.Root>
+              </div>
+
+              <div className="flex h-full items-center gap-3">
+                <label className="text-xs text-gray-500" htmlFor="shadcn">
+                  shadcn/ui:
+                </label>
+                <Switch.Root
+                  className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
+                  id="shadcn"
+                  name="shadcn"
+                >
+                  <Switch.Thumb className="size-7 rounded-lg bg-brand shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
+                </Switch.Root>
+              </div>
             </div>
           </fieldset>
         </form>
@@ -348,7 +371,7 @@ export default function Home() {
                             shareApp({
                               generatedCode,
                               prompt,
-                              model: modelUsedForInitialCode,
+                              model: initialAppConfig.model,
                             }),
                             1000,
                           );
