@@ -7,14 +7,11 @@ import { useScrollTo } from "@/hooks/use-scroll-to";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
 import { CheckIcon } from "@heroicons/react/16/solid";
-import {
-  ArrowLongRightIcon,
-  ChevronDownIcon,
-  ArrowUpOnSquareIcon,
-} from "@heroicons/react/20/solid";
-// import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
+import { ArrowLongRightIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
+import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
 import * as Select from "@radix-ui/react-select";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import * as shadcnComponents from "@/utils/shadcn";
 import {
   createParser,
   ParsedEvent,
@@ -335,7 +332,7 @@ export default function Home() {
               <div>
                 <Toaster invert={true} />
                 <Tooltip.Provider>
-                  <Tooltip.Root delayDuration={0}>
+                  <Tooltip.Root>
                     <Tooltip.Trigger asChild>
                       <button
                         disabled={loading || isPublishing}
@@ -363,7 +360,7 @@ export default function Home() {
                             `${domain}/share/${appId}`,
                           );
                         }}
-                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition disabled:grayscale"
+                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition enabled:hover:bg-blue-600 disabled:grayscale"
                       >
                         <span className="relative">
                           {isPublishing && (
@@ -387,7 +384,7 @@ export default function Home() {
                         className="select-none rounded bg-white px-4 py-2.5 text-sm leading-none shadow-md shadow-black/20"
                         sideOffset={5}
                       >
-                        Publishes your app to the internet
+                        Publish your app to the internet.
                         <Tooltip.Arrow className="fill-white" />
                       </Tooltip.Content>
                     </Tooltip.Portal>
@@ -409,6 +406,53 @@ export default function Home() {
                   }}
                   files={{
                     "App.tsx": generatedCode,
+                    "/lib/utils.ts": shadcnComponents.utils,
+                    "/components/ui/accordion.tsx": shadcnComponents.accordian,
+                    "/components/ui/alert-dialog.tsx":
+                      shadcnComponents.alertDialog,
+                    "/components/ui/alert.tsx": shadcnComponents.alert,
+                    "/components/ui/avatar.tsx": shadcnComponents.avatar,
+                    "/components/ui/badge.tsx": shadcnComponents.badge,
+                    "/components/ui/breadcrumb.tsx":
+                      shadcnComponents.breadcrumb,
+                    "/components/ui/button.tsx": shadcnComponents.button,
+                    "/components/ui/calendar.tsx": shadcnComponents.calendar,
+                    "/components/ui/card.tsx": shadcnComponents.card,
+                    "/components/ui/carousel.tsx": shadcnComponents.carousel,
+                    "/components/ui/checkbox.tsx": shadcnComponents.checkbox,
+                    "/components/ui/collapsible.tsx":
+                      shadcnComponents.collapsible,
+                    "/components/ui/dialog.tsx": shadcnComponents.dialog,
+                    "/components/ui/drawer.tsx": shadcnComponents.drawer,
+                    "/components/ui/dropdown-menu.tsx":
+                      shadcnComponents.dropdownMenu,
+                    "/components/ui/input.tsx": shadcnComponents.input,
+                    "/components/ui/label.tsx": shadcnComponents.label,
+                    "/components/ui/menubar.tsx": shadcnComponents.menuBar,
+                    "/components/ui/navigation-menu.tsx":
+                      shadcnComponents.navigationMenu,
+                    "/components/ui/pagination.tsx":
+                      shadcnComponents.pagination,
+                    "/components/ui/popover.tsx": shadcnComponents.popover,
+                    "/components/ui/progress.tsx": shadcnComponents.progress,
+                    "/components/ui/radio-group.tsx":
+                      shadcnComponents.radioGroup,
+                    "/components/ui/select.tsx": shadcnComponents.select,
+                    "/components/ui/separator.tsx": shadcnComponents.separator,
+                    "/components/ui/skeleton.tsx": shadcnComponents.skeleton,
+                    "/components/ui/slider.tsx": shadcnComponents.slider,
+                    "/components/ui/switch.tsx":
+                      shadcnComponents.switchComponent,
+                    "/components/ui/table.tsx": shadcnComponents.table,
+                    "/components/ui/tabs.tsx": shadcnComponents.tabs,
+                    "/components/ui/textarea.tsx": shadcnComponents.textarea,
+                    "/components/ui/toast.tsx": shadcnComponents.toast,
+                    "/components/ui/toaster.tsx": shadcnComponents.toaster,
+                    "/components/ui/toggle-group.tsx":
+                      shadcnComponents.toggleGroup,
+                    "/components/ui/toggle.tsx": shadcnComponents.toggle,
+                    "/components/ui/tooltip.tsx": shadcnComponents.tooltip,
+                    "/components/ui/use-toast.tsx": shadcnComponents.useToast,
                     "/public/index.html": `<!DOCTYPE html>
                     <html lang="en">
                       <head>
@@ -428,6 +472,39 @@ export default function Home() {
                       "lucide-react": "latest",
                       recharts: "2.9.0",
                       "react-router-dom": "latest",
+                      "@radix-ui/react-accordion": "^1.2.0",
+                      "@radix-ui/react-alert-dialog": "^1.1.1",
+                      "@radix-ui/react-aspect-ratio": "^1.1.0",
+                      "@radix-ui/react-avatar": "^1.1.0",
+                      "@radix-ui/react-checkbox": "^1.1.1",
+                      "@radix-ui/react-collapsible": "^1.1.0",
+                      "@radix-ui/react-dialog": "^1.1.1",
+                      "@radix-ui/react-dropdown-menu": "^2.1.1",
+                      "@radix-ui/react-hover-card": "^1.1.1",
+                      "@radix-ui/react-label": "^2.1.0",
+                      "@radix-ui/react-menubar": "^1.1.1",
+                      "@radix-ui/react-navigation-menu": "^1.2.0",
+                      "@radix-ui/react-popover": "^1.1.1",
+                      "@radix-ui/react-progress": "^1.1.0",
+                      "@radix-ui/react-radio-group": "^1.2.0",
+                      "@radix-ui/react-select": "^2.1.1",
+                      "@radix-ui/react-separator": "^1.1.0",
+                      "@radix-ui/react-slider": "^1.2.0",
+                      "@radix-ui/react-slot": "^1.1.0",
+                      "@radix-ui/react-switch": "^1.1.0",
+                      "@radix-ui/react-tabs": "^1.1.0",
+                      "@radix-ui/react-toast": "^1.2.1",
+                      "@radix-ui/react-toggle": "^1.1.0",
+                      "@radix-ui/react-toggle-group": "^1.1.0",
+                      "@radix-ui/react-tooltip": "^1.1.2",
+                      "class-variance-authority": "^0.7.0",
+                      clsx: "^2.1.1",
+                      "date-fns": "^3.6.0",
+                      "embla-carousel-react": "^8.1.8",
+                      "react-day-picker": "^8.10.1",
+                      "tailwind-merge": "^2.4.0",
+                      "tailwindcss-animate": "^1.0.7",
+                      vaul: "^0.9.1",
                     },
                   }}
                 />
