@@ -236,9 +236,9 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-8">
-              <div className="flex items-center justify-center gap-3">
-                <p className="text-xs text-gray-500">Model:</p>
+            <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:gap-8">
+              <div className="flex items-center justify-between gap-3 sm:justify-center">
+                <p className="text-gray-500 sm:text-xs">Model:</p>
                 <Select.Root
                   name="model"
                   defaultValue="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
@@ -293,8 +293,8 @@ export default function Home() {
                 </Select.Root>
               </div>
 
-              <div className="flex h-full items-center gap-3">
-                <label className="text-xs text-gray-500" htmlFor="shadcn">
+              <div className="flex h-full items-center justify-between gap-3 sm:justify-center">
+                <label className="text-gray-500 sm:text-xs" htmlFor="shadcn">
                   shadcn/ui:
                 </label>
                 <Switch.Root
@@ -302,7 +302,7 @@ export default function Home() {
                   id="shadcn"
                   name="shadcn"
                 >
-                  <Switch.Thumb className="size-7 rounded-lg bg-brand shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
+                  <Switch.Thumb className="size-7 rounded-lg bg-gray-200 shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
                 </Switch.Root>
               </div>
             </div>
