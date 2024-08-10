@@ -427,6 +427,7 @@ export default function Home() {
                     dependencies: {
                       "lucide-react": "latest",
                       recharts: "2.9.0",
+                      "react-router-dom": "latest",
                     },
                   }}
                 />

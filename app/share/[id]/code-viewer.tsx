@@ -37,6 +37,7 @@ export default function CodeViewer({ code }: { code: string }) {
         dependencies: {
           "lucide-react": "latest",
           recharts: "2.9.0",
+          "react-router-dom": "latest",
         },
       }}
     >
