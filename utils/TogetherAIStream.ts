@@ -14,8 +14,8 @@ export interface ChatGPTMessage {
 export interface TogetherAIStreamPayload {
   model: string;
   messages: ChatGPTMessage[];
-  temperature: number;
   stream: boolean;
+  temperature: number;
 }
 
 export async function TogetherAIStream(payload: TogetherAIStreamPayload) {

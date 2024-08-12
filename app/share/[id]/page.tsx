@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import CodeViewer from "./code-viewer";
+import CodeViewer from "@/components/code-viewer";
 import client from "@/lib/prisma";
 import type { Metadata } from "next";
 import { cache } from "react";

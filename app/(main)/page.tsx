@@ -1,19 +1,15 @@
 "use client";
 
-import { Toaster, toast } from "sonner";
+import CodeViewer from "@/components/code-viewer";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { useScrollTo } from "@/hooks/use-scroll-to";
-import { Sandpack } from "@codesandbox/sandpack-react";
-import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
+import { domain } from "@/utils/domain";
 import { CheckIcon } from "@heroicons/react/16/solid";
-import {
-  ArrowLongRightIcon,
-  ChevronDownIcon,
-  ArrowUpOnSquareIcon,
-} from "@heroicons/react/20/solid";
-// import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
+import { ArrowLongRightIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
+import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
 import * as Select from "@radix-ui/react-select";
+import * as Switch from "@radix-ui/react-switch";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import {
   createParser,
@@ -22,16 +18,23 @@ import {
 } from "eventsource-parser";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
+import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
-import { domain } from "@/utils/domain";
+
+const FEATURES = {
+  shadcn: false,
+};
 
 export default function Home() {
   let [status, setStatus] = useState<
     "initial" | "creating" | "created" | "updating" | "updated"
   >("initial");
   let [generatedCode, setGeneratedCode] = useState("");
-  let [modelUsedForInitialCode, setModelUsedForInitialCode] = useState("");
+  let [initialAppConfig, setInitialAppConfig] = useState({
+    model: "",
+    shadcn: false,
+  });
   let [ref, scrollTo] = useScrollTo();
   let [messages, setMessages] = useState<{ role: string; content: string }[]>(
     [],
@@ -53,6 +56,7 @@ export default function Home() {
     let formData = new FormData(e.currentTarget);
     let model = formData.get("model");
     let prompt = formData.get("prompt");
+    let shadcn = !!formData.get("shadcn");
     if (typeof prompt !== "string" || typeof model !== "string") {
       return;
     }
@@ -66,6 +70,7 @@ export default function Home() {
       body: JSON.stringify({
         messages: newMessages,
         model,
+        shadcn,
       }),
     });
     if (!chatRes.ok) {
@@ -107,7 +112,7 @@ export default function Home() {
       { role: "assistant", content: generatedCode },
     ];
 
-    setModelUsedForInitialCode(model);
+    setInitialAppConfig({ model, shadcn });
     setMessages(newMessages);
     setStatus("created");
   }
@@ -132,7 +137,8 @@ export default function Home() {
       },
       body: JSON.stringify({
         messages: newMessages,
-        model: modelUsedForInitialCode,
+        model: initialAppConfig.model,
+        shadcn: initialAppConfig.shadcn,
       }),
     });
     if (!chatRes.ok) {
@@ -232,59 +238,77 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <p className="text-xs text-gray-500">Model:</p>
-              <Select.Root
-                name="model"
-                defaultValue="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
-                disabled={loading}
-              >
-                <Select.Trigger className="group flex w-full max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
-                  <Select.Value />
-                  <Select.Icon className="ml-auto">
-                    <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
-                  </Select.Icon>
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
-                    <Select.Viewport className="p-2">
-                      {[
-                        {
-                          label: "Llama 3.1 405B",
-                          value:
-                            "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
-                        },
-                        {
-                          label: "Llama 3.1 70B",
-                          value: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-                        },
-                        {
-                          label: "Gemma 2 27B",
-                          value: "google/gemma-2-27b-it",
-                        },
-                      ].map((model) => (
-                        <Select.Item
-                          key={model.value}
-                          value={model.value}
-                          className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
-                        >
-                          <Select.ItemText asChild>
-                            <span className="inline-flex items-center gap-2 text-gray-500">
-                              <div className="size-2 rounded-full bg-green-500" />
-                              {model.label}
-                            </span>
-                          </Select.ItemText>
-                          <Select.ItemIndicator className="ml-auto">
-                            <CheckIcon className="size-5 text-blue-600" />
-                          </Select.ItemIndicator>
-                        </Select.Item>
-                      ))}
-                    </Select.Viewport>
-                    <Select.ScrollDownButton />
-                    <Select.Arrow />
-                  </Select.Content>
-                </Select.Portal>
-              </Select.Root>
+            <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:gap-8">
+              <div className="flex items-center justify-between gap-3 sm:justify-center">
+                <p className="text-gray-500 sm:text-xs">Model:</p>
+                <Select.Root
+                  name="model"
+                  defaultValue="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
+                  disabled={loading}
+                >
+                  <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                    <Select.Value />
+                    <Select.Icon className="ml-auto">
+                      <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
+                    </Select.Icon>
+                  </Select.Trigger>
+                  <Select.Portal>
+                    <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
+                      <Select.Viewport className="p-2">
+                        {[
+                          {
+                            label: "Llama 3.1 405B",
+                            value:
+                              "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+                          },
+                          {
+                            label: "Llama 3.1 70B",
+                            value:
+                              "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+                          },
+                          {
+                            label: "Gemma 2 27B",
+                            value: "google/gemma-2-27b-it",
+                          },
+                        ].map((model) => (
+                          <Select.Item
+                            key={model.value}
+                            value={model.value}
+                            className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                          >
+                            <Select.ItemText asChild>
+                              <span className="inline-flex items-center gap-2 text-gray-500">
+                                <div className="size-2 rounded-full bg-green-500" />
+                                {model.label}
+                              </span>
+                            </Select.ItemText>
+                            <Select.ItemIndicator className="ml-auto">
+                              <CheckIcon className="size-5 text-blue-600" />
+                            </Select.ItemIndicator>
+                          </Select.Item>
+                        ))}
+                      </Select.Viewport>
+                      <Select.ScrollDownButton />
+                      <Select.Arrow />
+                    </Select.Content>
+                  </Select.Portal>
+                </Select.Root>
+              </div>
+
+              {FEATURES.shadcn && (
+                <div className="flex h-full items-center justify-between gap-3 sm:justify-center">
+                  <label className="text-gray-500 sm:text-xs" htmlFor="shadcn">
+                    shadcn/ui:
+                  </label>
+                  <Switch.Root
+                    className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
+                    id="shadcn"
+                    name="shadcn"
+                  >
+                    <Switch.Thumb className="size-7 rounded-lg bg-gray-200 shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
+                  </Switch.Root>
+                </div>
+              )}
             </div>
           </fieldset>
         </form>
@@ -335,7 +359,7 @@ export default function Home() {
               <div>
                 <Toaster invert={true} />
                 <Tooltip.Provider>
-                  <Tooltip.Root delayDuration={0}>
+                  <Tooltip.Root>
                     <Tooltip.Trigger asChild>
                       <button
                         disabled={loading || isPublishing}
@@ -351,7 +375,7 @@ export default function Home() {
                             shareApp({
                               generatedCode,
                               prompt,
-                              model: modelUsedForInitialCode,
+                              model: initialAppConfig.model,
                             }),
                             1000,
                           );
@@ -363,7 +387,7 @@ export default function Home() {
                             `${domain}/share/${appId}`,
                           );
                         }}
-                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition disabled:grayscale"
+                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition enabled:hover:bg-blue-600 disabled:grayscale"
                       >
                         <span className="relative">
                           {isPublishing && (
@@ -387,7 +411,7 @@ export default function Home() {
                         className="select-none rounded bg-white px-4 py-2.5 text-sm leading-none shadow-md shadow-black/20"
                         sideOffset={5}
                       >
-                        Publishes your app to the internet
+                        Publish your app to the internet.
                         <Tooltip.Arrow className="fill-white" />
                       </Tooltip.Content>
                     </Tooltip.Portal>
@@ -397,40 +421,7 @@ export default function Home() {
             </div>
             <div className="relative mt-8 w-full overflow-hidden">
               <div className="isolate">
-                <Sandpack
-                  theme={draculaTheme}
-                  options={{
-                    showNavigator: true,
-                    externalResources: [
-                      "https://unpkg.com/@tailwindcss/ui/dist/tailwind-ui.min.css",
-                    ],
-                    editorHeight: "80vh",
-                    showTabs: false,
-                  }}
-                  files={{
-                    "App.tsx": generatedCode,
-                    "/public/index.html": `<!DOCTYPE html>
-                    <html lang="en">
-                      <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Document</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                      </head>
-                      <body>
-                        <div id="root"></div>
-                      </body>
-                    </html>`,
-                  }}
-                  template="react-ts"
-                  customSetup={{
-                    dependencies: {
-                      "lucide-react": "latest",
-                      recharts: "2.9.0",
-                      "react-router-dom": "latest",
-                    },
-                  }}
-                />
+                <CodeViewer code={generatedCode} showEditor />
               </div>
 
               <AnimatePresence>
