@@ -8,6 +8,7 @@ import {
 } from "@codesandbox/sandpack-react/unstyled";
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
 import dedent from "dedent";
+import "./code-viewer.css";
 
 export default function CodeViewer({
   code,
@@ -36,10 +37,12 @@ export default function CodeViewer({
         "App.tsx": code,
         ...sharedFiles,
       }}
+      className="flex h-full w-full grow flex-col justify-center"
       options={{ ...sharedOptions }}
       {...sharedProps}
     >
       <SandpackPreview
+        className="flex h-full w-full grow flex-col justify-center p-4 md:pt-16"
         showOpenInCodeSandbox={false}
         showRefreshButton={false}
       />
