@@ -22,10 +22,6 @@ import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
 
-const FEATURES = {
-  shadcn: false,
-};
-
 export default function Home() {
   let [status, setStatus] = useState<
     "initial" | "creating" | "created" | "updating" | "updated"
@@ -295,20 +291,18 @@ export default function Home() {
                 </Select.Root>
               </div>
 
-              {FEATURES.shadcn && (
-                <div className="flex h-full items-center justify-between gap-3 sm:justify-center">
-                  <label className="text-gray-500 sm:text-xs" htmlFor="shadcn">
-                    shadcn/ui:
-                  </label>
-                  <Switch.Root
-                    className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
-                    id="shadcn"
-                    name="shadcn"
-                  >
-                    <Switch.Thumb className="size-7 rounded-lg bg-gray-200 shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
-                  </Switch.Root>
-                </div>
-              )}
+              <div className="flex h-full items-center justify-between gap-3 sm:justify-center">
+                <label className="text-gray-500 sm:text-xs" htmlFor="shadcn">
+                  shadcn/ui:
+                </label>
+                <Switch.Root
+                  className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
+                  id="shadcn"
+                  name="shadcn"
+                >
+                  <Switch.Thumb className="size-7 rounded-lg bg-gray-200 shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
+                </Switch.Root>
+              </div>
             </div>
           </fieldset>
         </form>
