@@ -4,7 +4,7 @@
 </a>
 
 <p align="center">
-  An open source Claude Artifacts – generate small apps with one prompt. Powered by Llama 3 405B & Together.ai.
+  An open source Claude Artifacts – a React engine that generates small React apps with just one prompt. Powered by Llama 3 405B & Together.ai.
 </p>
 
 ## Tech stack
@@ -22,11 +22,15 @@
 2. Create a `.env` file and add your [Together AI API key](https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
+## Limitations
+
+- **Syntax Errors with Complex Prompts:** When handling complex prompts, the engine may generate code that contains syntax errors. Users may need to manually correct these errors or simplify the prompts to achieve the desired output.
+
 ## Future Tasks
 
 - [ ] Experiment with a prompt rewriter and launch this as well
 - [ ] Make the toast that opens better like a modal for sharability
-- [ ] Add sharability to people can take their apps and share them publicly
+- [ ] Add sharability so people can take their apps and share them publicly
 - [ ] Add the ability to toggle on and off shadcn components and others
 - [ ] Launch support for different themes – somehow pass down variables to components
 - [ ] Add dynamic OG images to the specific generations & include the prompt
@@ -34,12 +38,12 @@
 - [ ] Address issue of ability to publish the same app repeatedly
 - [ ] Try chain of thought reasoning to see if it works better overall
 - [ ] Encourage best practices by making the input and textarea & having pills to generate apps w/ good prompts
-- [ ] Add more customizability in terms of changing the prompt, temperature, ect...
+- [ ] Add more customizability in terms of changing the prompt, temperature, etc...
 - [ ] Save previous versions so people can go back and forth between the generated ones
 - [ ] Could be nice to show a "featured apps" route on the site on /featured. Have a /id/${prompt} dynamic route that can display a bunch of nice example apps in the sandbox ready to go
 - [ ] Support more languages starting with Python, check out E2B
 - [ ] Try chain of thought reasoning to see if it works better overall
-- [ ] Try finetuning a smaller model on good prompts from 405b or GPT-4/Claude
+- [ ] Try finetuning a smaller model on good prompts from 405B or GPT-4/Claude
 - [ ] Add dark mode to the site overall, nice design change
 - [ ] Surface errors better in codesandbox to the user so people know what is wrong
 - [ ] Think about how to have 405B correct itself (sometimes it makes up imports)
