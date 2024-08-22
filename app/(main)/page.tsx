@@ -18,9 +18,10 @@ import {
 } from "eventsource-parser";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
+import { useFormState } from "react-dom";
 import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
-import { shareApp } from "./actions";
+import { generateApp, shareApp } from "./actions";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -42,6 +43,7 @@ export default function Home() {
   async function generateCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    let formData = new FormData(e.currentTarget);
     if (status !== "initial") {
       scrollTo({ delay: 0.5 });
     }
@@ -49,67 +51,28 @@ export default function Home() {
     setStatus("creating");
     setGeneratedCode("");
 
-    let formData = new FormData(e.currentTarget);
-    let model = formData.get("model");
-    let prompt = formData.get("prompt");
-    let shadcn = !!formData.get("shadcn");
-    if (typeof prompt !== "string" || typeof model !== "string") {
-      return;
-    }
     let newMessages = [{ role: "user", content: prompt }];
 
-    const chatRes = await fetch("/api/generateCode", {
+    let res = await fetch("/api/generateCode", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messages: newMessages,
-        model,
-        shadcn,
-      }),
+      body: formData,
     });
-    if (!chatRes.ok) {
-      throw new Error(chatRes.statusText);
+
+    if (!res.ok || !res.body) {
+      throw new Error(res.statusText);
     }
 
-    // This data is a ReadableStream
-    const data = chatRes.body;
-    if (!data) {
-      return;
-    }
-    const onParse = (event: ParsedEvent | ReconnectInterval) => {
-      if (event.type === "event") {
-        const data = event.data;
-        try {
-          const text = JSON.parse(data).text ?? "";
-          setGeneratedCode((prev) => prev + text);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
+    await handleStream(res.body, (string) => {
+      setGeneratedCode((prev) => prev + string);
+    });
 
-    // https://web.dev/streams/#the-getreader-and-read-methods
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    const parser = createParser(onParse);
-    let done = false;
+    // // newMessages = [
+    // //   ...newMessages,
+    // //   { role: "assistant", content: generatedCode },
+    // // ];
 
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      parser.feed(chunkValue);
-    }
-
-    newMessages = [
-      ...newMessages,
-      { role: "assistant", content: generatedCode },
-    ];
-
-    setInitialAppConfig({ model, shadcn });
-    setMessages(newMessages);
+    // // setInitialAppConfig({ model, shadcn });
+    // // setMessages(newMessages);
     setStatus("created");
   }
 
@@ -454,4 +417,21 @@ async function minDelay<T>(promise: Promise<T>, ms: number) {
   let [p] = await Promise.all([promise, delay]);
 
   return p;
+}
+
+async function handleStream(
+  stream: ReadableStream,
+  cb: (latest: string) => void,
+) {
+  let decoder = new TextDecoder();
+  for await (const result of stream as any) {
+    decoder
+      .decode(result, { stream: true })
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .forEach((json) => {
+        cb(json.choices[0].text);
+      });
+  }
 }

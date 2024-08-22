@@ -3,11 +3,51 @@ import {
   TogetherAIStream,
   TogetherAIStreamPayload,
 } from "@/utils/TogetherAIStream";
+import { parseWithZod } from "@conform-to/zod";
 import dedent from "dedent";
+import Together from "together-ai";
+import { z } from "zod";
+
+const together = new Together();
 
 export const runtime = "edge";
 
 export async function POST(req: Request) {
+  let formData = await req.formData();
+  let submission = parseWithZod(formData, {
+    schema: z.object({
+      model: z.string(),
+      prompt: z.string(),
+      shadcn: z.boolean().default(false),
+    }),
+  });
+
+  if (submission.status !== "success") {
+    throw new Error("Bad submission");
+  }
+
+  let { model, prompt, shadcn } = submission.value;
+  let systemPrompt = getSystemPrompt(shadcn);
+  prompt += "\nPlease ONLY return code, NO backticks or language names.";
+
+  let res = await together.chat.completions.create({
+    model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt },
+    ],
+    stream: true,
+    temperature: 0.2,
+  });
+
+  return new Response(res.toReadableStream(), {
+    headers: new Headers({
+      "Cache-Control": "no-cache",
+    }),
+  });
+}
+
+export async function POSTasdf(req: Request) {
   let { messages, model, shadcn } = await req.json();
   let systemPrompt = getSystemPrompt(shadcn);
 
