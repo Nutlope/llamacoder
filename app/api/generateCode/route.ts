@@ -3,75 +3,73 @@ import {
   TogetherAIStream,
   TogetherAIStreamPayload,
 } from "@/utils/TogetherAIStream";
-import { parseWithZod } from "@conform-to/zod";
 import dedent from "dedent";
 import Together from "together-ai";
 import { z } from "zod";
 
-const together = new Together();
+let together = new Together();
+let requestSchema = z.object({
+  model: z.string(),
+  shadcn: z.boolean().default(false),
+  messages: z.array(
+    z.object({
+      role: z.union([z.literal("user"), z.literal("assistant")]),
+      content: z.string(),
+    }),
+  ),
+});
 
-export const runtime = "edge";
+let messagesSchema = z.array(
+  z.object({
+    content: z.string(),
+    role: z.union([
+      z.literal("system"),
+      z.literal("user"),
+      z.literal("assistant"),
+    ]),
+  }),
+);
 
 export async function POST(req: Request) {
-  let formData = await req.formData();
-  let submission = parseWithZod(formData, {
-    schema: z.object({
-      model: z.string(),
-      prompt: z.string(),
-      shadcn: z.boolean().default(false),
-    }),
-  });
+  let json = await req.json();
 
-  if (submission.status !== "success") {
-    throw new Error("Bad submission");
+  let result = requestSchema.safeParse(json);
+  if (result.error) {
+    return new Response(result.error.message, { status: 422 });
   }
 
-  let { model, prompt, shadcn } = submission.value;
+  let { model, messages, shadcn } = result.data;
   let systemPrompt = getSystemPrompt(shadcn);
-  prompt += "\nPlease ONLY return code, NO backticks or language names.";
 
-  let res = await together.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: prompt },
-    ],
-    stream: true,
-    temperature: 0.2,
-  });
+  let modifiedMessages = messagesSchema.parse([
+    {
+      role: "system",
+      content: systemPrompt,
+    },
+    ...messages.map((message) => ({
+      ...message,
+      content:
+        message.role === "user"
+          ? message.content +
+            "\nPlease ONLY return code, NO backticks or language names."
+          : message.content,
+    })),
+  ]);
+
+  let res;
+  try {
+    res = await together.chat.completions.create({
+      model,
+      messages: modifiedMessages,
+      stream: true,
+      temperature: 0.2,
+    });
+  } catch (e) {
+    console.error(e);
+    return new Response("Failed to generate code", { status: 500 });
+  }
 
   return new Response(res.toReadableStream(), {
-    headers: new Headers({
-      "Cache-Control": "no-cache",
-    }),
-  });
-}
-
-export async function POSTasdf(req: Request) {
-  let { messages, model, shadcn } = await req.json();
-  let systemPrompt = getSystemPrompt(shadcn);
-
-  const payload: TogetherAIStreamPayload = {
-    model,
-    messages: [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      ...messages.map((message: any) => {
-        if (message.role === "user") {
-          message.content +=
-            "\nPlease ONLY return code, NO backticks or language names.";
-        }
-        return message;
-      }),
-    ],
-    stream: true,
-    temperature: 0.2,
-  };
-  const stream = await TogetherAIStream(payload);
-
-  return new Response(stream, {
     headers: new Headers({
       "Cache-Control": "no-cache",
     }),
@@ -128,3 +126,5 @@ function getSystemPrompt(shadcn: boolean) {
 
   return dedent(systemPrompt);
 }
+
+export const runtime = "edge";
