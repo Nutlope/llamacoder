@@ -27,31 +27,25 @@ export async function POST(req: Request) {
   let { model, messages, shadcn } = result.data;
   let systemPrompt = getSystemPrompt(shadcn);
 
-  let res;
-  try {
-    res = await together.chat.completions.create({
-      model,
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        ...messages.map((message) => ({
-          ...message,
-          content:
-            message.role === "user"
-              ? message.content +
-                "\nPlease ONLY return code, NO backticks or language names."
-              : message.content,
-        })),
-      ],
-      stream: true,
-      temperature: 0.2,
-    });
-  } catch (e) {
-    console.error(e);
-    return new Response("Failed to generate code", { status: 500 });
-  }
+  let res = await together.chat.completions.create({
+    model,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      ...messages.map((message) => ({
+        ...message,
+        content:
+          message.role === "user"
+            ? message.content +
+              "\nPlease ONLY return code, NO backticks or language names."
+            : message.content,
+      })),
+    ],
+    stream: true,
+    temperature: 0.2,
+  });
 
   return new Response(res.toReadableStream(), {
     headers: new Headers({
