@@ -1,39 +1,25 @@
 import shadcnDocs from "@/utils/shadcn-docs";
-import {
-  TogetherAIStream,
-  TogetherAIStreamPayload,
-} from "@/utils/TogetherAIStream";
 import dedent from "dedent";
 import Together from "together-ai";
 import { z } from "zod";
 
 let together = new Together();
-let requestSchema = z.object({
-  model: z.string(),
-  shadcn: z.boolean().default(false),
-  messages: z.array(
-    z.object({
-      role: z.union([z.literal("user"), z.literal("assistant")]),
-      content: z.string(),
-    }),
-  ),
-});
-
-let messagesSchema = z.array(
-  z.object({
-    content: z.string(),
-    role: z.union([
-      z.literal("system"),
-      z.literal("user"),
-      z.literal("assistant"),
-    ]),
-  }),
-);
 
 export async function POST(req: Request) {
   let json = await req.json();
 
-  let result = requestSchema.safeParse(json);
+  let result = z
+    .object({
+      model: z.string(),
+      shadcn: z.boolean().default(false),
+      messages: z.array(
+        z.object({
+          role: z.enum(["user", "assistant"]),
+          content: z.string(),
+        }),
+      ),
+    })
+    .safeParse(json);
   if (result.error) {
     return new Response(result.error.message, { status: 422 });
   }
@@ -41,26 +27,24 @@ export async function POST(req: Request) {
   let { model, messages, shadcn } = result.data;
   let systemPrompt = getSystemPrompt(shadcn);
 
-  let modifiedMessages = messagesSchema.parse([
-    {
-      role: "system",
-      content: systemPrompt,
-    },
-    ...messages.map((message) => ({
-      ...message,
-      content:
-        message.role === "user"
-          ? message.content +
-            "\nPlease ONLY return code, NO backticks or language names."
-          : message.content,
-    })),
-  ]);
-
   let res;
   try {
     res = await together.chat.completions.create({
       model,
-      messages: modifiedMessages,
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        ...messages.map((message) => ({
+          ...message,
+          content:
+            message.role === "user"
+              ? message.content +
+                "\nPlease ONLY return code, NO backticks or language names."
+              : message.content,
+        })),
+      ],
       stream: true,
       temperature: 0.2,
     });
@@ -101,8 +85,7 @@ function getSystemPrompt(shadcn: boolean) {
 
     ${shadcnDocs
       .map(
-        (component) =>
-          `
+        (component) => `
           <component>
           <name>
           ${component.name}
