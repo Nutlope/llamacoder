@@ -7,7 +7,6 @@ let together = new Together();
 
 export async function POST(req: Request) {
   let json = await req.json();
-
   let result = z
     .object({
       model: z.string(),
@@ -20,6 +19,7 @@ export async function POST(req: Request) {
       ),
     })
     .safeParse(json);
+
   if (result.error) {
     return new Response(result.error.message, { status: 422 });
   }
