@@ -47,11 +47,16 @@ export async function POST(req: Request) {
     temperature: 0.2,
   });
 
-  return new Response(res.toReadableStream(), {
-    headers: new Headers({
-      "Cache-Control": "no-cache",
-    }),
-  });
+  for await (const chunk of res) {
+    console.log(chunk);
+  }
+
+  return Response.json({ ok: true });
+  // return new Response(res.toReadableStream(), {
+  //   headers: new Headers({
+  //     "Cache-Control": "no-cache",
+  //   }),
+  // });
 }
 
 function getSystemPrompt(shadcn: boolean) {
