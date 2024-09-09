@@ -83,10 +83,8 @@ export default function Home() {
       throw new Error("No response body");
     }
 
-    for await (let result of readTogetherResponse(res.body)) {
-      setGeneratedCode(
-        (prev) => prev + result.choices.map((c) => c.text ?? "").join(""),
-      );
+    for await (let chunk of readStream(res.body)) {
+      setGeneratedCode((prev) => prev + chunk);
     }
 
     setMessages([{ role: "user", content: prompt }]);
@@ -361,7 +359,10 @@ export default function Home() {
             </div>
             <div className="relative mt-8 w-full overflow-hidden">
               <div className="isolate">
-                <CodeViewer code={generatedCode} showEditor />
+                <CodeViewer
+                  code={`export default function App() { return <p>Hello, world!</p> }`}
+                  showEditor
+                />
               </div>
 
               <AnimatePresence>
@@ -411,6 +412,8 @@ async function* readTogetherResponse(response: ReadableStream) {
     if (done) {
       break;
     }
+    console.log(value);
+    debugger;
     let text = decoder.decode(value, { stream: true });
     let parts = text.split("\n");
 
@@ -419,6 +422,21 @@ async function* readTogetherResponse(response: ReadableStream) {
         yield JSON.parse(part) as ChatCompletion;
       }
     }
+  }
+
+  reader.releaseLock();
+}
+
+async function* readStream(response: ReadableStream) {
+  let decoder = new TextDecoder();
+  let reader = response.getReader();
+  let done = false;
+
+  while (!done) {
+    let { value, done: streamDone } = await reader.read();
+    done = streamDone;
+
+    if (value) yield decoder.decode(value);
   }
 
   reader.releaseLock();

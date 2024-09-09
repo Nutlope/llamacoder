@@ -47,16 +47,19 @@ export async function POST(req: Request) {
     temperature: 0.2,
   });
 
-  for await (const chunk of res) {
-    console.log(chunk);
-  }
+  let decoder = new TextDecoder();
+  let transformStream = new TransformStream({
+    transform(chunk, controller) {
+      let text = JSON.parse(decoder.decode(chunk)).choices[0].text;
+      controller.enqueue(text);
+    },
+  });
 
-  return Response.json({ ok: true });
-  // return new Response(res.toReadableStream(), {
-  //   headers: new Headers({
-  //     "Cache-Control": "no-cache",
-  //   }),
-  // });
+  return new Response(res.toReadableStream().pipeThrough(transformStream), {
+    headers: new Headers({
+      "Cache-Control": "no-cache",
+    }),
+  });
 }
 
 function getSystemPrompt(shadcn: boolean) {
