@@ -421,15 +421,14 @@ async function* readTogetherResponse(response: ReadableStream) {
 }
 
 async function* readStream(response: ReadableStream) {
-  let decoder = new TextDecoder();
-  let reader = response.getReader();
+  let reader = response.pipeThrough(new TextDecoderStream()).getReader();
   let done = false;
 
   while (!done) {
     let { value, done: streamDone } = await reader.read();
     done = streamDone;
 
-    if (value) yield decoder.decode(value);
+    if (value) yield value;
   }
 
   reader.releaseLock();

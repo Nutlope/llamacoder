@@ -47,15 +47,19 @@ export async function POST(req: Request) {
     temperature: 0.2,
   });
 
-  let decoder = new TextDecoder();
-  let transformStream = new TransformStream({
-    transform(chunk, controller) {
-      let text = JSON.parse(decoder.decode(chunk)).choices[0].text;
-      controller.enqueue(text);
-    },
-  });
+  let textStream = res
+    .toReadableStream()
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          let text = JSON.parse(chunk).choices[0].text;
+          controller.enqueue(text);
+        },
+      }),
+    );
 
-  return new Response(res.toReadableStream().pipeThrough(transformStream), {
+  return new Response(textStream, {
     headers: new Headers({
       "Cache-Control": "no-cache",
     }),
