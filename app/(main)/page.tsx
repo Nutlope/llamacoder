@@ -53,7 +53,7 @@ export default function Home() {
 
   let loading = status === "creating" || status === "updating";
 
-  async function generateCode(e: FormEvent<HTMLFormElement>) {
+  async function createApp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (status !== "initial") {
@@ -92,7 +92,7 @@ export default function Home() {
     setStatus("created");
   }
 
-  async function modifyCode(e: FormEvent<HTMLFormElement>) {
+  async function updateApp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setStatus("updating");
@@ -122,10 +122,8 @@ export default function Home() {
       throw new Error("No response body");
     }
 
-    for await (let result of readTogetherResponse(res.body)) {
-      setGeneratedCode(
-        (prev) => prev + result.choices.map((c) => c.text ?? "").join(""),
-      );
+    for await (let chunk of readStream(res.body)) {
+      setGeneratedCode((prev) => prev + chunk);
     }
 
     setMessages((m) => [...m, codeMessage, modificationMessage]);
@@ -160,7 +158,7 @@ export default function Home() {
           <br /> into an <span className="text-blue-600">app</span>
         </h1>
 
-        <form className="w-full max-w-xl" onSubmit={generateCode}>
+        <form className="w-full max-w-xl" onSubmit={createApp}>
           <fieldset disabled={loading} className="disabled:opacity-75">
             <div className="relative mt-5">
               <div className="absolute -inset-2 rounded-[32px] bg-gray-300/50" />
@@ -265,7 +263,7 @@ export default function Home() {
             ref={ref}
           >
             <div className="mt-5 flex gap-4">
-              <form className="w-full" onSubmit={modifyCode}>
+              <form className="w-full" onSubmit={updateApp}>
                 <fieldset disabled={loading} className="group">
                   <div className="relative">
                     <div className="relative flex rounded-3xl bg-white shadow-sm group-disabled:bg-gray-50">
@@ -359,10 +357,7 @@ export default function Home() {
             </div>
             <div className="relative mt-8 w-full overflow-hidden">
               <div className="isolate">
-                <CodeViewer
-                  code={`export default function App() { return <p>Hello, world!</p> }`}
-                  showEditor
-                />
+                <CodeViewer code={generatedCode} showEditor />
               </div>
 
               <AnimatePresence>
@@ -412,8 +407,6 @@ async function* readTogetherResponse(response: ReadableStream) {
     if (done) {
       break;
     }
-    console.log(value);
-    debugger;
     let text = decoder.decode(value, { stream: true });
     let parts = text.split("\n");
 
