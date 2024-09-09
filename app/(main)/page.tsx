@@ -16,7 +16,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
-import type { ChatCompletion } from "together-ai/resources/chat/completions";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -396,28 +395,6 @@ async function minDelay<T>(promise: Promise<T>, ms: number) {
   let [p] = await Promise.all([promise, delay]);
 
   return p;
-}
-
-async function* readTogetherResponse(response: ReadableStream) {
-  let decoder = new TextDecoder();
-  let reader = response.getReader();
-
-  while (true) {
-    let { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    let text = decoder.decode(value, { stream: true });
-    let parts = text.split("\n");
-
-    for (let part of parts) {
-      if (part) {
-        yield JSON.parse(part) as ChatCompletion;
-      }
-    }
-  }
-
-  reader.releaseLock();
 }
 
 async function* readStream(response: ReadableStream) {
