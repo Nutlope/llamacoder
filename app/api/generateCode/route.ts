@@ -3,7 +3,15 @@ import dedent from "dedent";
 import Together from "together-ai";
 import { z } from "zod";
 
-let together = new Together();
+let options: ConstructorParameters<typeof Together>[0] = {};
+if (process.env.HELICONE_API_KEY) {
+  options.baseURL = "https://together.helicone.ai/v1";
+  options.defaultHeaders = {
+    "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+  };
+}
+
+let together = new Together(options);
 
 export async function POST(req: Request) {
   let json = await req.json();
