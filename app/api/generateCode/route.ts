@@ -1,73 +1,37 @@
 import shadcnDocs from "@/utils/shadcn-docs";
+import {
+  TogetherAIStream,
+  TogetherAIStreamPayload,
+} from "@/utils/TogetherAIStream";
 import dedent from "dedent";
-import Together from "together-ai";
-import { z } from "zod";
 
-let options: ConstructorParameters<typeof Together>[0] = {};
-if (process.env.HELICONE_API_KEY) {
-  options.baseURL = "https://together.helicone.ai/v1";
-  options.defaultHeaders = {
-    "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-  };
-}
-
-let together = new Together(options);
+export const runtime = "edge";
 
 export async function POST(req: Request) {
-  let json = await req.json();
-  let result = z
-    .object({
-      model: z.string(),
-      shadcn: z.boolean().default(false),
-      messages: z.array(
-        z.object({
-          role: z.enum(["user", "assistant"]),
-          content: z.string(),
-        }),
-      ),
-    })
-    .safeParse(json);
-
-  if (result.error) {
-    return new Response(result.error.message, { status: 422 });
-  }
-
-  let { model, messages, shadcn } = result.data;
+  let { messages, model, shadcn } = await req.json();
   let systemPrompt = getSystemPrompt(shadcn);
 
-  let res = await together.chat.completions.create({
+  const payload: TogetherAIStreamPayload = {
     model,
     messages: [
       {
         role: "system",
         content: systemPrompt,
       },
-      ...messages.map((message) => ({
-        ...message,
-        content:
-          message.role === "user"
-            ? message.content +
-              "\nPlease ONLY return code, NO backticks or language names."
-            : message.content,
-      })),
+      ...messages.map((message: any) => {
+        if (message.role === "user") {
+          message.content +=
+            "\nPlease ONLY return code, NO backticks or language names.";
+        }
+        return message;
+      }),
     ],
     stream: true,
     temperature: 0.2,
-  });
+  };
+  const stream = await TogetherAIStream(payload);
 
-  let textStream = res
-    .toReadableStream()
-    .pipeThrough(new TextDecoderStream())
-    .pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          let text = JSON.parse(chunk).choices[0].text;
-          controller.enqueue(text);
-        },
-      }),
-    );
-
-  return new Response(textStream, {
+  return new Response(stream, {
     headers: new Headers({
       "Cache-Control": "no-cache",
     }),
@@ -99,7 +63,8 @@ function getSystemPrompt(shadcn: boolean) {
 
     ${shadcnDocs
       .map(
-        (component) => `
+        (component) =>
+          `
           <component>
           <name>
           ${component.name}
@@ -123,5 +88,3 @@ function getSystemPrompt(shadcn: boolean) {
 
   return dedent(systemPrompt);
 }
-
-export const runtime = "edge";
