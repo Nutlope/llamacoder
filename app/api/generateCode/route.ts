@@ -65,7 +65,8 @@ export async function POST(req: Request) {
           controller.enqueue(text);
         },
       }),
-    );
+    )
+    .pipeThrough(new TextEncoderStream());
 
   return new Response(textStream, {
     headers: new Headers({
