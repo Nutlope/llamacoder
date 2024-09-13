@@ -11,11 +11,6 @@ import { ArrowUpOnSquareIcon } from "@heroicons/react/24/outline";
 import * as Select from "@radix-ui/react-select";
 import * as Switch from "@radix-ui/react-switch";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import {
-  createParser,
-  ParsedEvent,
-  ReconnectInterval,
-} from "eventsource-parser";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
@@ -26,6 +21,24 @@ export default function Home() {
   let [status, setStatus] = useState<
     "initial" | "creating" | "created" | "updating" | "updated"
   >("initial");
+  let [prompt, setPrompt] = useState("");
+  let models = [
+    {
+      label: "Llama 3.1 405B",
+      value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+    },
+    {
+      label: "Llama 3.1 70B",
+      value: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+    },
+    {
+      label: "Gemma 2 27B",
+      value: "google/gemma-2-27b-it",
+    },
+  ];
+  let [model, setModel] = useState(models[0].value);
+  let [shadcn, setShadcn] = useState(false);
+  let [modification, setModification] = useState("");
   let [generatedCode, setGeneratedCode] = useState("");
   let [initialAppConfig, setInitialAppConfig] = useState({
     model: "",
@@ -39,7 +52,7 @@ export default function Home() {
 
   let loading = status === "creating" || status === "updating";
 
-  async function generateCode(e: FormEvent<HTMLFormElement>) {
+  async function createApp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (status !== "initial") {
@@ -49,134 +62,70 @@ export default function Home() {
     setStatus("creating");
     setGeneratedCode("");
 
-    let formData = new FormData(e.currentTarget);
-    let model = formData.get("model");
-    let prompt = formData.get("prompt");
-    let shadcn = !!formData.get("shadcn");
-    if (typeof prompt !== "string" || typeof model !== "string") {
-      return;
-    }
-    let newMessages = [{ role: "user", content: prompt }];
-
-    const chatRes = await fetch("/api/generateCode", {
+    let res = await fetch("/api/generateCode", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: newMessages,
         model,
         shadcn,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (!chatRes.ok) {
-      throw new Error(chatRes.statusText);
+
+    if (!res.ok) {
+      throw new Error(res.statusText);
     }
 
-    // This data is a ReadableStream
-    const data = chatRes.body;
-    if (!data) {
-      return;
-    }
-    const onParse = (event: ParsedEvent | ReconnectInterval) => {
-      if (event.type === "event") {
-        const data = event.data;
-        try {
-          const text = JSON.parse(data).text ?? "";
-          setGeneratedCode((prev) => prev + text);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-
-    // https://web.dev/streams/#the-getreader-and-read-methods
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    const parser = createParser(onParse);
-    let done = false;
-
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      parser.feed(chunkValue);
+    if (!res.body) {
+      throw new Error("No response body");
     }
 
-    newMessages = [
-      ...newMessages,
-      { role: "assistant", content: generatedCode },
-    ];
+    for await (let chunk of readStream(res.body)) {
+      setGeneratedCode((prev) => prev + chunk);
+    }
 
+    setMessages([{ role: "user", content: prompt }]);
     setInitialAppConfig({ model, shadcn });
-    setMessages(newMessages);
     setStatus("created");
   }
 
-  async function modifyCode(e: FormEvent<HTMLFormElement>) {
+  async function updateApp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setStatus("updating");
 
-    let formData = new FormData(e.currentTarget);
-    let prompt = formData.get("prompt");
-    if (typeof prompt !== "string") {
-      return;
-    }
-    let newMessages = [...messages, { role: "user", content: prompt }];
+    let codeMessage = { role: "assistant", content: generatedCode };
+    let modificationMessage = { role: "user", content: modification };
 
     setGeneratedCode("");
-    const chatRes = await fetch("/api/generateCode", {
+
+    const res = await fetch("/api/generateCode", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: newMessages,
+        messages: [...messages, codeMessage, modificationMessage],
         model: initialAppConfig.model,
         shadcn: initialAppConfig.shadcn,
       }),
     });
-    if (!chatRes.ok) {
-      throw new Error(chatRes.statusText);
+
+    if (!res.ok) {
+      throw new Error(res.statusText);
     }
 
-    // This data is a ReadableStream
-    const data = chatRes.body;
-    if (!data) {
-      return;
-    }
-    const onParse = (event: ParsedEvent | ReconnectInterval) => {
-      if (event.type === "event") {
-        const data = event.data;
-        try {
-          const text = JSON.parse(data).text ?? "";
-          setGeneratedCode((prev) => prev + text);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-
-    // https://web.dev/streams/#the-getreader-and-read-methods
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    const parser = createParser(onParse);
-    let done = false;
-
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      parser.feed(chunkValue);
+    if (!res.body) {
+      throw new Error("No response body");
     }
 
-    newMessages = [
-      ...newMessages,
-      { role: "assistant", content: generatedCode },
-    ];
+    for await (let chunk of readStream(res.body)) {
+      setGeneratedCode((prev) => prev + chunk);
+    }
 
-    setMessages(newMessages);
+    setMessages((m) => [...m, codeMessage, modificationMessage]);
     setStatus("updated");
   }
 
@@ -208,7 +157,7 @@ export default function Home() {
           <br /> into an <span className="text-blue-600">app</span>
         </h1>
 
-        <form className="w-full max-w-xl" onSubmit={generateCode}>
+        <form className="w-full max-w-xl" onSubmit={createApp}>
           <fieldset disabled={loading} className="disabled:opacity-75">
             <div className="relative mt-5">
               <div className="absolute -inset-2 rounded-[32px] bg-gray-300/50" />
@@ -216,6 +165,8 @@ export default function Home() {
                 <div className="relative flex flex-grow items-stretch focus-within:z-10">
                   <input
                     required
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
                     name="prompt"
                     className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     placeholder="Build me a calculator app..."
@@ -239,8 +190,9 @@ export default function Home() {
                 <p className="text-gray-500 sm:text-xs">Model:</p>
                 <Select.Root
                   name="model"
-                  defaultValue="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
                   disabled={loading}
+                  value={model}
+                  onValueChange={(value) => setModel(value)}
                 >
                   <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
                     <Select.Value />
@@ -251,22 +203,7 @@ export default function Home() {
                   <Select.Portal>
                     <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
                       <Select.Viewport className="p-2">
-                        {[
-                          {
-                            label: "Llama 3.1 405B",
-                            value:
-                              "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
-                          },
-                          {
-                            label: "Llama 3.1 70B",
-                            value:
-                              "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-                          },
-                          {
-                            label: "Gemma 2 27B",
-                            value: "google/gemma-2-27b-it",
-                          },
-                        ].map((model) => (
+                        {models.map((model) => (
                           <Select.Item
                             key={model.value}
                             value={model.value}
@@ -299,6 +236,8 @@ export default function Home() {
                   className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
                   id="shadcn"
                   name="shadcn"
+                  checked={shadcn}
+                  onCheckedChange={(value) => setShadcn(value)}
                 >
                   <Switch.Thumb className="size-7 rounded-lg bg-gray-200 shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
                 </Switch.Root>
@@ -323,14 +262,16 @@ export default function Home() {
             ref={ref}
           >
             <div className="mt-5 flex gap-4">
-              <form className="w-full" onSubmit={modifyCode}>
+              <form className="w-full" onSubmit={updateApp}>
                 <fieldset disabled={loading} className="group">
                   <div className="relative">
                     <div className="relative flex rounded-3xl bg-white shadow-sm group-disabled:bg-gray-50">
                       <div className="relative flex flex-grow items-stretch focus-within:z-10">
                         <input
                           required
-                          name="prompt"
+                          name="modification"
+                          value={modification}
+                          onChange={(e) => setModification(e.target.value)}
                           className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed"
                           placeholder="Make changes to your app here"
                         />
@@ -454,4 +395,18 @@ async function minDelay<T>(promise: Promise<T>, ms: number) {
   let [p] = await Promise.all([promise, delay]);
 
   return p;
+}
+
+async function* readStream(response: ReadableStream) {
+  let reader = response.pipeThrough(new TextDecoderStream()).getReader();
+  let done = false;
+
+  while (!done) {
+    let { value, done: streamDone } = await reader.read();
+    done = streamDone;
+
+    if (value) yield value;
+  }
+
+  reader.releaseLock();
 }
