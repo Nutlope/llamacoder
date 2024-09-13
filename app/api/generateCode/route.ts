@@ -61,9 +61,14 @@ export async function POST(req: Request) {
     .pipeThrough(
       new TransformStream({
         transform(chunk, controller) {
-          console.log(chunk);
-          let text = JSON.parse(chunk).choices[0].text;
-          controller.enqueue(text);
+          if (chunk) {
+            try {
+              let text = JSON.parse(chunk).choices[0].text;
+              controller.enqueue(text);
+            } catch (error) {
+              console.error(error);
+            }
+          }
         },
       }),
     )
