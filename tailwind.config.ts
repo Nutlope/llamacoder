@@ -13,6 +13,7 @@ const config: Config = {
       colors: {
         brand: "#E1E7EC",
         gray: colors.slate,
+        
       },
 
       fontFamily: {
