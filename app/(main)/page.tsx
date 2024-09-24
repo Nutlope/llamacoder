@@ -16,6 +16,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
+import Image from "next/image";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -141,18 +142,17 @@ export default function Home() {
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center py-2">
       <Header />
 
-      <main className="mt-12 flex w-full flex-1 flex-col items-center px-4 text-center sm:mt-20">
+      <main className="mt-12 flex w-full flex-1 flex-col items-center px-4 text-center sm:mt-20 space-y-3">
         <a
-          className="mb-4 inline-flex h-7 shrink-0 items-center gap-[9px] rounded-[50px] border-[0.5px] border-solid border-[#E6E6E6] bg-[rgba(234,238,255,0.65)] bg-gray-100 px-7 py-5 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)]"
+          className="inline-flex h-7 shrink-0 items-center gap-2 rounded-[50px] border-[0.3px] border-solid border-soft-gray bg-off-white px-7"
           href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
           target="_blank"
         >
-          <span className="text-center">
-            Powered by <span className="font-medium">Llama 3.1</span> and{" "}
-            <span className="font-medium">Together AI</span>
+          <span className="text-center font-light text-xs italic">
+            Used by <span className="font-normal">200k+</span> happy users
           </span>
         </a>
-        <h1 className="my-6 max-w-3xl text-4xl font-bold text-gray-800 sm:text-6xl">
+        <h1 className="max-w-3xl text-6xl font-normal text-gray-800 sm:text-6xl pb-8">
           Turn your <span className="text-blue-600">idea</span>
           <br /> into an <span className="text-blue-600">app</span>
         </h1>
@@ -160,29 +160,80 @@ export default function Home() {
         <form className="w-full max-w-xl" onSubmit={createApp}>
           <fieldset disabled={loading} className="disabled:opacity-75">
             <div className="relative mt-5">
-              <div className="absolute -inset-2 rounded-[32px] bg-gray-300/50" />
-              <div className="relative flex rounded-3xl bg-white shadow-sm">
+              <div className="absolute -inset-1 rounded-1.5 bg-gray-300/50" />
+              <div className="relative flex flex-col rounded-1.5 bg-white shadow-input">
                 <div className="relative flex flex-grow items-stretch focus-within:z-10">
                   <input
                     required
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     name="prompt"
-                    className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                    className="w-full rounded-t-1.5 bg-transparent px-2.5 py-5 text-sm font-normal focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     placeholder="Build me a calculator app..."
                   />
                 </div>
-                <button
-                  type="submit"
+                <div className="flex justify-between items-center pl-2.5 p-1.5">
+                  <div className="">
+                  <Select.Root
+                  name="model"
                   disabled={loading}
-                  className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
+                  value={model}
+                  onValueChange={(value) => setModel(value)}
                 >
-                  {status === "creating" ? (
-                    <LoadingDots color="black" style="large" />
-                  ) : (
-                    <ArrowLongRightIcon className="-ml-0.5 size-6" />
-                  )}
-                </button>
+                  <Select.Trigger className="group flex w-24 max-w-xs items-center  bg-white text-xs italic text-midnight/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                    <Select.Value />
+                    <Select.Icon className="ml-auto">
+                      <ChevronDownIcon className="size-4 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
+                    </Select.Icon>
+                  </Select.Trigger>
+                  <Select.Portal>
+                    <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
+                      <Select.Viewport className="p-2">
+                        {models.map((model) => (
+                          <Select.Item
+                            key={model.value}
+                            value={model.value}
+                            className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                          >
+                            <Select.ItemText asChild>
+                              <span className="inline-flex items-center gap-2 text-gray-500">
+                                {/* <div className="size-2 rounded-full bg-green-500" /> */}
+                                {model.label}
+                              </span>
+                            </Select.ItemText>
+                            <Select.ItemIndicator className="ml-auto">
+                              <CheckIcon className="size-5 text-blue-600" />
+                            </Select.ItemIndicator>
+                          </Select.Item>
+                        ))}
+                      </Select.Viewport>
+                      <Select.ScrollDownButton />
+                      <Select.Arrow />
+                    </Select.Content>
+                  </Select.Portal>
+                </Select.Root>
+                  </div>
+                  <div className="flex gap-1 items-center">
+                    <button
+                      type="button"
+                      className="relative -ml-px gap-x-1.5 rounded flex justify-center items-center text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900 bg-white border border-cloud-gray h-6 w-6"
+                    >
+                      <Image src='/image-plus.svg' width={8} height={8} className="-ml-0.5 w-4 h-4" alt="right-arrow" />
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="relative -ml-px gap-x-1.5 rounded h-6 w-6 flex justify-center items-center text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900 bg-skyline-blue"
+                    >
+                      {status === "creating" ? (
+                        <LoadingDots color="black" style="large" />
+                      ) : (
+                        <Image src='/right-arrow.svg' width={8} height={8} className="-ml-0.5 w-4 h-4" alt="right-arrow" />
+                      )}
+                    </button>
+
+                  </div>
+                </div>
               </div>
             </div>
             <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:gap-8">
@@ -194,7 +245,7 @@ export default function Home() {
                   value={model}
                   onValueChange={(value) => setModel(value)}
                 >
-                  <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                  <Select.Trigger className="group flex w-60 max-w-xs items-center  bg-white text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
                     <Select.Value />
                     <Select.Icon className="ml-auto">
                       <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
@@ -211,7 +262,7 @@ export default function Home() {
                           >
                             <Select.ItemText asChild>
                               <span className="inline-flex items-center gap-2 text-gray-500">
-                                <div className="size-2 rounded-full bg-green-500" />
+                                {/* <div className="size-2 rounded-full bg-green-500" /> */}
                                 {model.label}
                               </span>
                             </Select.ItemText>

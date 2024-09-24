@@ -7,7 +7,7 @@ export default function Layout({
   children: React.ReactNode;
 }>) {
   return (
-    <body className="bg-brand antialiased">
+    <body className="bg-off-white antialiased">
       <div className="absolute inset-x-0 flex justify-center">
         <Image
           src={bgImg}
