@@ -11,15 +11,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: "#E1E7EC",
-        gray: colors.slate,
-        'soft-gray': "#BABABA",
-        'cloud-gray': "#D8D8D8",
-        'primary-blue': "#326DF5",
-        'skyline-blue': "#326DF5",
-        'off-white': "#F4F4F5",
-        midnight: '#282A36',
-        
+        brand: '#E1E7EC',
+  			gray: colors.slate,
+  			'soft-gray': '#BABABA',
+  			'cloud-gray': '#D8D8D8',
+  			'cool-gray': '#E5E9EF',
+  			'steel-gray': '#ACACAC',
+  			'primary-blue': '#326DF5',
+  			'skyline-blue': '#326DF5',
+  			'off-white': '#F4F4F5',
+  			midnight: '#282A36',
+  			'midnight-100': '#525252',
+  			'light-frost': '#E5E9EF'
       },
       borderRadius: {
         '1.5': '6px',

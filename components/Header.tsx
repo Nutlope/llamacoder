@@ -4,11 +4,15 @@ import logo from "../public/logo.svg";
 // import GithubIcon from "./github-icon";
 import together from "../public/together.svg";
 import together_logo from "../public/together-logo.svg";
+import { cn } from "@/lib/utils";
 
 
-export default function Header() {
+export default function Header({className}: Readonly<{className?: string}>) {
   return (
-    <header className="mt-5 flex w-full items-center justify-center gap-2.5 px-2 pb-7 sm:px-4 divide-x">
+    <header className={cn(
+      "mt-5 flex w-full items-center justify-center gap-2.5 px-2 pb-7 sm:px-4 divide-x",
+      className
+    )}>
       <Link href="/" className="flex items-center gap-1">
         <Image alt="header text" src={logo} className="h-5 w-5" />
         <h1 className="text-xl tracking-tight font-normal text-midnight">
