@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
+}
+
+/* AeonikTRIAL-Light.otf */
+@font-face {
+  font-family: "Aeonik";
+  src: url("/Aeonik/AeonikTRIAL-Light.otf");
+  font-weight: 300;
+  font-style: normal;
+}
+
 @font-face {
   font-family: "Aeonik";
   src: url("/Aeonik/Aeonik-Regular.ttf");
