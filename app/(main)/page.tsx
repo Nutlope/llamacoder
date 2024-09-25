@@ -229,7 +229,7 @@ export default function Home() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="relative -ml-px flex h-6 w-6 items-center justify-center gap-x-1.5 rounded bg-skyline-blue text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
+                      className="relative -ml-px flex h-6 w-6 items-center justify-center gap-x-1.5 rounded bg-primary-blue text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
                     >
                       {status === "creating" ? (
                         <LoadingDots color="black" style="large" />

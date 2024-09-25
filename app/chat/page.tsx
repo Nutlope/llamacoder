@@ -16,7 +16,7 @@ import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 // import { shareApp } from "./actions";
 import Image from "next/image";
-// import SheetSide from "@/components/chat/LeftSide";
+import SheetSide from "@/components/chat/LeftSide";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -94,7 +94,6 @@ export default function Home() {
 
   return (
     <>
-   
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-between py-2 px-4">
         <Header />
         <div className="flex flex-col">
@@ -197,7 +196,7 @@ export default function Home() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="relative -ml-px flex h-6 w-6 items-center justify-center gap-x-1.5 rounded bg-skyline-blue text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
+                      className="relative -ml-px flex h-6 w-6 items-center justify-center gap-x-1.5 rounded bg-primary-blue text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
                     >
                       {status === "creating" ? (
                         <LoadingDots color="black" style="large" />
@@ -219,12 +218,12 @@ export default function Home() {
         </form>
       </div>
       <div className="absolute bottom-5 left-5 top-6 hidden sm:flex flex-col justify-between ">
-        <div>
+        <SheetSide>
           <Image src="/logo.svg" alt="together-logo" width={20} height={20} className="h-5 w-5 cursor-pointer" />
-        </div>
-        <div>
+        </SheetSide>
+        <SheetSide>
           <Image src="/user.png" alt="together-logo" width={24} height={24} className="h-6 w-6 cursor-pointer" />
-        </div>
+        </SheetSide>
       </div>
     </>
   );

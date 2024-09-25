@@ -49,3 +49,6 @@
 - [ ] Try to add a consistent component library like shadcn
 - [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
 - [ ] Add the ability to upload things like a screenshot for it to start from that
+# llamacoder-v2
+# llamacoder-v2
+# llamacoder-v2
