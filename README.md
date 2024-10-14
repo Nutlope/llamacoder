@@ -24,6 +24,7 @@
 
 ## Future Tasks
 
+- [ ] Add evals with Braintrust
 - [ ] Experiment with a prompt rewriter and launch this as well
 - [ ] Make the toast that opens better like a modal for sharability
 - [ ] Add sharability to people can take their apps and share them publicly

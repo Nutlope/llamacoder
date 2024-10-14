@@ -37,12 +37,12 @@ export default function Home() {
     },
   ];
   let [model, setModel] = useState(models[0].value);
-  let [shadcn, setShadcn] = useState(false);
+  let [shadcn, setShadcn] = useState(true);
   let [modification, setModification] = useState("");
   let [generatedCode, setGeneratedCode] = useState("");
   let [initialAppConfig, setInitialAppConfig] = useState({
     model: "",
-    shadcn: false,
+    shadcn: true,
   });
   let [ref, scrollTo] = useScrollTo();
   let [messages, setMessages] = useState<{ role: string; content: string }[]>(
