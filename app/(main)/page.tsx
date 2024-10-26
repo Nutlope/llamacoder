@@ -28,8 +28,8 @@ export default function Home() {
       value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
     },
     {
-      label: "Llama 3.1 70B",
-      value: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+      label: "Llama 3.2 90B",
+      value: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
     },
     {
       label: "Gemma 2 27B",
