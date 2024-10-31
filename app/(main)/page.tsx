@@ -32,6 +32,11 @@ export default function Home() {
       value: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
     },
     {
+      label: "Qwen 2.5 72B",
+      value: "Qwen/Qwen2.5-72B-Instruct-Turbo",
+    },
+
+    {
       label: "Gemma 2 27B",
       value: "google/gemma-2-27b-it",
     },
