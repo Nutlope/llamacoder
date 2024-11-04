@@ -110,6 +110,7 @@ export default function Home() {
         messages: [...messages, codeMessage, modificationMessage],
         model: initialAppConfig.model,
         shadcn: initialAppConfig.shadcn,
+        enabledCategories: shadcn ? enabledCategories : [],
       }),
     });
 
