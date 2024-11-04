@@ -7,12 +7,12 @@ export default function Layout({
   children: React.ReactNode;
 }>) {
   return (
-    <body className="bg-brand antialiased">
+    <body className="bg-brand dark:bg-dark-background-primary antialiased">
       <div className="absolute inset-x-0 flex justify-center">
         <Image
           src={bgImg}
           alt=""
-          className="w-full max-w-[1200px] mix-blend-screen"
+          className="w-full max-w-[1200px] mix-blend-screen dark:mix-blend-multiply"
           priority
         />
       </div>
