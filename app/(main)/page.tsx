@@ -147,41 +147,41 @@ export default function Home() {
 
       <main className="mt-12 flex w-full flex-1 flex-col items-center px-4 text-center sm:mt-20">
         <a
-          className="mb-4 inline-flex h-7 shrink-0 items-center gap-[9px] rounded-[50px] border-[0.5px] border-solid border-[#E6E6E6] bg-[rgba(234,238,255,0.65)] bg-gray-100 px-7 py-5 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)]"
+          className="mb-4 inline-flex h-7 shrink-0 items-center gap-[9px] rounded-[50px] border-[0.5px] border-solid border-[#E6E6E6] dark:border-dark-accent bg-[rgba(234,238,255,0.65)] bg-gray-100 dark:bg-dark-background-secondary px-7 py-5 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)]"
           href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
           target="_blank"
         >
-          <span className="text-center">
+          <span className="text-center text-gray-900 dark:text-dark-primary">
             Powered by <span className="font-medium">Llama 3.1</span> and{" "}
             <span className="font-medium">Together AI</span>
           </span>
         </a>
-        <h1 className="my-6 max-w-3xl text-4xl font-bold text-gray-800 sm:text-6xl">
-          Turn your <span className="text-blue-600">idea</span>
-          <br /> into an <span className="text-blue-600">app</span>
+        <h1 className="my-6 max-w-3xl text-4xl font-bold text-gray-800 dark:text-dark-primary sm:text-6xl">
+          Turn your <span className="text-blue-600 dark:text-dark-accent">idea</span>
+          <br /> into an <span className="text-blue-600 dark:text-dark-accent">app</span>
         </h1>
 
         <form className="w-full max-w-xl" onSubmit={createApp}>
           <fieldset disabled={loading} className="disabled:opacity-75">
             <div className="relative mt-5">
-              <div className="absolute -inset-2 rounded-[32px] bg-gray-300/50" />
-              <div className="relative flex rounded-3xl bg-white shadow-sm">
+              <div className="absolute -inset-2 rounded-[32px] bg-gray-300/50 dark:bg-dark-background-tertiary/30" />
+              <div className="relative flex rounded-3xl bg-white dark:bg-dark-background-input dark:border dark:border-dark-accent shadow-sm">
                 <div className="relative flex flex-grow items-stretch focus-within:z-10">
                   <input
                     required
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     name="prompt"
-                    className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                    className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg text-gray-900 dark:text-dark-primary placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     placeholder="Build me a calculator app..."
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
+                  className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 dark:border-l dark:border-dark-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
                 >
-                  {status === "creating" ? (
+                  {loading ? (
                     <LoadingDots color="black" style="large" />
                   ) : (
                     <ArrowLongRightIcon className="-ml-0.5 size-6" />
@@ -191,14 +191,14 @@ export default function Home() {
             </div>
             <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:gap-8">
               <div className="flex items-center justify-between gap-3 sm:justify-center">
-                <p className="text-gray-500 sm:text-xs">Model:</p>
+                <p className="text-gray-500 dark:text-gray-400 sm:text-xs">Model:</p>
                 <Select.Root
                   name="model"
                   disabled={loading}
                   value={model}
                   onValueChange={(value) => setModel(value)}
                 >
-                  <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                  <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl dark:border border-[6px] border-gray-300 dark:border-dark-accent bg-white dark:bg-dark-background-input px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
                     <Select.Value />
                     <Select.Icon className="ml-auto">
                       <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
@@ -237,7 +237,7 @@ export default function Home() {
                   shadcn/ui:
                 </label>
                 <Switch.Root
-                  className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
+                  className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] dark:border border-gray-300 dark:border-dark-accent bg-white dark:bg-dark-background-input p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
                   id="shadcn"
                   name="shadcn"
                   checked={shadcn}
@@ -269,21 +269,19 @@ export default function Home() {
               <form className="w-full" onSubmit={updateApp}>
                 <fieldset disabled={loading} className="group">
                   <div className="relative">
-                    <div className="relative flex rounded-3xl bg-white shadow-sm group-disabled:bg-gray-50">
-                      <div className="relative flex flex-grow items-stretch focus-within:z-10">
-                        <input
-                          required
-                          name="modification"
-                          value={modification}
-                          onChange={(e) => setModification(e.target.value)}
-                          className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed"
-                          placeholder="Make changes to your app here"
-                        />
-                      </div>
+                    <div className="relative flex rounded-3xl bg-white dark:bg-dark-background-input dark:border dark:border-dark-border shadow-sm group-disabled:bg-gray-50">
+                      <input
+                        required
+                        name="modification"
+                        value={modification}
+                        onChange={(e) => setModification(e.target.value)}
+                        className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg text-gray-900 dark:text-dark-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                        placeholder="Make changes to your app here"
+                      />
                       <button
                         type="submit"
                         disabled={loading}
-                        className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
+                        className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 dark:border-l dark:border-dark-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
                       >
                         {loading ? (
                           <LoadingDots color="black" style="large" />
@@ -326,7 +324,7 @@ export default function Home() {
                             `${domain}/share/${appId}`,
                           );
                         }}
-                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition enabled:hover:bg-blue-600 disabled:grayscale"
+                        className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 dark:bg-dark-accent dark:border dark:border-dark-border transition enabled:hover:bg-blue-600 dark:enabled:hover:bg-dark-accent/90 disabled:grayscale"
                       >
                         <span className="relative">
                           {isPublishing && (
@@ -347,11 +345,11 @@ export default function Home() {
                     </Tooltip.Trigger>
                     <Tooltip.Portal>
                       <Tooltip.Content
-                        className="select-none rounded bg-white px-4 py-2.5 text-sm leading-none shadow-md shadow-black/20"
+                        className="select-none rounded bg-white dark:bg-dark-background-secondary dark:border dark:border-dark-border px-4 py-2.5 text-sm leading-none shadow-md shadow-black/20"
                         sideOffset={5}
                       >
                         Publish your app to the internet.
-                        <Tooltip.Arrow className="fill-white" />
+                        <Tooltip.Arrow className="fill-white dark:fill-dark-background-secondary" />
                       </Tooltip.Content>
                     </Tooltip.Portal>
                   </Tooltip.Root>
@@ -375,12 +373,10 @@ export default function Home() {
                       duration: 0.85,
                       delay: 0.5,
                     }}
-                    className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center rounded-r border border-gray-400 bg-gradient-to-br from-gray-100 to-gray-300 md:inset-y-0 md:left-1/2 md:right-0"
+                    className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center rounded-r border border-gray-400 dark:border-dark-border bg-gradient-to-br from-gray-100 to-gray-300 dark:from-dark-background-secondary dark:to-dark-background-tertiary md:inset-y-0 md:left-1/2 md:right-0"
                   >
-                    <p className="animate-pulse text-3xl font-bold">
-                      {status === "creating"
-                        ? "Building your app..."
-                        : "Updating your app..."}
+                    <p className="animate-pulse text-3xl font-bold text-gray-900 dark:text-dark-primary">
+                      {status === "creating" ? "Building your app..." : "Updating your app..."}
                     </p>
                   </motion.div>
                 )}
