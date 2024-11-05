@@ -16,6 +16,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
+import { ShadcnCategory } from "@/utils/shadcn-categories";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -49,6 +50,12 @@ export default function Home() {
     [],
   );
   let [isPublishing, setIsPublishing] = useState(false);
+  const [enabledCategories, setEnabledCategories] = useState<ShadcnCategory[]>([
+    "form",
+    "layout",
+    "feedback",
+    "navigation",
+  ]);
 
   let loading = status === "creating" || status === "updating";
 
@@ -93,24 +100,20 @@ export default function Home() {
 
   async function updateApp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     setStatus("updating");
-
-    let codeMessage = { role: "assistant", content: generatedCode };
-    let modificationMessage = { role: "user", content: modification };
-
     setGeneratedCode("");
 
-    const res = await fetch("/api/generateCode", {
+    const res = await fetch("/api/updateCode", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: [...messages, codeMessage, modificationMessage],
+        currentCode: generatedCode,
+        modification: modification,
         model: initialAppConfig.model,
         shadcn: initialAppConfig.shadcn,
-        enabledCategories: shadcn ? enabledCategories : [],
+        enabledCategories: initialAppConfig.shadcn ? enabledCategories : [],
       }),
     });
 
@@ -126,7 +129,11 @@ export default function Home() {
       setGeneratedCode((prev) => prev + chunk);
     }
 
-    setMessages((m) => [...m, codeMessage, modificationMessage]);
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", content: generatedCode },
+      { role: "user", content: modification },
+    ]);
     setStatus("updated");
   }
 
