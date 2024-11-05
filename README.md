@@ -25,7 +25,6 @@
 ## Future Tasks
 
 - [ ] Add evals with Braintrust
-- [ ] Checkout new models: Llama 3.2 11B and Qwen 2.5 models and see if I should add
 - [ ] Experiment with a prompt rewriter and launch this as well
 - [ ] Make the toast that opens better like a modal for sharability
 - [ ] Add sharability to people can take their apps and share them publicly
