@@ -293,8 +293,6 @@ function getSystemPrompt(shadcn: boolean) {
       .join("\n")}
   `;
 
-  console.log(dedent(systemPrompt));
-
   return dedent(systemPrompt);
 }
 
