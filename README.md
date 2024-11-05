@@ -47,6 +47,5 @@
 - [ ] New route for updateCode that only sends the latest generated code + the modify request
 - [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
 - [ ] Add rate limiting with redis upstash if the traffic gets too high
-- [ ] Try to add a consistent component library like shadcn
 - [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
 - [ ] Add the ability to upload things like a screenshot for it to start from that
