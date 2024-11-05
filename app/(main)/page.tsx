@@ -35,14 +35,13 @@ export default function Home() {
       label: "Qwen 2.5 72B",
       value: "Qwen/Qwen2.5-72B-Instruct-Turbo",
     },
-
     {
       label: "Gemma 2 27B",
       value: "google/gemma-2-27b-it",
     },
   ];
   let [model, setModel] = useState(models[0].value);
-  let [shadcn, setShadcn] = useState(true);
+  let [shadcn, setShadcn] = useState(false);
   let [modification, setModification] = useState("");
   let [generatedCode, setGeneratedCode] = useState("");
   let [initialAppConfig, setInitialAppConfig] = useState({
