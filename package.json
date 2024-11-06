@@ -27,7 +27,7 @@
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^1.5.0",
-    "together-ai": "^0.6.0-alpha.4",
+    "together-ai": "^0.8.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

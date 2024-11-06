@@ -56,30 +56,7 @@ export async function POST(req: Request) {
     temperature: 0.2,
   });
 
-  let textStream = res
-    .toReadableStream()
-    .pipeThrough(new TextDecoderStream())
-    .pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          if (chunk) {
-            try {
-              let text = JSON.parse(chunk).choices[0].text;
-              controller.enqueue(text);
-            } catch (error) {
-              console.error(error);
-            }
-          }
-        },
-      }),
-    )
-    .pipeThrough(new TextEncoderStream());
-
-  return new Response(textStream, {
-    headers: new Headers({
-      "Cache-Control": "no-cache",
-    }),
-  });
+  return new Response(res.toReadableStream());
 }
 
 let examples = [
