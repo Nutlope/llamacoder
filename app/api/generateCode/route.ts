@@ -251,24 +251,24 @@ function getSystemPrompt(shadcn: boolean) {
     NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
   `;
 
-  systemPrompt += `
-    Here are some examples of a good response:
+  // systemPrompt += `
+  //   Here are some examples of a good response:
 
-    ${examples
-      .map(
-        (example) => `
-          <example>
-          <prompt>
-          ${example.prompt}
-          </prompt>
-          <response>
-          ${example.response}
-          </response>
-          </example>
-        `,
-      )
-      .join("\n")}
-  `;
+  //   ${examples
+  //     .map(
+  //       (example) => `
+  //         <example>
+  //         <prompt>
+  //         ${example.prompt}
+  //         </prompt>
+  //         <response>
+  //         ${example.response}
+  //         </response>
+  //         </example>
+  //       `,
+  //     )
+  //     .join("\n")}
+  // `;
 
   return dedent(systemPrompt);
 }
