@@ -19,21 +19,22 @@ const score = z.object({
 });
 
 const prompts = [
+  "Build a budgeting app",
   "Build a calculator app",
   "Build me a quiz app",
-  "Build a budgeting app",
   "Build a spotify clone",
   "Build a dashboard showing the US population over time",
 ];
 
 async function gradeScreenshots({ prompt }: { prompt: string }) {
-  const browser = await puppeteer.launch({ headless: false });
+  const browser = await puppeteer.launch({ headless: true });
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1000, height: 1000 });
   await page.goto("http://localhost:3000");
 
   // Generate the app
+  console.log(`${prompt}: Generating`);
   await page.type("input", prompt);
   await page.click("[data-test=create]");
   await page.waitForSelector("[data-test=loader]", { hidden: true });
@@ -55,10 +56,11 @@ async function gradeScreenshots({ prompt }: { prompt: string }) {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // Take a screenshot & close
+  console.log(`${prompt}: Screenshot`);
   const screenshotBuffer = await page.screenshot({
-    path: `./evals/screenshots/${currentTimestamp()}-${prompt}.png`,
+    path: `./evals/screenshots/${prompt} ${currentTimestamp()}.png`,
   });
-  // await browser.close();
+  await browser.close();
   const base64String = Buffer.from(screenshotBuffer).toString("base64");
   const imageUrl = `data:image/png;base64,${base64String}`;
 
@@ -103,7 +105,13 @@ async function gradeScreenshots({ prompt }: { prompt: string }) {
   console.log(response.choices[0]);
 }
 
-gradeScreenshots({ prompt: prompts[0] });
+async function main() {
+  await Promise.all(
+    prompts.map((prompt) => gradeScreenshots({ prompt: prompt })),
+  );
+}
+
+main();
 
 function currentTimestamp() {
   const now = new Date();
@@ -120,16 +128,4 @@ function currentTimestamp() {
   const formattedHour = hours % 12 || 12; // Convert to 12-hour format
 
   return `${year}-${month}-${day} at ${formattedHour}.${minutes}.${seconds} ${ampm}`;
-}
-
-function slugify(text: string) {
-  return text
-    .toString() // Convert to string
-    .toLowerCase() // Convert to lowercase
-    .trim() // Remove leading and trailing whitespace
-    .normalize("NFD") // Normalize to separate diacritical marks (accents)
-    .replace(/[\u0300-\u036f]/g, "") // Remove diacritical marks
-    .replace(/[^a-z0-9 -]/g, "") // Remove invalid characters
-    .replace(/\s+/g, "-") // Replace whitespace with dashes
-    .replace(/-+/g, "-"); // Remove duplicate dashes
 }
