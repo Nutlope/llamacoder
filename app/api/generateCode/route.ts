@@ -216,8 +216,6 @@ function getSystemPrompt(shadcn: boolean) {
     - Use Tailwind margin and padding classes to style the components and ensure the components are spaced out nicely
     - Please ONLY return the full React code starting with the imports, nothing else. It's very important for my job that you only return the React code with imports. DO NOT START WITH \`\`\`typescript or \`\`\`javascript or \`\`\`tsx or \`\`\`.
     - ONLY IF the user asks for a dashboard, graph or chart, the recharts library is available to be imported, e.g. \`import { LineChart, XAxis, ... } from "recharts"\` & \`<LineChart ...><XAxis dataKey="name"> ...\`. Please only use this when needed.
-    - The lucide-react library is also available to be imported ONLY FOR THE FOLLOWING ICONS: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight
-    - Here's an example of importing and using one: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`. PLEASE ONLY USE THE ICONS LISTED ABOVE.
     - For placeholder images, please use a <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
   `;
 

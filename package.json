@@ -7,7 +7,7 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "ts-node evals/script.ts"
+    "test": "tsx evals/script.ts"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.18.2",
@@ -21,6 +21,7 @@
     "@radix-ui/react-tooltip": "^1.1.2",
     "@vercel/og": "^0.6.2",
     "dedent": "^1.5.3",
+    "dotenv": "^16.4.5",
     "eventsource-parser": "^1.1.2",
     "framer-motion": "^11.3.19",
     "next": "14.2.5",
@@ -44,6 +45,7 @@
     "prettier-plugin-tailwindcss": "^0.6.5",
     "prisma": "^5.18.0",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

@@ -176,6 +176,7 @@ export default function Home() {
                 type="submit"
                 disabled={loading}
                 className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-blue-500 hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:text-gray-900"
+                data-test="create"
               >
                 {status === "creating" ? (
                   <LoadingDots color="black" style="large" />
@@ -292,7 +293,7 @@ export default function Home() {
               </fieldset>
             </form>
             <div>
-              <Toaster invert={true} />
+              <Toaster duration={9999999} data-test="toast" invert={true} />
               <Tooltip.Provider>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
@@ -316,13 +317,20 @@ export default function Home() {
                         );
                         setIsPublishing(false);
                         toast.success(
-                          `Your app has been published & copied to your clipboard! llamacoder.io/share/${appId}`,
+                          <span>
+                            Your app has been published & copied to your
+                            clipboard!{" "}
+                            <span data-test="share-url">
+                              {`${domain}/share/${appId}`}
+                            </span>
+                          </span>,
                         );
                         navigator.clipboard.writeText(
                           `${domain}/share/${appId}`,
                         );
                       }}
                       className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-blue-500 transition enabled:hover:bg-blue-600 disabled:grayscale"
+                      data-test="publish"
                     >
                       <span className="relative">
                         {isPublishing && (
@@ -373,7 +381,10 @@ export default function Home() {
                   }}
                   className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center rounded-r border border-gray-400 bg-gradient-to-br from-gray-100 to-gray-300 md:inset-y-0 md:left-1/2 md:right-0"
                 >
-                  <p className="animate-pulse text-3xl font-bold">
+                  <p
+                    className="animate-pulse text-3xl font-bold"
+                    data-test="loader"
+                  >
                     {status === "creating"
                       ? "Building your app..."
                       : "Updating your app..."}
