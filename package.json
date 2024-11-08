@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "ts-node evals/script.ts"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.18.2",
@@ -24,6 +25,8 @@
     "framer-motion": "^11.3.19",
     "next": "14.2.5",
     "next-plausible": "^3.12.0",
+    "openai": "^4.71.1",
+    "puppeteer": "^23.7.1",
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^1.5.0",

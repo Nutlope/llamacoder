@@ -25,3 +25,7 @@
 ## Contributing
 
 For contributing to the repo, please see the [contributing guide](./CONTRIBUTING.md).
+
+## Evals
+
+We defined evals to help us understand the quality of the generated apps. These are in the [evals folder](./evals). To run them, use your [Braintrust](https://www.braintrust.com/) API key and run `npm run evals`.
