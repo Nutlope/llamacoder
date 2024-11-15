@@ -31,9 +31,10 @@ export default function Home() {
       value: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
     },
     {
-      label: "Qwen 2.5 72B",
-      value: "Qwen/Qwen2.5-72B-Instruct-Turbo",
+      label: "Qwen 2.5 Coder 32B",
+      value: "Qwen/Qwen2.5-Coder-32B-Instruct",
     },
+
     {
       label: "Gemma 2 27B",
       value: "google/gemma-2-27b-it",
@@ -163,12 +164,13 @@ export default function Home() {
             <div className="absolute -inset-2 rounded-[32px] bg-gray-300/50" />
             <div className="relative flex rounded-3xl bg-white shadow-sm">
               <div className="relative flex flex-grow items-stretch focus-within:z-10">
-                <input
+                <textarea
+                  rows={3}
                   required
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   name="prompt"
-                  className="w-full rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                  className="w-full resize-none rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                   placeholder="Build me a calculator app..."
                 />
               </div>
