@@ -76,11 +76,8 @@ export async function createMessage(
 }
 
 export async function streamNextCompletion(messageId: string, model: string) {
-  console.log(1);
   const message = await prisma.message.findUnique({ where: { id: messageId } });
-  console.log(2);
   if (!message) notFound();
-  console.log(3);
 
   const messagesRes = await prisma.message.findMany({
     where: { chatId: message.chatId, position: { lte: message.position } },
@@ -96,14 +93,12 @@ export async function streamNextCompletion(messageId: string, model: string) {
     )
     .parse(messagesRes);
 
-  console.log(4);
   const res = await together.chat.completions.create({
     model,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
   });
 
-  console.log(5);
   return res.toReadableStream();
 }
 
