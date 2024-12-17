@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverComponentsExternalPackages: ["@codesandbox/sdk"],
+  experimental: {
+    serverComponentsExternalPackages: ["@codesandbox/sdk"],
+  },
 };
 
 export default nextConfig;

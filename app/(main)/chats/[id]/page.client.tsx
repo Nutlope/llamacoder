@@ -1,18 +1,18 @@
 "use client";
 
-import LogoSmall from "@/components/icons/logo-small";
-import Link from "next/link";
-import ChatLog from "./chat-log";
-import type { Chat } from "./page";
-import { startTransition, use, useEffect, useRef, useState } from "react";
-import { Context } from "@/components/providers";
-import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
-import { splitByFirstCodeFence } from "@/lib/utils";
 import { createMessage } from "@/app/(main)/actions";
+import LogoSmall from "@/components/icons/logo-small";
+import { Context } from "@/components/providers";
+import { splitByFirstCodeFence } from "@/lib/utils";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import CodeViewerLayout from "./code-viewer-layout";
-import CodeViewer from "./code-viewer";
+import { startTransition, use, useEffect, useRef, useState } from "react";
+import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
+import ChatLog from "./chat-log";
+import CodeViewer from "./code-viewer";
+import CodeViewerLayout from "./code-viewer-layout";
+import type { Chat } from "./page";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
