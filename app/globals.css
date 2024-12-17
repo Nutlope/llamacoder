@@ -22,3 +22,18 @@
   font-weight: 700;
   font-style: normal;
 }
+
+@keyframes spinner {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}
+
+@layer base {
+  * {
+    @apply min-w-0;
+  }
+}
