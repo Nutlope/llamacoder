@@ -12,9 +12,9 @@ import { cache } from "react";
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const generatedApp = await getGeneratedAppByID(params.id);
+  const generatedApp = await getGeneratedAppByID((await params).id);
 
   let prompt = generatedApp?.prompt;
   if (typeof prompt !== "string") {
@@ -33,13 +33,18 @@ export async function generateMetadata({
   };
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   // if process.env.DATABASE_URL is not set, throw an error
-  if (typeof params.id !== "string") {
+  if (typeof id !== "string") {
     notFound();
   }
 
-  const generatedApp = await getGeneratedAppByID(params.id);
+  const generatedApp = await getGeneratedAppByID(id);
 
   if (!generatedApp) {
     return <div>App not found</div>;
