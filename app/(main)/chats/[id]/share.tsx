@@ -9,7 +9,7 @@ export function Share({ message }: { message?: Message }) {
     if (!message) return;
 
     const baseUrl = window.location.href;
-    const shareUrl = new URL(`/share/${message.id}`, baseUrl);
+    const shareUrl = new URL(`/share/v2/${message.id}`, baseUrl);
 
     toast({
       title: "App Published!",

@@ -4,6 +4,11 @@ import client from "@/lib/prisma";
 import type { Metadata } from "next";
 import { cache } from "react";
 
+/*
+  This is the Share page for v1 apps, before the chat interface was added.
+
+  It's here to preserve existing URLs.
+*/
 export async function generateMetadata({
   params,
 }: {
