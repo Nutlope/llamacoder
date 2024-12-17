@@ -13,8 +13,6 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [streamPromise, setStreamPromise] = useState<Promise<ReadableStream>>();
 
   return (
-    <Context.Provider value={{ streamPromise, setStreamPromise }}>
-      {children}
-    </Context.Provider>
+    <Context value={{ streamPromise, setStreamPromise }}>{children}</Context>
   );
 }

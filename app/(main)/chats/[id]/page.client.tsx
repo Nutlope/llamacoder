@@ -2,7 +2,6 @@
 
 import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
-import { Context } from "@/components/providers";
 import { splitByFirstCodeFence } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,6 +12,7 @@ import ChatLog from "./chat-log";
 import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat } from "./page";
+import { Context } from "../../providers";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);

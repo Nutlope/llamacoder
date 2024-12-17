@@ -5,7 +5,6 @@ import ArrowRightIcon from "@/components/icons/arrow-right";
 import GithubIcon from "@/components/icons/github-icon";
 import XIcon from "@/components/icons/x-icon";
 import LoadingButton from "@/components/loading-button";
-import { Context } from "@/components/providers";
 import logo from "@/public/logo.png";
 import { Select } from "@headlessui/react";
 import assert from "assert";
@@ -15,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
+import { Context } from "./providers";
 
 const MODELS = [
   {

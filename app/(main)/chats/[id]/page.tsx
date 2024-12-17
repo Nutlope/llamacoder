@@ -8,7 +8,6 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const id = (await params).id;
-  console.log(id);
   const chat = await client.chat.findFirst({
     where: { id },
     include: { messages: { orderBy: { position: "asc" } } },
