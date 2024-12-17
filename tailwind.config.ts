@@ -12,6 +12,11 @@ const config: Config = {
     extend: {
       colors: {
         brand: "#E1E7EC",
+        blue: {
+          "300": "#94b2fa",
+          "500": "#326DF5",
+          "700": "#1F326F",
+        },
         gray: colors.slate,
       },
 
