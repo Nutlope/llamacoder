@@ -1,4 +1,7 @@
-import { runJavaScriptCode, runPythonCode } from "@/app/chats/[id]/actions";
+import {
+  runJavaScriptCode,
+  runPythonCode,
+} from "@/app/(main)/chats/[id]/actions";
 import CodeRunnerServerAction from "@/components/code-runner-server-action";
 import CodeRunnerReact from "./code-runner-react";
 
