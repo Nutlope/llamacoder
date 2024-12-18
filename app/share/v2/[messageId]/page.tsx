@@ -50,7 +50,7 @@ export default async function SharePage({
   );
 }
 
-export const getMessage = cache(async (messageId: string) => {
+const getMessage = cache(async (messageId: string) => {
   return client.message.findUnique({
     where: {
       id: messageId,
