@@ -30,6 +30,11 @@ export async function generateMetadata({
     openGraph: {
       images: [`/api/og?${searchParams}`],
     },
+    twitter: {
+      title: "An app generated on LlamaCoder.io",
+      card: "summary_large_image",
+      images: [`/api/og?${searchParams}`],
+    },
   };
 }
 
