@@ -52,7 +52,7 @@ export default function Home() {
 
       <div className="mt-16 flex grow flex-col items-center px-4">
         <p className="w-auto rounded-full border border-gray-300 px-2 py-1.5 text-xs italic">
-          Used by <strong>200k+</strong> happy users
+          Used by <strong>600k+</strong> happy users
         </p>
 
         <h1 className="mt-4 text-balance text-center text-4xl leading-none text-gray-700 md:text-[64px]">
