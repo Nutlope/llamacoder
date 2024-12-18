@@ -7,7 +7,15 @@ import { notFound } from "next/navigation";
 import Together from "together-ai";
 import { z } from "zod";
 
-const together = new Together();
+let options: ConstructorParameters<typeof Together>[0] = {};
+if (process.env.HELICONE_API_KEY) {
+  options.baseURL = "https://together.helicone.ai/v1";
+  options.defaultHeaders = {
+    "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+  };
+}
+
+let together = new Together(options);
 
 export async function createChat(
   prompt: string,
@@ -80,33 +88,6 @@ export async function createMessage(
   return newMessage;
 }
 
-export async function streamNextCompletion(messageId: string, model: string) {
-  const message = await prisma.message.findUnique({ where: { id: messageId } });
-  if (!message) notFound();
-
-  const messagesRes = await prisma.message.findMany({
-    where: { chatId: message.chatId, position: { lte: message.position } },
-    orderBy: { position: "asc" },
-  });
-
-  const messages = z
-    .array(
-      z.object({
-        role: z.enum(["system", "user", "assistant"]),
-        content: z.string(),
-      }),
-    )
-    .parse(messagesRes);
-
-  const res = await together.chat.completions.create({
-    model,
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    stream: true,
-  });
-
-  return res.toReadableStream();
-}
-
 export async function getNextCompletionStreamPromise(
   messageId: string,
   model: string,
@@ -134,6 +115,7 @@ export async function getNextCompletionStreamPromise(
         model,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
         stream: true,
+        temperature: 0.2,
       });
 
       resolve(res.toReadableStream());
