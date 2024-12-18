@@ -64,12 +64,15 @@ export default function Home() {
         <form
           className="mt-6"
           action={async (formData) => {
-            const prompt = formData.get("prompt");
-            const model = formData.get("model");
+            const { prompt, model, shadcn } = Object.fromEntries(formData);
             assert.ok(typeof prompt === "string");
             assert.ok(typeof model === "string");
 
-            const { chatId, lastMessageId } = await createChat(prompt, model);
+            const { chatId, lastMessageId } = await createChat(
+              prompt,
+              model,
+              !!shadcn,
+            );
             const { streamPromise } = await getNextCompletionStreamPromise(
               lastMessageId,
               model,
@@ -100,17 +103,30 @@ export default function Home() {
                 }}
               />
               <div className="pointer-events-none absolute inset-0 rounded peer-focus:outline peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
-              <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between">
-                <Select
-                  name="model"
-                  className="rounded text-sm italic text-gray-400 focus:outline focus:outline-2 focus:outline-blue-300"
-                >
-                  {MODELS.map((model) => (
-                    <option key={model.value} value={model.value}>
-                      {model.label}
-                    </option>
-                  ))}
-                </Select>
+
+              <div className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Select
+                    name="model"
+                    className="rounded text-sm italic text-gray-400 focus:outline focus:outline-2 focus:outline-blue-300"
+                  >
+                    {MODELS.map((model) => (
+                      <option key={model.value} value={model.value}>
+                        {model.label}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <label className="inline-flex items-center gap-1.5 text-sm italic text-gray-400">
+                    shadcn/ui
+                    <input
+                      type="checkbox"
+                      name="shadcn"
+                      className="size-4 accent-blue-500 focus:outline focus:outline-2 focus:outline-blue-300"
+                    />
+                  </label>
+                </div>
+
                 <div className="relative flex has-[:disabled]:opacity-50">
                   <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
                   <LoadingButton

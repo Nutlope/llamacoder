@@ -12,11 +12,10 @@ const together = new Together();
 export async function createChat(
   prompt: string,
   model: string,
-  shadcn: boolean = true,
+  shadcn: boolean,
 ) {
   const res = await together.chat.completions.create({
     model: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-    // model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
     messages: [
       {
         role: "system",
