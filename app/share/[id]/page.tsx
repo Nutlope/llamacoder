@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import CodeViewer from "@/_components/code-viewer";
 import client from "@/lib/prisma";
 import type { Metadata } from "next";
 import { cache } from "react";
+import CodeRunner from "@/components/code-runner";
 
 /*
   This is the Share page for v1 apps, before the chat interface was added.
@@ -50,7 +50,11 @@ export default async function Page({
     return <div>App not found</div>;
   }
 
-  return <CodeViewer code={generatedApp.code} />;
+  return (
+    <div className="flex h-full w-full grow items-center justify-center">
+      <CodeRunner language="tsx" code={generatedApp.code} />
+    </div>
+  );
 }
 
 const getGeneratedAppByID = cache(async (id: string) => {
