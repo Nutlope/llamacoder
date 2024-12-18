@@ -1,7 +1,30 @@
 import CodeRunner from "@/components/code-runner";
 import client from "@/lib/prisma";
 import { extractFirstCodeBlock } from "@/lib/utils";
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ messageId: string }>;
+}): Promise<Metadata> {
+  let { messageId } = await params;
+  const message = await getMessage(messageId);
+  if (!message) {
+    notFound();
+  }
+
+  let title = message.chat.title;
+  let searchParams = new URLSearchParams();
+  searchParams.set("prompt", title);
+
+  return {
+    title,
+    description: `An app generated on LlamaCoder.io: ${title}`,
+  };
+}
 
 export default async function SharePage({
   params,
@@ -26,3 +49,14 @@ export default async function SharePage({
     </div>
   );
 }
+
+export const getMessage = cache(async (messageId: string) => {
+  return client.message.findUnique({
+    where: {
+      id: messageId,
+    },
+    include: {
+      chat: true,
+    },
+  });
+});
