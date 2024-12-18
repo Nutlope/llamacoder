@@ -23,6 +23,9 @@ export async function generateMetadata({
   return {
     title,
     description: `An app generated on LlamaCoder.io: ${title}`,
+    openGraph: {
+      images: [`/api/og?${searchParams}`],
+    },
   };
 }
 
