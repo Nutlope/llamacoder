@@ -34,6 +34,7 @@ export async function createChat(
     data: {
       model,
       title,
+      shadcn,
       messages: {
         createMany: {
           data: [
