@@ -44,7 +44,7 @@ export default async function SharePage({
   }
 
   return (
-    <div className="flex h-full items-center justify-center">
+    <div className="flex h-full w-full grow items-center justify-center">
       <CodeRunner language={app.language} code={app.code} />
     </div>
   );

@@ -11,7 +11,7 @@ import assert from "assert";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { startTransition, use, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
@@ -77,9 +77,11 @@ export default function Home() {
               lastMessageId,
               model,
             );
-            setStreamPromise(streamPromise);
 
-            router.push(`/chats/${chatId}`);
+            startTransition(() => {
+              setStreamPromise(streamPromise);
+              router.push(`/chats/${chatId}`);
+            });
           }}
         >
           <Fieldset>
@@ -89,7 +91,7 @@ export default function Home() {
                 required
                 name="prompt"
                 rows={1}
-                className="peer relative w-full resize-none bg-transparent p-2 placeholder-gray-500 focus:outline-none"
+                className="peer relative w-full resize-none bg-transparent p-2 placeholder-gray-500 focus:outline-none disabled:opacity-50"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(event) => {

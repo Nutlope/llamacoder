@@ -12,6 +12,8 @@ export default function CodeRunner({
   language: string;
   code: string;
 }) {
+  return <CodeRunnerReact code={code} />;
+
   return (
     <>
       {language === "python" ? (

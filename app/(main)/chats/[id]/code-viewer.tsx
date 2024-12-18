@@ -103,13 +103,13 @@ export default function CodeViewer({
               <SyntaxHighlighter code={code} language={language} />
             </div>
           ) : (
-            <div>
+            <>
               {language && (
-                <div className="mt-8 flex items-center justify-center">
+                <div className="flex h-full items-center justify-center">
                   <CodeRunner language={language} code={code} key={refresh} />
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       ) : (
@@ -156,7 +156,9 @@ export default function CodeViewer({
           <p className="text-sm">
             Version <span className="tabular-nums">{currentVersion + 1}</span>{" "}
             <span className="text-gray-400">of</span>{" "}
-            <span className="tabular-nums">{assistantMessages.length}</span>
+            <span className="tabular-nums">
+              {Math.max(currentVersion + 1, assistantMessages.length)}
+            </span>
           </p>
 
           {nextMessage ? (
