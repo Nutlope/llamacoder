@@ -22,6 +22,7 @@ model Chat {
   model             String
   title             String
   llamaCoderVersion String    @default("v2")
+  shadcn            Boolean   @default(false)
   messages          Message[]
   createdAt         DateTime  @default(now())
 }

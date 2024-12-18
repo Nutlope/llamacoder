@@ -7,7 +7,7 @@ import assert from "assert";
 import { useRouter } from "next/navigation";
 import TextareaAutosize from "react-textarea-autosize";
 import { type Chat } from "./page";
-import { useTransition } from "react";
+import { RefObject, useEffect, useRef, useTransition } from "react";
 
 export default function ChatBox({
   chat,
@@ -20,8 +20,20 @@ export default function ChatBox({
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-
   const disabled = isPending || isStreaming;
+  const didFocusOnce = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!textareaRef.current) return;
+
+    if (!disabled && !didFocusOnce.current) {
+      textareaRef.current.focus();
+      didFocusOnce.current = true;
+    } else {
+      didFocusOnce.current = false;
+    }
+  }, [disabled]);
 
   return (
     <div className="mx-auto mb-8 flex w-full max-w-prose shrink-0 px-8">
@@ -46,8 +58,9 @@ export default function ChatBox({
         <fieldset className="w-full" disabled={disabled}>
           <div className="relative flex rounded-lg border-4 border-gray-300 bg-white">
             <TextareaAutosize
+              ref={textareaRef}
               placeholder="Follow up"
-              autoFocus
+              autoFocus={!disabled}
               required
               name="prompt"
               rows={2}
