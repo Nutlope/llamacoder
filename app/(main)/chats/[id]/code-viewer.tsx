@@ -64,7 +64,7 @@ export default function CodeViewer({
 
   return (
     <>
-      <div className="flex h-16 items-center justify-between border-b border-gray-300 px-4">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-300 px-4">
         <div className="inline-flex items-center gap-4">
           <button
             className="text-gray-400 hover:text-gray-700"

@@ -1,6 +1,6 @@
 "use client";
 
-import * as shadcnComponents from "@/utils/shadcn";
+import * as shadcnComponents from "@/lib/shadcn";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import {
   SandpackPreview,
@@ -17,21 +17,7 @@ export default function CodeViewer({
   code: string;
   showEditor?: boolean;
 }) {
-  return showEditor ? (
-    <Sandpack
-      options={{
-        showNavigator: true,
-        editorHeight: "80vh",
-        showTabs: false,
-        ...sharedOptions,
-      }}
-      files={{
-        "App.tsx": code,
-        ...sharedFiles,
-      }}
-      {...sharedProps}
-    />
-  ) : (
+  return (
     <SandpackProvider
       files={{
         "App.tsx": code,

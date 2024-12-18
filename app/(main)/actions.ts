@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import shadcnDocs from "@/lib/shadcn-docs";
 import dedent from "dedent";
 import { notFound } from "next/navigation";
 import Together from "together-ai";
@@ -8,7 +9,11 @@ import { z } from "zod";
 
 const together = new Together();
 
-export async function createChat(prompt: string, model: string) {
+export async function createChat(
+  prompt: string,
+  model: string,
+  shadcn: boolean = true,
+) {
   const res = await together.chat.completions.create({
     model: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
     // model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
@@ -33,7 +38,7 @@ export async function createChat(prompt: string, model: string) {
       messages: {
         createMany: {
           data: [
-            { role: "system", content: systemPrompt, position: 0 },
+            { role: "system", content: getSystemPrompt(shadcn), position: 0 },
             { role: "user", content: prompt, position: 1 },
           ],
         },
@@ -136,6 +141,84 @@ export async function getNextCompletionStreamPromise(
   };
 }
 
+function getSystemPrompt(shadcn: boolean) {
+  let systemPrompt = `
+    You are an expert frontend React engineer who is also a great UI/UX designer. Follow the instructions carefully, I will tip you $1 million if you do a good job:
+
+    - Think carefully step by step.
+    - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
+    - Make sure the React app is interactive and functional by creating state when needed and having no required props
+    - If you use any imports from React like useState or useEffect, make sure to import them directly
+    - Use TypeScript as the language for the React component
+    - Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. \`h-[600px]\`). Make sure to use a consistent color palette.
+    - Use Tailwind margin and padding classes to style the components and ensure the components are spaced out nicely
+    - ONLY IF the user asks for a dashboard, graph or chart, the recharts library is available to be imported, e.g. \`import { LineChart, XAxis, ... } from "recharts"\` & \`<LineChart ...><XAxis dataKey="name"> ...\`. Please only use this when needed.
+    - For placeholder images, please use a <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
+  `;
+
+  // - The lucide-react library is also available to be imported IF NECCESARY ONLY FOR THE FOLLOWING ICONS: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
+  // - Here's an example of importing and using one: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
+  // - PLEASE ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED IN THE USER'S REQUEST. Please DO NOT use the lucide-react library if it's not needed.
+
+  if (shadcn) {
+    systemPrompt += `
+    There are some prestyled components available for use. Please use your best judgement to use any of these components if the app calls for one.
+
+    Here are the components that are available, along with how to import them, and how to use them:
+
+    ${shadcnDocs
+      .map(
+        (component) => `
+          <component>
+          <name>
+          ${component.name}
+          </name>
+          <import-instructions>
+          ${component.importDocs}
+          </import-instructions>
+          <usage-instructions>
+          ${component.usageDocs}
+          </usage-instructions>
+          </component>
+        `,
+      )
+      .join("\n")}
+
+    Remember, if you use a prestyled component, make sure to import it.
+    `;
+  }
+
+  systemPrompt += `
+    NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
+
+    Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code. Use this format: \`\`\`tsx{filename=calculator.tsx}.
+  `;
+
+  // systemPrompt += `
+  //   Here are some examples of a good response:
+
+  //   ${examples
+  //     .map(
+  //       (example) => `
+  //         <example>
+  //         <prompt>
+  //         ${example.prompt}
+  //         </prompt>
+  //         <response>
+  //         ${example.response}
+  //         </response>
+  //         </example>
+  //       `,
+  //     )
+  //     .join("\n")}
+  // `;
+
+  return dedent(systemPrompt);
+}
+
+/*
+This is the prompt we originaly used for the new chat interface.
+
 const systemPrompt = dedent`
   You are an expert software developer who knows three technologies: React, Python, and Node.js.
 
@@ -150,5 +233,5 @@ const systemPrompt = dedent`
   - If you're writing a React component, make sure you don't use any external dependencies, and export a single React component as the default export. Use TypeScript as the language, with "tsx" for any code fences. You can also use Tailwind classes for styling, making sure not to use arbitrary values.
 
   - If you're writing a Python or Node script, make sure running the script executes the code you wrote and prints some output to the console.
-
 `;
+*/

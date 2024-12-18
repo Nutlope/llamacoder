@@ -44,12 +44,14 @@ export default function ChatBox({
         }}
       >
         <fieldset className="w-full" disabled={disabled}>
-          <div className="relative flex rounded-lg border-4 border-gray-300 bg-white pb-8">
+          <div className="relative flex rounded-lg border-4 border-gray-300 bg-white">
             <TextareaAutosize
               placeholder="Follow up"
+              autoFocus
               required
               name="prompt"
-              rows={1}
+              rows={2}
+              minRows={2}
               className="peer relative w-full resize-none bg-transparent p-2 placeholder-gray-500 focus:outline-none disabled:opacity-50"
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
@@ -62,19 +64,17 @@ export default function ChatBox({
             />
             <div className="pointer-events-none absolute inset-0 rounded peer-focus:outline peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
 
-            <div className="absolute inset-x-1.5 bottom-1.5 flex justify-end">
-              <div className="relative flex has-[:disabled]:opacity-50">
-                <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
+            <div className="absolute bottom-1.5 right-1.5 flex has-[:disabled]:opacity-50">
+              <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
 
-                <button
-                  className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 focus:outline focus:outline-2 focus:outline-offset-2"
-                  type="submit"
-                >
-                  <Spinner loading={disabled}>
-                    <ArrowRightIcon />
-                  </Spinner>
-                </button>
-              </div>
+              <button
+                className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 hover:bg-blue-500/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                type="submit"
+              >
+                <Spinner loading={disabled}>
+                  <ArrowRightIcon />
+                </Spinner>
+              </button>
             </div>
           </div>
         </fieldset>

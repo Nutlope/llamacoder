@@ -80,7 +80,7 @@ export default function Home() {
           }}
         >
           <Fieldset>
-            <div className="relative flex rounded-lg border-4 border-gray-300 bg-white pb-8">
+            <div className="relative flex rounded-lg border-4 border-gray-300 bg-white pb-10">
               <TextareaAutosize
                 placeholder="Build me a budgeting app..."
                 required
@@ -114,7 +114,7 @@ export default function Home() {
                 <div className="relative flex has-[:disabled]:opacity-50">
                   <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
                   <LoadingButton
-                    className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 focus:outline focus:outline-2 focus:outline-offset-2"
+                    className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 hover:bg-blue-500/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                     type="submit"
                   >
                     <ArrowRightIcon />
@@ -128,7 +128,7 @@ export default function Home() {
                   key={v}
                   type="button"
                   onClick={() => setPrompt(v)}
-                  className="rounded bg-gray-200 px-2.5 py-1.5 text-xs outline-blue-300"
+                  className="rounded bg-gray-200 px-2.5 py-1.5 text-xs hover:bg-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300"
                 >
                   {v}
                 </button>

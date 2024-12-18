@@ -1,4 +1,4 @@
-import shadcnDocs from "@/utils/shadcn-docs";
+import shadcnDocs from "@/lib/shadcn-docs";
 import dedent from "dedent";
 import Together from "together-ai";
 import { z } from "zod";
