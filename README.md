@@ -20,7 +20,7 @@ You can also experiment with Gemini in [Google AI Studio](https://aistudio.googl
 ## Cloning & running
 
 1. Clone the repo: `git clone https://github.com/osanseviero/geminicoder`
-2. Create a `.env` file and add your [Google AI Studio API key](https://aistudio.google.com/app/apikey): `GOOGLE_API_KEY=`
+2. Create a `.env` file and add your [Google AI Studio API key](https://aistudio.google.com/app/apikey): `GOOGLE_AI_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
 **This is a personal project and not a Google official project**
