@@ -26,6 +26,7 @@
     "next-plausible": "^3.12.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-icons": "^5.4.0",
     "sonner": "^1.5.0",
     "together-ai": "^0.8.0",
     "zod": "^3.23.8"
