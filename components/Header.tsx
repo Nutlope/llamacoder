@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import logo from "../public/logo.png";
+import logo from "../public/logo.svg";
 import GithubIcon from "./github-icon";
 
 export default function Header() {
@@ -9,11 +9,11 @@ export default function Header() {
       <Link href="/" className="absolute flex items-center gap-2">
         <Image alt="header text" src={logo} className="h-5 w-5" />
         <h1 className="text-xl tracking-tight">
-          <span className="text-blue-600">Llama</span>Coder
+          <span className="text-blue-600">Gemini</span>Coder
         </h1>
       </Link>
       <a
-        href="https://github.com/nutlope/llamacoder"
+        href="https://github.com/osanseviero/geminicoder"
         target="_blank"
         className="ml-auto hidden items-center gap-3 rounded-2xl bg-white px-6 py-2 sm:flex"
       >

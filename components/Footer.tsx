@@ -7,26 +7,29 @@ export default function Footer() {
         <div className="font-medium">
           Built with{" "}
           <a
-            href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
+            href="https://ai.google.dev/gemini-api/docs"
             className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
+            target="_blank"
           >
-            Llama 3.1 405B
+            Gemini API
           </a>{" "}
           and{" "}
           <a
-            href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
+            href="https://github.com/nutlope/llamacoder"
             className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
+            target="_blank"
           >
-            Together AI
+            Inspired on Llamacoder
           </a>
           .
         </div>
       </div>
       <div className="flex space-x-4 pb-4 sm:pb-0">
         <Link
-          href="https://twitter.com/nutlope"
+          href="https://twitter.com/osanseviero"
           className="group"
           aria-label=""
+          target="_blank"
         >
           <svg
             aria-hidden="true"
@@ -36,9 +39,10 @@ export default function Footer() {
           </svg>
         </Link>
         <Link
-          href="https://github.com/Nutlope/llamacoder"
+          href="https://github.com/osanseviero/geminicoder"
           className="group"
           aria-label="TaxPal on GitHub"
+          target="_blank"
         >
           <svg
             aria-hidden="true"
