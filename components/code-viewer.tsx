@@ -9,6 +9,8 @@ import {
 import { dracula as draculaTheme } from "@codesandbox/sandpack-themes";
 import dedent from "dedent";
 import "./code-viewer.css";
+import { useState } from "react";
+import { FiClipboard, FiCheck } from "react-icons/fi";
 
 export default function CodeViewer({
   code,
@@ -17,36 +19,60 @@ export default function CodeViewer({
   code: string;
   showEditor?: boolean;
 }) {
-  return showEditor ? (
-    <Sandpack
-      options={{
-        showNavigator: true,
-        editorHeight: "80vh",
-        showTabs: false,
-        ...sharedOptions,
-      }}
-      files={{
-        "App.tsx": code,
-        ...sharedFiles,
-      }}
-      {...sharedProps}
-    />
-  ) : (
-    <SandpackProvider
-      files={{
-        "App.tsx": code,
-        ...sharedFiles,
-      }}
-      className="flex h-full w-full grow flex-col justify-center"
-      options={{ ...sharedOptions }}
-      {...sharedProps}
-    >
-      <SandpackPreview
-        className="flex h-full w-full grow flex-col justify-center p-4 md:pt-16"
-        showOpenInCodeSandbox={false}
-        showRefreshButton={false}
-      />
-    </SandpackProvider>
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="relative">
+      {showEditor ? (
+        <Sandpack
+          options={{
+            showNavigator: true,
+            editorHeight: "80vh",
+            showTabs: false,
+            ...sharedOptions,
+          }}
+          files={{
+            "App.tsx": code,
+            ...sharedFiles,
+          }}
+          {...sharedProps}
+        />
+      ) : (
+        <SandpackProvider
+          files={{
+            "App.tsx": code,
+            ...sharedFiles,
+          }}
+          className="flex h-full w-full grow flex-col justify-center"
+          options={{ ...sharedOptions }}
+          {...sharedProps}
+        >
+          <SandpackPreview
+            className="flex h-full w-full grow flex-col justify-center p-4 md:pt-16"
+            showOpenInCodeSandbox={false}
+            showRefreshButton={false}
+          />
+        </SandpackProvider>
+      )}
+      <button 
+        onClick={handleCopy} 
+        className="absolute bottom-4 left-4 flex items-center px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition mb-6"
+      >
+        {copied ? (
+          <FiCheck className="mr-2" />
+        ) : (
+          <FiClipboard className="mr-2" />
+        )}
+        {copied ? "Copied" : "Copy Code"}
+      </button>
+    </div>
   );
 }
 
