@@ -20,6 +20,7 @@ let together = new Together(options);
 export async function createChat(
   prompt: string,
   model: string,
+  quality: "high" | "low",
   shadcn: boolean,
 ) {
   const res = await together.chat.completions.create({
@@ -38,16 +39,51 @@ export async function createChat(
   });
   const title = res.choices[0].message?.content || prompt;
 
+  let userMessage: string;
+  if (quality === "high") {
+    const highQualitySystemPrompt = dedent`
+      You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app.
+      Guidelines:
+      - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
+      - Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
+      - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
+      - Do not include any external API calls.
+      - Skip code examples and commentary.
+    `;
+
+    let initialRes = await together.chat.completions.create({
+      model: "Qwen/Qwen2.5-Coder-32B-Instruct",
+      messages: [
+        {
+          role: "system",
+          content: highQualitySystemPrompt,
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.2,
+      max_tokens: 3000,
+    });
+
+    userMessage = initialRes.choices[0].message?.content ?? prompt;
+  } else {
+    userMessage = prompt;
+  }
+
   const chat = await prisma.chat.create({
     data: {
       model,
+      quality,
+      prompt,
       title,
       shadcn,
       messages: {
         createMany: {
           data: [
             { role: "system", content: getSystemPrompt(shadcn), position: 0 },
-            { role: "user", content: prompt, position: 1 },
+            { role: "user", content: userMessage, position: 1 },
           ],
         },
       },

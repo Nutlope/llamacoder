@@ -3,6 +3,7 @@
 import type { Chat, Message } from "./page";
 import ArrowLeftIcon from "@/components/icons/arrow-left";
 import { splitByFirstCodeFence } from "@/lib/utils";
+import { User } from "lucide-react";
 import Markdown from "react-markdown";
 import { StickToBottom } from "use-stick-to-bottom";
 
@@ -26,13 +27,12 @@ export default function ChatLog({
       initial="smooth"
     >
       <StickToBottom.Content className="mx-auto flex w-full max-w-prose flex-col gap-8 p-8">
-        {chat.messages.slice(1).map((message) => (
+        <UserMessage content={chat.prompt} />
+
+        {chat.messages.slice(2).map((message) => (
           <div key={message.id}>
             {message.role === "user" ? (
-              <div className="inline-flex items-center gap-3">
-                <div className="size-4 rotate-45 rounded-sm bg-gray-700" />
-                <div className="italic text-gray-600">{message.content}</div>
-              </div>
+              <UserMessage content={message.content} />
             ) : (
               <AssistantMessage
                 content={message.content}
@@ -56,6 +56,15 @@ export default function ChatLog({
         )}
       </StickToBottom.Content>
     </StickToBottom>
+  );
+}
+
+function UserMessage({ content }: { content: string }) {
+  return (
+    <div className="inline-flex items-center gap-3">
+      <div className="size-4 rotate-45 rounded-sm bg-gray-700" />
+      <div className="italic text-gray-600">{content}</div>
+    </div>
   );
 }
 

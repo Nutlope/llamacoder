@@ -20,6 +20,8 @@ model GeneratedApp {
 model Chat {
   id                String    @id @default(nanoid(16))
   model             String
+  quality           String
+  prompt            String
   title             String
   llamaCoderVersion String    @default("v2")
   shadcn            Boolean

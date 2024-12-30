@@ -91,12 +91,17 @@ export default function Home() {
           <form
             className="mt-6"
             action={async (formData) => {
-              const { prompt, model, shadcn } = Object.fromEntries(formData);
+              const { prompt, model, quality, shadcn } =
+                Object.fromEntries(formData);
+
               assert.ok(typeof prompt === "string");
               assert.ok(typeof model === "string");
+              assert.ok(quality === "high" || quality === "low");
+
               const { chatId, lastMessageId } = await createChat(
                 prompt,
                 model,
+                quality,
                 !!shadcn,
               );
               const { streamPromise } = await getNextCompletionStreamPromise(
@@ -152,14 +157,16 @@ export default function Home() {
                         shadcn/ui
                       </Switch>
                     </label>
-                    {/* <label className="inline-flex items-center gap-1.5 text-sm italic text-gray-400">
-                      shadcn/ui
-                      <input
-                        type="checkbox"
-                        name="shadcn"
-                        className="size-4 accent-blue-500 focus:outline focus:outline-2 focus:outline-blue-300"
-                      />
-                    </label> */}
+
+                    <div className="h-4 w-px bg-gray-200" />
+
+                    <Select
+                      name="quality"
+                      className="rounded text-sm text-gray-400 focus:outline focus:outline-2 focus:outline-blue-300"
+                    >
+                      <option value="low">Low quality [faster]</option>
+                      <option value="high">High quality [slower]</option>
+                    </Select>
                   </div>
                   <div className="relative flex has-[:disabled]:opacity-50">
                     <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
