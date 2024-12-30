@@ -62,9 +62,16 @@ export default function Home() {
         </header>
 
         <div className="mt-16 flex grow flex-col items-center px-4 lg:mt-24">
-          <p className="w-auto rounded-full border border-gray-300 px-2 py-1.5 text-xs italic">
-            Used by <strong>600k+</strong> happy users
-          </p>
+          <a
+            className="mb-4 inline-flex h-7 shrink-0 items-center gap-[9px] rounded-[50px] border-[0.5px] border-solid border-[#E6E6E6] bg-gray-50 px-7 py-5 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)]"
+            href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
+            target="_blank"
+          >
+            <span className="text-center">
+              Powered by <span className="font-medium">Llama 3.1</span> and{" "}
+              <span className="font-medium">Together AI</span>
+            </span>
+          </a>
           <h1 className="mt-4 text-balance text-center text-4xl leading-none text-gray-700 md:text-[64px]">
             Turn your <span className="text-blue-500">idea</span>
             <br className="hidden md:block" /> into an{" "}
