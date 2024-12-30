@@ -25,12 +25,12 @@ export default function Home() {
   let [prompt, setPrompt] = useState("");
   let models = [
     {
-      label: "Qwen 2.5 Coder 32B",
-      value: "Qwen/Qwen2.5-Coder-32B-Instruct",
-    },
-    {
       label: "Llama 3.1 405B",
       value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+    },
+    {
+      label: "Qwen 2.5 Coder 32B",
+      value: "Qwen/Qwen2.5-Coder-32B-Instruct",
     },
     {
       label: "Llama 3.3 70B",
@@ -154,8 +154,8 @@ export default function Home() {
         target="_blank"
       >
         <span className="text-center">
-          Powered by <span className="font-medium">Llama 3.1</span> and{" "}
-          <span className="font-medium">Together AI</span>
+          Powered by <span className="font-semibold">Together AI</span>. Used by
+          <span className="font-semibold"> 600k+ users. </span>
         </span>
       </a>
       <h1 className="my-6 max-w-3xl text-4xl font-bold text-gray-800 sm:text-6xl">
