@@ -19,6 +19,7 @@ export async function POST(req: Request) {
   let result = z
     .object({
       model: z.string(),
+      quality: z.string(),
       shadcn: z.boolean().default(false),
       messages: z.array(
         z.object({
@@ -33,26 +34,25 @@ export async function POST(req: Request) {
     return new Response(result.error.message, { status: 422 });
   }
 
-  let { model, messages, shadcn } = result.data;
+  let { model, quality, messages, shadcn } = result.data;
 
   let systemPrompt = getSystemPrompt(shadcn);
 
-  // #1: Do initial call to an architect agent to generate a plan for the app, IF it's the first time
-  const initialSystemPrompt = `
-You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app.
+  let initialPlan;
+  if (messages.length === 1 && quality === "high") {
+    // #1: Do initial call to an architect agent to generate a plan for the app, IF it's the first time
+    const initialSystemPrompt = dedent`
+    You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app.
 
-Guidelines:
+    Guidelines:
 
-- Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
-- Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
-- Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
-- Do not include any external API calls.
-- Skip code examples and commentary.
+    - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
+    - Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
+    - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
+    - Do not include any external API calls.
+    - Skip code examples and commentary.
   `;
 
-  let initialPlan;
-
-  if (messages.length === 1) {
     let initialRes = await together.chat.completions.create({
       model: "Qwen/Qwen2.5-Coder-32B-Instruct",
       messages: [
