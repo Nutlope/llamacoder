@@ -90,7 +90,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
   }, [chat.id, router, streamPromise, context]);
 
   return (
-    <div className="h-full">
+    <div className="h-dvh">
       <div className="flex h-full">
         <div className="mx-auto flex w-full shrink-0 flex-col overflow-hidden lg:w-1/2">
           <div className="flex items-center gap-4 px-4 py-4">

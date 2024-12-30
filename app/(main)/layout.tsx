@@ -8,7 +8,7 @@ export default function Layout({
 }>) {
   return (
     <Providers>
-      <body className="flex h-full flex-col bg-gray-100 text-gray-900 antialiased">
+      <body className="flex min-h-full flex-col bg-gray-100 text-gray-900 antialiased">
         {children}
 
         <Toaster />

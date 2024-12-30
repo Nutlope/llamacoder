@@ -46,7 +46,7 @@ export default function Home() {
   const router = useRouter();
 
   return (
-    <>
+    <div className="relative flex grow flex-col">
       <div className="absolute inset-0 flex justify-center">
         <Image
           src={bgImg}
@@ -56,13 +56,13 @@ export default function Home() {
         />
       </div>
 
-      <div className="isolate flex h-full flex-col">
+      <div className="isolate flex h-full grow flex-col">
         <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-5">
           <Image
             src={logo}
             alt=""
             quality={100}
-            className="mx-auto h-7 w-auto"
+            className="mx-auto h-8 w-auto"
             priority
           />
           <div className="absolute right-3">
@@ -248,6 +248,6 @@ export default function Home() {
           </div>
         </footer>
       </div>
-    </>
+    </div>
   );
 }
