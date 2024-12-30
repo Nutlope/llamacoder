@@ -1,11 +1,11 @@
 "use client";
 
-import bgImg from "@/public/halo.png";
 import Fieldset from "@/components/fieldset";
 import ArrowRightIcon from "@/components/icons/arrow-right";
 import GithubIcon from "@/components/icons/github-icon";
-import XIcon from "@/components/icons/x-icon";
 import LoadingButton from "@/components/loading-button";
+import { Switch } from "@/components/ui/switch";
+import bgImg from "@/public/halo.png";
 import logo from "@/public/logo.png";
 import { Select } from "@headlessui/react";
 import assert from "assert";
@@ -16,8 +16,6 @@ import { startTransition, use, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
-import { Switch } from "@/components/ui/switch";
-import RefreshIcon from "@/components/icons/refresh";
 
 const MODELS = [
   {
