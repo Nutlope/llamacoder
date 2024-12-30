@@ -27,14 +27,13 @@ export default function Home() {
       value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
     },
     {
-      label: "Llama 3.3 70B",
-      value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    },
-    {
       label: "Qwen 2.5 Coder 32B",
       value: "Qwen/Qwen2.5-Coder-32B-Instruct",
     },
-
+    {
+      label: "Llama 3.3 70B",
+      value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    },
     {
       label: "Gemma 2 27B",
       value: "google/gemma-2-27b-it",
