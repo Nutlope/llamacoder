@@ -1,13 +1,13 @@
 "use client";
 
-import { createMessage, getNextCompletionStreamPromise } from "../../actions";
 import ArrowRightIcon from "@/components/icons/arrow-right";
 import Spinner from "@/components/spinner";
 import assert from "assert";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useTransition } from "react";
 import TextareaAutosize from "react-textarea-autosize";
+import { createMessage, getNextCompletionStreamPromise } from "../../actions";
 import { type Chat } from "./page";
-import { RefObject, useEffect, useRef, useTransition } from "react";
 
 export default function ChatBox({
   chat,

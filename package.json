@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "next lint && tsc --noEmit"
+    "lint": "next lint && tsc --noEmit --noUnusedLocals"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.19.10",
