@@ -106,7 +106,7 @@ export async function POST(req: Request) {
         ],
     stream: true,
     temperature: 0.2,
-    // max_tokens: 32700,
+    max_tokens: 6000,
   });
 
   return new Response(res.toReadableStream());
