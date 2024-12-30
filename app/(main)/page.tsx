@@ -15,6 +15,8 @@ import { toast, Toaster } from "sonner";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
+import LightningBoltIcon from "@/components/icons/lightning-bolt";
+import LightbulbIcon from "@/components/icons/lightbulb";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -27,25 +29,26 @@ export default function Home() {
       value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
     },
     {
-      label: "Llama 3.3 70B",
-      value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    },
-    {
       label: "Qwen 2.5 Coder 32B",
       value: "Qwen/Qwen2.5-Coder-32B-Instruct",
     },
-
+    {
+      label: "Llama 3.3 70B",
+      value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    },
     {
       label: "Gemma 2 27B",
       value: "google/gemma-2-27b-it",
     },
   ];
   let [model, setModel] = useState(models[0].value);
+  let [quality, setQuality] = useState("low");
   let [shadcn, setShadcn] = useState(false);
   let [modification, setModification] = useState("");
   let [generatedCode, setGeneratedCode] = useState("");
   let [initialAppConfig, setInitialAppConfig] = useState({
     model: "",
+    quality: "",
     shadcn: true,
   });
   let [ref, scrollTo] = useScrollTo();
@@ -73,6 +76,7 @@ export default function Home() {
       },
       body: JSON.stringify({
         model,
+        quality,
         shadcn,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -90,7 +94,7 @@ export default function Home() {
       .on("content", (delta) => setGeneratedCode((prev) => prev + delta))
       .on("end", () => {
         setMessages([{ role: "user", content: prompt }]);
-        setInitialAppConfig({ model, shadcn });
+        setInitialAppConfig({ model, quality, shadcn });
         setStatus("created");
       });
   }
@@ -113,6 +117,7 @@ export default function Home() {
       body: JSON.stringify({
         messages: [...messages, codeMessage, modificationMessage],
         model: initialAppConfig.model,
+        quality: initialAppConfig.quality,
         shadcn: initialAppConfig.shadcn,
       }),
     });
@@ -149,8 +154,8 @@ export default function Home() {
         target="_blank"
       >
         <span className="text-center">
-          Powered by <span className="font-medium">Llama 3.1</span> and{" "}
-          <span className="font-medium">Together AI</span>
+          Powered by <span className="font-semibold">Together AI</span>. Used by
+          <span className="font-semibold"> 600k+ users. </span>
         </span>
       </a>
       <h1 className="my-6 max-w-3xl text-4xl font-bold text-gray-800 sm:text-6xl">
@@ -187,9 +192,9 @@ export default function Home() {
               </button>
             </div>
           </div>
-          <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:gap-8">
-            <div className="flex items-center justify-between gap-3 sm:justify-center">
-              <p className="text-gray-500 sm:text-xs">Model:</p>
+          <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between gap-3 sm:grow sm:flex-col sm:items-start sm:justify-center sm:gap-2">
+              <p className="text-gray-500 sm:text-sm">Model</p>
               <Select.Root
                 name="model"
                 disabled={loading}
@@ -230,9 +235,64 @@ export default function Home() {
               </Select.Root>
             </div>
 
-            <div className="flex h-full items-center justify-between gap-3 sm:justify-center">
-              <label className="text-gray-500 sm:text-xs" htmlFor="shadcn">
-                shadcn/ui:
+            <div className="flex h-full items-center justify-between gap-3 sm:flex-col sm:items-start sm:justify-center sm:gap-2">
+              <label className="text-gray-500 sm:text-sm" htmlFor="shadcn">
+                Quality
+              </label>
+              <Select.Root
+                name="quality"
+                disabled={loading}
+                value={quality}
+                onValueChange={setQuality}
+              >
+                <Select.Trigger className="group flex w-56 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                  <Select.Value />
+                  <Select.Icon className="ml-auto">
+                    <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
+                  </Select.Icon>
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
+                    <Select.Viewport className="p-2">
+                      <Select.Item
+                        value="low"
+                        className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                      >
+                        <Select.ItemText asChild>
+                          <span className="inline-flex items-center gap-1.5 text-gray-500">
+                            <LightningBoltIcon className="size-3 text-blue-500" />
+                            Low-quality (faster)
+                          </span>
+                        </Select.ItemText>
+                        <Select.ItemIndicator className="ml-auto">
+                          <CheckIcon className="size-5 text-blue-600" />
+                        </Select.ItemIndicator>
+                      </Select.Item>
+                      <Select.Item
+                        value="high"
+                        className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                      >
+                        <Select.ItemText asChild>
+                          <span className="inline-flex items-center gap-1.5 text-gray-500">
+                            <LightbulbIcon className="size-3 text-yellow-500" />
+                            High-quality (slower)
+                          </span>
+                        </Select.ItemText>
+                        <Select.ItemIndicator className="ml-auto">
+                          <CheckIcon className="size-5 text-blue-600" />
+                        </Select.ItemIndicator>
+                      </Select.Item>
+                    </Select.Viewport>
+                    <Select.ScrollDownButton />
+                    <Select.Arrow />
+                  </Select.Content>
+                </Select.Portal>
+              </Select.Root>
+            </div>
+
+            <div className="flex h-full items-center justify-between gap-3 sm:flex-col sm:items-start sm:justify-center sm:gap-2">
+              <label className="text-gray-500 sm:text-sm" htmlFor="shadcn">
+                shadcn/ui
               </label>
               <Switch.Root
                 className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 data-[state=checked]:bg-blue-500"
