@@ -24,4 +24,4 @@
 
 ## Contributing
 
-For contributing to the repo, please see the [contributing guide](./CONTRIBUTING.md).
+For contributing to the repo, please see the [contributing guide](./CONTRIBUTING.md)
