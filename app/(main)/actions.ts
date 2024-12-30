@@ -23,7 +23,7 @@ export async function createChat(
   quality: "high" | "low",
   shadcn: boolean,
 ) {
-  const res = await together.chat.completions.create({
+  const responseForChatTitle = await together.chat.completions.create({
     model: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
     messages: [
       {
@@ -37,7 +37,7 @@ export async function createChat(
       },
     ],
   });
-  const title = res.choices[0].message?.content || prompt;
+  const title = responseForChatTitle.choices[0].message?.content || prompt;
 
   let userMessage: string;
   if (quality === "high") {
@@ -167,6 +167,7 @@ function getSystemPrompt(shadcn: boolean) {
     - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
     - Make sure the React app is interactive and functional by creating state when needed and having no required props
     - If you use any imports from React like useState or useEffect, make sure to import them directly
+    - Do not include any external API calls.
     - Use TypeScript as the language for the React component
     - Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. \`h-[600px]\`). Make sure to use a consistent color palette.
     - Use Tailwind margin and padding classes to style the components and ensure the components are spaced out nicely

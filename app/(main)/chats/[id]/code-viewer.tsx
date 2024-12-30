@@ -10,6 +10,7 @@ import { extractFirstCodeBlock, splitByFirstCodeFence } from "@/lib/utils";
 import { useState } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
+import { StickToBottom } from "use-stick-to-bottom";
 
 export default function CodeViewer({
   chat,
@@ -99,9 +100,15 @@ export default function CodeViewer({
       {layout === "tabbed" ? (
         <div className="flex grow flex-col overflow-y-auto bg-white">
           {activeTab === "code" ? (
-            <div className="grow">
-              <SyntaxHighlighter code={code} language={language} />
-            </div>
+            <StickToBottom
+              className="relative grow overflow-hidden"
+              resize="smooth"
+              initial={streamAppIsGenerating ? "smooth" : false}
+            >
+              <StickToBottom.Content>
+                <SyntaxHighlighter code={code} language={language} />
+              </StickToBottom.Content>
+            </StickToBottom>
           ) : (
             <>
               {language && (

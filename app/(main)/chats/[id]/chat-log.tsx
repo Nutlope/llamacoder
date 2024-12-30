@@ -3,7 +3,6 @@
 import type { Chat, Message } from "./page";
 import ArrowLeftIcon from "@/components/icons/arrow-left";
 import { splitByFirstCodeFence } from "@/lib/utils";
-import { User } from "lucide-react";
 import Markdown from "react-markdown";
 import { StickToBottom } from "use-stick-to-bottom";
 
