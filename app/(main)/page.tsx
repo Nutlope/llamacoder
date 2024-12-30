@@ -17,6 +17,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
 import { Switch } from "@/components/ui/switch";
+import RefreshIcon from "@/components/icons/refresh";
 
 const MODELS = [
   {
@@ -138,7 +139,7 @@ export default function Home() {
                   <div className="flex items-center gap-3">
                     <Select
                       name="model"
-                      className="rounded text-sm text-gray-400 focus:outline focus:outline-2 focus:outline-blue-300"
+                      className="rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300"
                     >
                       {MODELS.map((model) => (
                         <option key={model.value} value={model.value}>
@@ -149,7 +150,7 @@ export default function Home() {
 
                     <div className="h-4 w-px bg-gray-200" />
 
-                    <label className="inline-flex items-center gap-2 text-sm text-gray-400">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700">
                       <span>
                         shadcn<span className="font-medium">/</span>ui
                       </span>
@@ -162,7 +163,7 @@ export default function Home() {
 
                     <Select
                       name="quality"
-                      className="rounded text-sm text-gray-400 focus:outline focus:outline-2 focus:outline-blue-300"
+                      className="rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300"
                     >
                       <option value="low">Low quality [faster]</option>
                       <option value="high">High quality [slower]</option>

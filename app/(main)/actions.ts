@@ -181,9 +181,9 @@ function getSystemPrompt(shadcn: boolean) {
 
   if (shadcn) {
     systemPrompt += `
-    There are some prestyled components available for use. Please use your best judgement to use any of these components if the app calls for one.
+    There are some prestyled UI components available for use. Please use your best judgement to use any of these components if the app calls for one.
 
-    Here are the components that are available, along with how to import them, and how to use them:
+    Here are the UI components that are available, along with how to import them, and how to use them:
 
     ${shadcnDocs
       .map(
@@ -203,7 +203,7 @@ function getSystemPrompt(shadcn: boolean) {
       )
       .join("\n")}
 
-    Remember, if you use a prestyled component, make sure to import it.
+    Remember, if you use a UI component, make sure to import it.
     `;
   }
 
