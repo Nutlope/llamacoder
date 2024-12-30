@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS "Chat";
-
 DROP TABLE IF EXISTS "Message";
+
+DROP TABLE IF EXISTS "Chat";
 
 -- CreateTable
 CREATE TABLE "Chat" (
