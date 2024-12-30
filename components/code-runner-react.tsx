@@ -16,6 +16,24 @@ export default function ReactCodeRunner({ code }: { code: string }) {
       files={{
         "App.tsx": code,
         ...shadcnFiles,
+        "/tsconfig.json": {
+          code: `{
+            "include": [
+              "./**/*"
+            ],
+            "compilerOptions": {
+              "strict": true,
+              "esModuleInterop": true,
+              "lib": [ "dom", "es2015" ],
+              "jsx": "react-jsx",
+              "baseUrl": "./",
+              "paths": {
+                "@/components/*": ["components/*"]
+              }
+            }
+          }
+        `,
+        },
       }}
       options={{
         externalResources: [
