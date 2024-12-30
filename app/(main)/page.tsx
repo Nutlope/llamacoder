@@ -110,13 +110,13 @@ export default function Home() {
             }}
           >
             <Fieldset>
-              <div className="relative flex rounded-lg border-4 border-gray-300 bg-white pb-10">
+              <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <TextareaAutosize
                   placeholder="Build me a budgeting app..."
                   required
                   name="prompt"
                   rows={1}
-                  className="peer relative w-full resize-none bg-transparent p-2 placeholder-gray-500 focus:outline-none disabled:opacity-50"
+                  className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus:outline-none disabled:opacity-50"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(event) => {
@@ -128,12 +128,12 @@ export default function Home() {
                     }
                   }}
                 />
-                <div className="pointer-events-none absolute inset-0 rounded peer-focus:outline peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
-                <div className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-between">
-                  <div className="flex items-center gap-5">
+                <div className="pointer-events-none absolute inset-0 rounded-lg peer-focus:outline peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
+                <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <Select
                       name="model"
-                      className="rounded text-sm italic text-gray-400 focus:outline focus:outline-2 focus:outline-blue-300"
+                      className="rounded text-sm text-gray-400 focus:outline focus:outline-2 focus:outline-blue-300"
                     >
                       {MODELS.map((model) => (
                         <option key={model.value} value={model.value}>
@@ -142,9 +142,15 @@ export default function Home() {
                       ))}
                     </Select>
 
-                    <label className="inline-flex items-center gap-1.5 text-sm italic text-gray-400">
-                      <Switch name="shadcn">shadcn/ui</Switch>
-                      shadcn/ui
+                    <div className="h-4 w-px bg-gray-200" />
+
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-400">
+                      <span>
+                        shadcn<span className="font-medium">/</span>ui
+                      </span>
+                      <Switch className="mt-0.5" name="shadcn">
+                        shadcn/ui
+                      </Switch>
                     </label>
                     {/* <label className="inline-flex items-center gap-1.5 text-sm italic text-gray-400">
                       shadcn/ui
