@@ -47,11 +47,11 @@ export default function Home() {
 
   return (
     <>
-      <div className="absolute inset-x-0 flex justify-center">
+      <div className="absolute inset-0 flex justify-center">
         <Image
           src={bgImg}
           alt=""
-          className="w-full max-w-[1200px] mix-blend-screen"
+          className="max-h-[953px] w-full max-w-[1200px] object-cover object-top mix-blend-screen"
           priority
         />
       </div>
