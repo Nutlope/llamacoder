@@ -58,7 +58,13 @@ export default function Home() {
 
       <div className="isolate flex h-full flex-col">
         <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-5">
-          <Image src={logo} alt="" className="mx-auto h-6 w-auto" priority />
+          <Image
+            src={logo}
+            alt=""
+            quality={100}
+            className="mx-auto h-7 w-auto"
+            priority
+          />
           <div className="absolute right-3">
             <a
               href="https://github.com/nutlope/llamacoder"
