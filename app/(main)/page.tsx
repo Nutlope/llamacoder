@@ -14,8 +14,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, use, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
-import { createChat, getNextCompletionStreamPromise } from "./actions";
+import {
+  createChat,
+  getNextCompletionStreamPromise,
+  getTitleStream,
+} from "./actions";
 import { Context } from "./providers";
+import { addStream } from "./stream-store";
 
 const MODELS = [
   {
@@ -109,6 +114,10 @@ export default function Home() {
                 quality,
                 !!shadcn,
               );
+
+              let { promise } = await getTitleStream(chatId);
+              addStream(`chat-title-${chatId}`, promise);
+
               const { streamPromise } = await getNextCompletionStreamPromise(
                 lastMessageId,
                 model,

@@ -13,6 +13,8 @@ import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat } from "./page";
 import { Context } from "../../providers";
+import { useStream } from "../../stream-store";
+import { useAnimatedText } from "@/hooks/use-animated-text";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
@@ -89,6 +91,13 @@ export default function PageClient({ chat }: { chat: Chat }) {
     f();
   }, [chat.id, router, streamPromise, context]);
 
+  const titleStream = useStream(`chat-title-${chat.id}`);
+  const showTitleSkeleton =
+    titleStream.exists && titleStream.state !== "complete";
+  const title = titleStream.content ?? chat.title;
+
+  // let animatedTitle = useAnimatedText(title);
+
   return (
     <div className="h-full">
       <div className="flex h-full">
@@ -97,7 +106,13 @@ export default function PageClient({ chat }: { chat: Chat }) {
             <Link href="/">
               <LogoSmall />
             </Link>
-            <p className="italic text-gray-500">{chat.title}</p>
+
+            <p
+              data-loading={showTitleSkeleton || undefined}
+              className="min-h-[1em] italic text-gray-500 data-[loading]:animate-pulse data-[loading]:before:block data-[loading]:before:rounded-lg data-[loading]:before:bg-gray-300 data-[loading]:before:px-8 data-[loading]:before:text-gray-300 data-[loading]:before:[content:'Loading']"
+            >
+              {title}
+            </p>
           </div>
 
           <ChatLog

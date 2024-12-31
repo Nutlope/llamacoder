@@ -5,6 +5,7 @@ import shadcnDocs from "@/lib/shadcn-docs";
 import dedent from "dedent";
 import { notFound } from "next/navigation";
 import Together from "together-ai";
+import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import { z } from "zod";
 
 let options: ConstructorParameters<typeof Together>[0] = {};
@@ -23,22 +24,6 @@ export async function createChat(
   quality: "high" | "low",
   shadcn: boolean,
 ) {
-  const responseForChatTitle = await together.chat.completions.create({
-    model: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
-  const title = responseForChatTitle.choices[0].message?.content || prompt;
-
   let userMessage: string;
   if (quality === "high") {
     const highQualitySystemPrompt = dedent`
@@ -77,7 +62,7 @@ export async function createChat(
       model,
       quality,
       prompt,
-      title,
+      title: "",
       shadcn,
       messages: {
         createMany: {
@@ -97,6 +82,46 @@ export async function createChat(
   if (!lastMessage) throw new Error("No new message");
 
   return { chatId: chat.id, lastMessageId: lastMessage.id };
+}
+
+export async function getTitleStream(chatId: string) {
+  const chat = await prisma.chat.findUniqueOrThrow({
+    where: { id: chatId },
+  });
+
+  return {
+    promise: new Promise<ReadableStream>(async (resolve) => {
+      console.time("HTTP");
+      const res = await together.chat.completions.create({
+        model: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+        // model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
+          },
+          {
+            role: "user",
+            content: chat.prompt,
+          },
+        ],
+        stream: true,
+      });
+      console.timeEnd("HTTP");
+
+      resolve(
+        ChatCompletionStream.fromReadableStream(res.toReadableStream())
+          .on("finalContent", async (title) => {
+            await prisma.chat.update({
+              where: { id: chatId },
+              data: { title },
+            });
+          })
+          .toReadableStream(),
+      );
+    }),
+  };
 }
 
 export async function createMessage(
