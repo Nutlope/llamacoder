@@ -7,7 +7,7 @@ import LoadingButton from "@/components/loading-button";
 import { Switch } from "@/components/ui/switch";
 import bgImg from "@/public/halo.png";
 import logo from "@/public/logo.png";
-import { Select } from "@headlessui/react";
+import * as Select from "@radix-ui/react-select";
 import assert from "assert";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +16,7 @@ import { startTransition, use, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
 
 const MODELS = [
   {
@@ -41,9 +42,14 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("");
   const { setStreamPromise } = use(Context);
   const router = useRouter();
+
+  const [prompt, setPrompt] = useState("");
+  const [model, setModel] = useState(MODELS[0].value);
+  const [quality, setQuality] = useState("low");
+
+  const selectedModel = MODELS.find((m) => m.value === model);
 
   return (
     <div className="relative flex grow flex-col">
@@ -144,20 +150,46 @@ export default function Home() {
                 <div className="pointer-events-none absolute inset-0 rounded-lg peer-focus:outline peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Select
+                    <Select.Root
                       name="model"
-                      className="rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300"
+                      value={model}
+                      onValueChange={setModel}
                     >
-                      {MODELS.map((model) => (
-                        <option key={model.value} value={model.value}>
-                          {model.label}
-                        </option>
-                      ))}
-                    </Select>
+                      <Select.Trigger className="inline-flex items-center gap-1 rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300">
+                        <Select.Value aria-label={model}>
+                          {selectedModel?.label}
+                        </Select.Value>
+                        <Select.Icon>
+                          <ChevronDownIcon className="size-3" />
+                        </Select.Icon>
+                      </Select.Trigger>
+                      <Select.Portal>
+                        <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
+                          <Select.Viewport className="p-2">
+                            {MODELS.map((m) => (
+                              <Select.Item
+                                key={m.value}
+                                value={m.value}
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                              >
+                                <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
+                                  {m.label}
+                                </Select.ItemText>
+                                <Select.ItemIndicator>
+                                  <CheckIcon className="size-5 text-blue-600" />
+                                </Select.ItemIndicator>
+                              </Select.Item>
+                            ))}
+                          </Select.Viewport>
+                          <Select.ScrollDownButton />
+                          <Select.Arrow />
+                        </Select.Content>
+                      </Select.Portal>
+                    </Select.Root>
 
                     <div className="h-4 w-px bg-gray-200" />
 
-                    <label className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-400">
                       <span>
                         shadcn<span className="font-medium">/</span>ui
                       </span>
@@ -168,13 +200,55 @@ export default function Home() {
 
                     <div className="h-4 w-px bg-gray-200" />
 
-                    <Select
+                    <Select.Root
+                      name="quality"
+                      value={quality}
+                      onValueChange={setQuality}
+                    >
+                      <Select.Trigger className="inline-flex items-center gap-1 rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300">
+                        <Select.Value aria-label={quality}>
+                          {quality === "low"
+                            ? "Low quality [faster]"
+                            : "High quality [slower]"}
+                        </Select.Value>
+                        <Select.Icon>
+                          <ChevronDownIcon className="size-3" />
+                        </Select.Icon>
+                      </Select.Trigger>
+                      <Select.Portal>
+                        <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
+                          <Select.Viewport className="p-2">
+                            {[
+                              { value: "low", label: "Low quality [faster]" },
+                              { value: "high", label: "High quality [slower]" },
+                            ].map((q) => (
+                              <Select.Item
+                                key={q.value}
+                                value={q.value}
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                              >
+                                <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
+                                  {q.label}
+                                </Select.ItemText>
+                                <Select.ItemIndicator>
+                                  <CheckIcon className="size-5 text-blue-600" />
+                                </Select.ItemIndicator>
+                              </Select.Item>
+                            ))}
+                          </Select.Viewport>
+                          <Select.ScrollDownButton />
+                          <Select.Arrow />
+                        </Select.Content>
+                      </Select.Portal>
+                    </Select.Root>
+
+                    {/* <Select
                       name="quality"
                       className="rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300"
                     >
                       <option value="low">Low quality [faster]</option>
                       <option value="high">High quality [slower]</option>
-                    </Select>
+                    </Select> */}
                   </div>
                   <div className="relative flex has-[:disabled]:opacity-50">
                     <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
