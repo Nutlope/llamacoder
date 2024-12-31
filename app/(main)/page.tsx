@@ -17,6 +17,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import LightningBoltIcon from "@/components/icons/lightning-bolt";
 
 const MODELS = [
   {
@@ -132,10 +133,11 @@ export default function Home() {
               <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <TextareaAutosize
                   placeholder="Build me a budgeting app..."
+                  autoFocus
                   required
                   name="prompt"
                   rows={1}
-                  className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus:outline-none disabled:opacity-50"
+                  className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(event) => {
@@ -147,7 +149,7 @@ export default function Home() {
                     }
                   }}
                 />
-                <div className="pointer-events-none absolute inset-0 rounded-lg peer-focus:outline peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
+                <div className="pointer-events-none absolute inset-0 rounded-lg peer-focus:outline peer-focus:outline-2 peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Select.Root
@@ -155,28 +157,28 @@ export default function Home() {
                       value={model}
                       onValueChange={setModel}
                     >
-                      <Select.Trigger className="inline-flex items-center gap-1 rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300">
+                      <Select.Trigger className="inline-flex items-center gap-1 rounded-md p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
                         <Select.Value aria-label={model}>
-                          {selectedModel?.label}
+                          <span>{selectedModel?.label}</span>
                         </Select.Value>
                         <Select.Icon>
                           <ChevronDownIcon className="size-3" />
                         </Select.Icon>
                       </Select.Trigger>
                       <Select.Portal>
-                        <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
-                          <Select.Viewport className="p-2">
+                        <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
+                          <Select.Viewport className="space-y-1 p-2">
                             {MODELS.map((m) => (
                               <Select.Item
                                 key={m.value}
                                 value={m.value}
-                                className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                                className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
                               >
                                 <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
                                   {m.label}
                                 </Select.ItemText>
                                 <Select.ItemIndicator>
-                                  <CheckIcon className="size-5 text-blue-600" />
+                                  <CheckIcon className="size-3 text-blue-600" />
                                 </Select.ItemIndicator>
                               </Select.Item>
                             ))}
@@ -187,10 +189,11 @@ export default function Home() {
                       </Select.Portal>
                     </Select.Root>
 
-                    <div className="h-4 w-px bg-gray-200" />
+                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
 
                     <label className="inline-flex items-center gap-2 text-sm text-gray-400">
-                      <span>
+                      <span className="sm:hidden">shad</span>
+                      <span className="max-sm:hidden">
                         shadcn<span className="font-medium">/</span>ui
                       </span>
                       <Switch className="mt-0.5" name="shadcn">
@@ -198,26 +201,31 @@ export default function Home() {
                       </Switch>
                     </label>
 
-                    <div className="h-4 w-px bg-gray-200" />
+                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
 
                     <Select.Root
                       name="quality"
                       value={quality}
                       onValueChange={setQuality}
                     >
-                      <Select.Trigger className="inline-flex items-center gap-1 rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300">
+                      <Select.Trigger className="inline-flex items-center gap-1 rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
                         <Select.Value aria-label={quality}>
-                          {quality === "low"
-                            ? "Low quality [faster]"
-                            : "High quality [slower]"}
+                          <span className="max-sm:hidden">
+                            {quality === "low"
+                              ? "Low quality [faster]"
+                              : "High quality [slower]"}
+                          </span>
+                          <span className="sm:hidden">
+                            <LightningBoltIcon className="size-3" />
+                          </span>
                         </Select.Value>
                         <Select.Icon>
                           <ChevronDownIcon className="size-3" />
                         </Select.Icon>
                       </Select.Trigger>
                       <Select.Portal>
-                        <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
-                          <Select.Viewport className="p-2">
+                        <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
+                          <Select.Viewport className="space-y-1 p-2">
                             {[
                               { value: "low", label: "Low quality [faster]" },
                               { value: "high", label: "High quality [slower]" },
@@ -225,13 +233,13 @@ export default function Home() {
                               <Select.Item
                                 key={q.value}
                                 value={q.value}
-                                className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                                className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
                               >
                                 <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
                                   {q.label}
                                 </Select.ItemText>
                                 <Select.ItemIndicator>
-                                  <CheckIcon className="size-5 text-blue-600" />
+                                  <CheckIcon className="size-3 text-blue-600" />
                                 </Select.ItemIndicator>
                               </Select.Item>
                             ))}
@@ -241,16 +249,9 @@ export default function Home() {
                         </Select.Content>
                       </Select.Portal>
                     </Select.Root>
-
-                    {/* <Select
-                      name="quality"
-                      className="rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline focus:outline-2 focus:outline-blue-300"
-                    >
-                      <option value="low">Low quality [faster]</option>
-                      <option value="high">High quality [slower]</option>
-                    </Select> */}
                   </div>
-                  <div className="relative flex has-[:disabled]:opacity-50">
+
+                  <div className="relative flex shrink-0 has-[:disabled]:opacity-50">
                     <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
                     <LoadingButton
                       className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 hover:bg-blue-500/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -277,7 +278,7 @@ export default function Home() {
           </form>
         </div>
 
-        <footer className="mb-3 mt-5 flex h-16 w-full flex-col items-center justify-between space-y-3 px-3 pt-4 text-center sm:mb-0 sm:h-20 sm:flex-row sm:pt-2">
+        <footer className="flex w-full flex-col items-center justify-between space-y-3 px-3 pb-3 pt-5 text-center sm:flex-row sm:pt-2">
           <div>
             <div className="font-medium">
               Built with{" "}
