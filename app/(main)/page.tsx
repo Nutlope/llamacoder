@@ -133,7 +133,6 @@ export default function Home() {
               <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <TextareaAutosize
                   placeholder="Build me a budgeting app..."
-                  autoFocus
                   required
                   name="prompt"
                   rows={1}
