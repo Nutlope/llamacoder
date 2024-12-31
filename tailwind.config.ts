@@ -28,7 +28,7 @@ const config: Config = {
           "500": "#326DF5",
           "700": "#1F326F",
         },
-        gray: colors.slate,
+        gray: colors.zinc,
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

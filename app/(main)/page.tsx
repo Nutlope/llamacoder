@@ -57,19 +57,19 @@ export default function Home() {
       </div>
 
       <div className="isolate flex h-full grow flex-col">
-        <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-5">
+        <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-6">
           <Image
             src={logo}
             alt=""
             quality={100}
-            className="mx-auto h-8 w-auto"
+            className="mx-auto h-9 w-auto"
             priority
           />
           <div className="absolute right-3">
             <a
               href="https://github.com/nutlope/llamacoder"
               target="_blank"
-              className="ml-auto hidden items-center gap-3 rounded-2xl bg-white px-6 py-2 sm:flex"
+              className="ml-auto hidden items-center gap-3 rounded-2xl bg-white px-6 py-2 shadow sm:flex"
             >
               <GithubIcon className="h-4 w-4" />
               <span>GitHub Repo</span>
@@ -77,24 +77,27 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="mt-16 flex grow flex-col items-center px-4 lg:mt-24">
+        <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
           <a
-            className="mb-4 inline-flex h-7 shrink-0 items-center gap-[9px] rounded-[50px] border-[0.5px] border-solid border-[#E6E6E6] bg-gray-50 px-7 py-5 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)]"
+            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] bg-white px-7 py-2 text-xs text-gray-800 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)] md:text-base"
             href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
             target="_blank"
           >
             <span className="text-center">
-              Powered by <span className="font-medium">Llama 3.1</span> and{" "}
-              <span className="font-medium">Together AI</span>
+              Powered by <span className="font-semibold">Together AI</span>.
+              Used by
+              <span className="font-semibold"> 600k+ users. </span>
             </span>
           </a>
-          <h1 className="mt-4 text-balance text-center text-4xl leading-none text-gray-700 md:text-[64px]">
+
+          <h1 className="mt-4 text-balance text-center text-4xl leading-none text-gray-700 md:text-[64px] lg:mt-8">
             Turn your <span className="text-blue-500">idea</span>
             <br className="hidden md:block" /> into an{" "}
             <span className="text-blue-500">app</span>
           </h1>
+
           <form
-            className="mt-6"
+            className="mt-6 lg:mt-12"
             action={async (formData) => {
               const { prompt, model, quality, shadcn } =
                 Object.fromEntries(formData);
