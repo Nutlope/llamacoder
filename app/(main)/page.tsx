@@ -69,7 +69,7 @@ export default function Home() {
             src={logo}
             alt=""
             quality={100}
-            className="mx-auto h-9 w-auto"
+            className="mx-auto h-9 object-contain"
             priority
           />
           <div className="absolute right-3">
