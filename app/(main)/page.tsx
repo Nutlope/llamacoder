@@ -131,9 +131,6 @@ export default function Home() {
               });
             }}
           >
-            <div className="absolute inset-x-0 top-0 flex justify-center pt-3">
-              <LoadingMessage />
-            </div>
             <Fieldset>
               <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <TextareaAutosize
@@ -153,7 +150,9 @@ export default function Home() {
                     }
                   }}
                 />
+
                 <div className="pointer-events-none absolute inset-0 rounded-lg peer-focus:outline peer-focus:outline-2 peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
+
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Select.Root
@@ -265,6 +264,8 @@ export default function Home() {
                     </LoadingButton>
                   </div>
                 </div>
+
+                <LoadingMessage />
               </div>
               <div className="mt-4 flex w-full flex-wrap justify-center gap-3">
                 {SUGGESTED_PROMPTS.map((v) => (
@@ -344,14 +345,15 @@ function LoadingMessage() {
   let isHighQuality = data.get("quality") === "high";
 
   return (
-    <div>
-      <div className="flex items-center justify-center space-x-2 text-gray-500">
+    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white px-1 py-3 md:px-3">
+      <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
+        <span className="animate-pulse text-balance text-center text-sm md:text-base">
+          {isHighQuality
+            ? `Coming up with project plan, may take 15 seconds...`
+            : `Creating your app...`}
+        </span>
+
         <Spinner />
-        {isHighQuality ? (
-          <span>Coming up with project plan, may take 15 seconds...</span>
-        ) : (
-          <span>Creating your app...</span>
-        )}
       </div>
     </div>
   );
