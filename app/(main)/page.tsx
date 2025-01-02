@@ -58,8 +58,6 @@ export default function Home() {
   const [model, setModel] = useState(MODELS[0].value);
   const [quality, setQuality] = useState("low");
 
-  let [loadingMessage, setLoadingMessage] = useOptimistic<string>();
-
   const selectedModel = MODELS.find((m) => m.value === model);
 
   return (
