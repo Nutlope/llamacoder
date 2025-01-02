@@ -12,13 +12,7 @@ import assert from "assert";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ReactNode,
-  startTransition,
-  use,
-  useOptimistic,
-  useState,
-} from "react";
+import { startTransition, use, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
