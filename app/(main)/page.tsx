@@ -12,12 +12,20 @@ import assert from "assert";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, use, useState } from "react";
+import {
+  ReactNode,
+  startTransition,
+  use,
+  useOptimistic,
+  useState,
+} from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import LightningBoltIcon from "@/components/icons/lightning-bolt";
+import { useFormStatus } from "react-dom";
+import Spinner from "@/components/spinner";
 
 const MODELS = [
   {
@@ -49,6 +57,8 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState(MODELS[0].value);
   const [quality, setQuality] = useState("low");
+
+  let [loadingMessage, setLoadingMessage] = useOptimistic<string>();
 
   const selectedModel = MODELS.find((m) => m.value === model);
 
@@ -104,7 +114,7 @@ export default function Home() {
           </h1>
 
           <form
-            className="mt-6 lg:mt-12"
+            className="relative pt-6 lg:pt-12"
             action={async (formData) => {
               const { prompt, model, quality, shadcn } =
                 Object.fromEntries(formData);
@@ -129,6 +139,9 @@ export default function Home() {
               });
             }}
           >
+            <div className="absolute inset-x-0 top-0 flex justify-center pt-3">
+              <LoadingMessage />
+            </div>
             <Fieldset>
               <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <TextareaAutosize
@@ -324,6 +337,29 @@ export default function Home() {
             </Link>
           </div>
         </footer>
+      </div>
+    </div>
+  );
+}
+
+function LoadingMessage() {
+  const { pending, data } = useFormStatus();
+
+  if (!pending || !data || !(data instanceof FormData)) {
+    return null;
+  }
+
+  let isHighQuality = data.get("quality") === "high";
+
+  return (
+    <div>
+      <div className="flex items-center justify-center space-x-2 text-gray-500">
+        <Spinner />
+        {isHighQuality ? (
+          <span>Coming up with project plan, may take 15 seconds...</span>
+        ) : (
+          <span>Creating your app...</span>
+        )}
       </div>
     </div>
   );
