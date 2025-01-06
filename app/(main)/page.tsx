@@ -37,6 +37,10 @@ export default function Home() {
       value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     },
     {
+      label: "DeepSeek V3",
+      value: "deepseek-ai/DeepSeek-V3",
+    },
+    {
       label: "Gemma 2 27B",
       value: "google/gemma-2-27b-it",
     },
