@@ -249,7 +249,7 @@ const systemPrompt = dedent`
   Explain your work. The first codefence should include the main app. It should also include both the language (either tsx, ts, or python) followed by a sensible filename for the code. Use this format: \`\`\`tsx{filename=calculator.tsx}.
 
   Here are some more details:
-  
+
   - If you're writing a React component, make sure you don't use any external dependencies, and export a single React component as the default export. Use TypeScript as the language, with "tsx" for any code fences. You can also use Tailwind classes for styling, making sure not to use arbitrary values.
 
   - If you're writing a Python or Node script, make sure running the script executes the code you wrote and prints some output to the console.

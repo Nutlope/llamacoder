@@ -34,6 +34,10 @@ const MODELS = [
     label: "Llama 3.3 70B",
     value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
   },
+  {
+    label: "DeepSeek V3",
+    value: "deepseek-ai/DeepSeek-V3",
+  },
 ];
 
 const SUGGESTED_PROMPTS = [
