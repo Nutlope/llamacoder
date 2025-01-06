@@ -2,24 +2,23 @@
 
 import Fieldset from "@/components/fieldset";
 import ArrowRightIcon from "@/components/icons/arrow-right";
-import GithubIcon from "@/components/icons/github-icon";
+import LightningBoltIcon from "@/components/icons/lightning-bolt";
 import LoadingButton from "@/components/loading-button";
+import Spinner from "@/components/spinner";
 import { Switch } from "@/components/ui/switch";
 import bgImg from "@/public/halo.png";
-import logo from "@/public/logo.png";
 import * as Select from "@radix-ui/react-select";
 import assert from "assert";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, use, useState } from "react";
+import { useFormStatus } from "react-dom";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
-import LightningBoltIcon from "@/components/icons/lightning-bolt";
-import { useFormStatus } from "react-dom";
-import Spinner from "@/components/spinner";
+import Header from "@/components/header";
 
 const MODELS = [
   {
@@ -66,25 +65,7 @@ export default function Home() {
       </div>
 
       <div className="isolate flex h-full grow flex-col">
-        <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-6">
-          <Image
-            src={logo}
-            alt=""
-            quality={100}
-            className="mx-auto h-9 object-contain"
-            priority
-          />
-          <div className="absolute right-3">
-            <a
-              href="https://github.com/nutlope/llamacoder"
-              target="_blank"
-              className="ml-auto hidden items-center gap-3 rounded-2xl bg-white px-6 py-2 shadow sm:flex"
-            >
-              <GithubIcon className="h-4 w-4" />
-              <span>GitHub Repo</span>
-            </a>
-          </div>
-        </header>
+        <Header />
 
         <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
           <a
