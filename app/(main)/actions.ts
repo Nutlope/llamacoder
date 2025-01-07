@@ -7,22 +7,23 @@ import { notFound } from "next/navigation";
 import Together from "together-ai";
 import { z } from "zod";
 
-let options: ConstructorParameters<typeof Together>[0] = {};
-if (process.env.HELICONE_API_KEY) {
-  options.baseURL = "https://together.helicone.ai/v1";
-  options.defaultHeaders = {
-    "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-  };
-}
-
-let together = new Together(options);
-
 export async function createChat(
   prompt: string,
   model: string,
   quality: "high" | "low",
   shadcn: boolean,
 ) {
+  let options: ConstructorParameters<typeof Together>[0] = {};
+  if (process.env.HELICONE_API_KEY) {
+    options.baseURL = "https://together.helicone.ai/v1";
+    options.defaultHeaders = {
+      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+      "Helicone-Property-appname": "LlamaCoder",
+      "Helicone-Session-Id": "",
+    };
+  }
+
+  const together = new Together(options);
   const responseForChatTitle = await together.chat.completions.create({
     model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
     messages: [
@@ -144,6 +145,18 @@ export async function getNextCompletionStreamPromise(
       }),
     )
     .parse(messagesRes);
+
+  let options: ConstructorParameters<typeof Together>[0] = {};
+  if (process.env.HELICONE_API_KEY) {
+    options.baseURL = "https://together.helicone.ai/v1";
+    options.defaultHeaders = {
+      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+      "Helicone-Property-appname": "LlamaCoder",
+      "Helicone-Property-chatId": message.chatId,
+    };
+  }
+
+  const together = new Together(options);
 
   return {
     streamPromise: new Promise<ReadableStream>(async (resolve) => {
