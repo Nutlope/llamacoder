@@ -19,7 +19,6 @@ export async function createChat(
     options.defaultHeaders = {
       "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
       "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Session-Id": "",
     };
   }
 
