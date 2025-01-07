@@ -1,7 +1,5 @@
-import Image from "next/image";
-import bgImg from "@/public/halo.png";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
+import Providers from "@/app/(main)/providers";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function Layout({
   children,
@@ -9,23 +7,12 @@ export default function Layout({
   children: React.ReactNode;
 }>) {
   return (
-    <body className="bg-brand antialiased">
-      <div className="absolute inset-x-0 flex justify-center">
-        <Image
-          src={bgImg}
-          alt=""
-          className="w-full max-w-[1200px] mix-blend-screen"
-          priority
-        />
-      </div>
+    <Providers>
+      <body className="flex min-h-full flex-col bg-gray-100 text-gray-900 antialiased">
+        {children}
 
-      <div className="isolate">
-        <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center py-2">
-          <Header />
-          {children}
-          <Footer />
-        </div>
-      </div>
-    </body>
+        <Toaster />
+      </body>
+    </Providers>
   );
 }
