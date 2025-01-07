@@ -41,11 +41,36 @@ const MODELS = [
 ];
 
 const SUGGESTED_PROMPTS = [
-  "Daily quotes",
-  "Calculator app",
-  "Recipe finder",
-  "Expense tracker",
-  "Time zone dashboard",
+  {
+    title: "Quiz app",
+    description:
+      "Make me a quiz app about American history. Make sure to give the user an explanation on each question whether they got it right or wrong and keep a score going",
+  },
+  {
+    title: "SaaS Landing page",
+    description:
+      "A landing page for a SaaS business that includes a clear value proposition in a prominent hero section, concise feature overviews, testimonials, pricing, and a clear call-to-action button leading to a free trial or demo.",
+  },
+  {
+    title: "Pomodoro Timer",
+    description:
+      "Make a beautiful pomodoro timer where I can adjust the lengths of the focus time and the break and it will beep when done.",
+  },
+  {
+    title: "Recipe site",
+    description:
+      "Make me a site that has easy to make recipes in a grid that you can click into and see the full recipe. Also make it possible for me to add my own",
+  },
+  {
+    title: "Flashcard app",
+    description:
+      "Build me a flashcard app about llamas. Have some flash cards and also have the ability for users to add their own. Show one side of a card at first and reveal the answer on button click, keeping track of correct guesses to measure progress.",
+  },
+  {
+    title: "Timezone dashboard",
+    description:
+      "Make me a time zone dashboard that shows me the time zone in the top 6 most popular time zones and gives me a dropdown to add others",
+  },
 ];
 
 export default function Home() {
@@ -54,7 +79,7 @@ export default function Home() {
 
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState(MODELS[0].value);
-  const [quality, setQuality] = useState("low");
+  const [quality, setQuality] = useState("high");
 
   const selectedModel = MODELS.find((m) => m.value === model);
 
@@ -274,12 +299,12 @@ export default function Home() {
               <div className="mt-4 flex w-full flex-wrap justify-center gap-3">
                 {SUGGESTED_PROMPTS.map((v) => (
                   <button
-                    key={v}
+                    key={v.title}
                     type="button"
-                    onClick={() => setPrompt(v)}
+                    onClick={() => setPrompt(v.description)}
                     className="rounded bg-gray-200 px-2.5 py-1.5 text-xs hover:bg-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300"
                   >
-                    {v}
+                    {v.title}
                   </button>
                 ))}
               </div>
@@ -295,7 +320,7 @@ export default function Home() {
                 href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
                 className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
               >
-                Llama 3.1 405B
+                Llama 3.1
               </a>{" "}
               and{" "}
               <a

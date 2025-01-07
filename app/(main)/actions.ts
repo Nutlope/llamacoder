@@ -24,7 +24,6 @@ export async function createChat(
   shadcn: boolean,
 ) {
   const responseForChatTitle = await together.chat.completions.create({
-    // model: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
     model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
     messages: [
       {
@@ -153,6 +152,7 @@ export async function getNextCompletionStreamPromise(
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
         stream: true,
         temperature: 0.2,
+        max_tokens: 6000,
       });
 
       resolve(res.toReadableStream());
@@ -212,6 +212,124 @@ function getSystemPrompt(shadcn: boolean) {
     NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
 
     Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code. Use this format: \`\`\`tsx{filename=calculator.tsx}.
+
+    Here's an example of a good response:
+
+    "I'll create a calculator app using React. This calculator will support basic arithmetic operations: addition, subtraction, multiplication, and division. Let's break it down into components and implement the functionality.
+
+    \`\`\`tsx{filename=calculator.tsx}
+    import { useState } from 'react'
+    import { Button } from "/components/ui/button"
+    import { Card, CardContent, CardHeader, CardTitle } from "/components/ui/card"
+
+    export default function Calculator() {
+      const [display, setDisplay] = useState('0')
+      const [firstOperand, setFirstOperand] = useState<number | null>(null)
+      const [operator, setOperator] = useState<string | null>(null)
+      const [waitingForSecondOperand, setWaitingForSecondOperand] = useState(false)
+
+      const inputDigit = (digit: string) => {
+        if (waitingForSecondOperand) {
+          setDisplay(digit)
+          setWaitingForSecondOperand(false)
+        } else {
+          setDisplay(display === '0' ? digit : display + digit)
+        }
+      }
+
+      const inputDecimal = () => {
+        if (waitingForSecondOperand) {
+          setDisplay('0.')
+          setWaitingForSecondOperand(false)
+          return
+        }
+
+        if (!display.includes('.')) {
+          setDisplay(display + '.')
+        }
+      }
+
+      const clear = () => {
+        setDisplay('0')
+        setFirstOperand(null)
+        setOperator(null)
+        setWaitingForSecondOperand(false)
+      }
+
+      const performOperation = (nextOperator: string) => {
+        const inputValue = parseFloat(display)
+
+        if (firstOperand === null) {
+          setFirstOperand(inputValue)
+        } else if (operator) {
+          const result = calculate(firstOperand, inputValue, operator)
+          setDisplay(String(result))
+          setFirstOperand(result)
+        }
+
+        setWaitingForSecondOperand(true)
+        setOperator(nextOperator)
+      }
+
+      const calculate = (firstOperand: number, secondOperand: number, operator: string) => {
+        switch (operator) {
+          case '+':
+            return firstOperand + secondOperand
+          case '-':
+            return firstOperand - secondOperand
+          case '*':
+            return firstOperand * secondOperand
+          case '/':
+            return firstOperand / secondOperand
+          default:
+            return secondOperand
+        }
+      }
+
+      return (
+        <Card className="w-full max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">Calculator</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="col-span-4 bg-gray-100 p-2 rounded mb-2">
+                <div className="text-right text-2xl font-bold">{display}</div>
+              </div>
+              <Button onClick={() => clear()}>C</Button>
+              <Button onClick={() => inputDigit('7')}>7</Button>
+              <Button onClick={() => inputDigit('8')}>8</Button>
+              <Button onClick={() => inputDigit('9')}>9</Button>
+              <Button onClick={() => performOperation('/')}>/</Button>
+              <Button onClick={() => inputDigit('4')}>4</Button>
+              <Button onClick={() => inputDigit('5')}>5</Button>
+              <Button onClick={() => inputDigit('6')}>6</Button>
+              <Button onClick={() => performOperation('*')}>*</Button>
+              <Button onClick={() => inputDigit('1')}>1</Button>
+              <Button onClick={() => inputDigit('2')}>2</Button>
+              <Button onClick={() => inputDigit('3')}>3</Button>
+              <Button onClick={() => performOperation('-')}>-</Button>
+              <Button onClick={() => inputDigit('0')}>0</Button>
+              <Button onClick={() => inputDecimal()}>.</Button>
+              <Button onClick={() => performOperation('=')}>=</Button>
+              <Button onClick={() => performOperation('+')}>+</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+    \`\`\`
+
+    This calculator component provides a simple and functional interface for basic arithmetic operations. Here's a breakdown of its features:
+
+    1. Display: Shows the current input or result.
+    2. Digit buttons: Allow users to input numbers.
+    3. Operation buttons: +, -, *, and / for basic arithmetic operations.
+    4. Clear button (C): Resets the calculator.
+    5. Decimal point button: Allows input of decimal numbers.
+    6. Equals button (=): Performs the calculation.
+
+    The component uses React's useState hook to manage the state of the display, operands, and current operation. The logic handles both immediate execution of operations and chaining of multiple operations."
   `;
 
   // systemPrompt += `
