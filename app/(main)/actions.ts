@@ -93,7 +93,9 @@ export async function createChat(
     },
   });
 
-  const lastMessage = chat.messages.at(-1);
+  const lastMessage = chat.messages
+    .sort((a, b) => a.position - b.position)
+    .at(-1);
   if (!lastMessage) throw new Error("No new message");
 
   return { chatId: chat.id, lastMessageId: lastMessage.id };
