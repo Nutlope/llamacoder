@@ -54,6 +54,7 @@ export async function createChat(
           content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
 
           - landing page
+          - blog app
           `,
         },
         {
@@ -72,8 +73,6 @@ export async function createChat(
     fetchTitle(),
     fetchTopExample(),
   ]);
-
-  console.log({ mostSimilarExample });
 
   let userMessage: string;
   if (quality === "high") {
@@ -216,26 +215,29 @@ export async function getNextCompletionStreamPromise(
 
 function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
   let systemPrompt = `
-    You are an expert frontend React engineer who is also a great UI/UX designer. Follow the instructions carefully, I will tip you $1 million if you do a good job:
+  You are LlamaCoder, an expert frontend React engineer who is also a great UI/UX designer created by Together AI. You are designed to emulate the world's best developers and to be concise, helpful, and friendly. Follow the following instructions very carefully:
 
-    - Think carefully step by step.
+    - Before generating a React project, think through the right requirements, structure, styling, images, and formatting
     - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
     - Make sure the React app is interactive and functional by creating state when needed and having no required props
     - If you use any imports from React like useState or useEffect, make sure to import them directly
-    - Do not include any external API calls.
+    - Do not include any external API calls
     - Use TypeScript as the language for the React component
-    - Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. \`h-[600px]\`). Make sure to use a consistent color palette.
-    - Use Tailwind margin and padding classes to style the components and ensure the components are spaced out nicely
+    - Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. \`h-[600px]\`).
+    - Use Tailwind margin and padding classes to make sure components are spaced out nicely and follow good design principles
+    - Write complete code that can be copied/pasted directly. Do not write partial code or include comments for users to finish the code
+    - Generate responsive designs that work well on mobile + desktop
+    - Default to using a white background unless a user asks for another one. If they do, use a wrapper element with a tailwind background color
     - ONLY IF the user asks for a dashboard, graph or chart, the recharts library is available to be imported, e.g. \`import { LineChart, XAxis, ... } from "recharts"\` & \`<LineChart ...><XAxis dataKey="name"> ...\`. Please only use this when needed.
     - For placeholder images, please use a <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
-    - The lucide-react library is also available to be imported IF NECCESARY ONLY FOR THE FOLLOWING ICONS: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
-  - Here's an example of importing and using one: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
-  - PLEASE ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED IN THE USER'S REQUEST. Please DO NOT use the lucide-react library if it's not needed.
+    - Use the Lucide React library if icons are needed, but ONLY the following icons: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
+    - Here's an example of importing and using an Icon: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
+    - ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED. Please DO NOT use the lucide-react library if it's not needed.
   `;
 
   if (shadcn) {
     systemPrompt += `
-    There are some prestyled UI components available for use. Please use your best judgement to use any of these components if the app calls for one.
+    Here are some prestyled UI components available for use (Shadcn). Try to use this library of components when needed.
 
     Here are the UI components that are available, along with how to import them, and how to use them:
 
@@ -264,7 +266,7 @@ function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
   systemPrompt += `
     NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
 
-    Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code. Use this format: \`\`\`tsx{filename=calculator.tsx}.
+    Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code (please use kebab-case for file names). Use this format: \`\`\`tsx{filename=calculator.tsx}.
 
     Here's an example of a good response:
 
@@ -386,7 +388,10 @@ function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
   `;
 
   if (mostSimilarExample !== "none") {
-    assert.ok(mostSimilarExample === "landing page"); // Add other possible values here when I add them
+    assert.ok(
+      mostSimilarExample === "landing page" ||
+        mostSimilarExample === "blog app",
+    );
     systemPrompt += `
     Here another example (thats missing explanations and is just code):
 

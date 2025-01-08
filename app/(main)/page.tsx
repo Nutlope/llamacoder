@@ -56,10 +56,15 @@ const SUGGESTED_PROMPTS = [
       "Make a beautiful pomodoro timer where I can adjust the lengths of the focus time and the break and it will beep when done.",
   },
   {
-    title: "Recipe site",
+    title: "Blog app",
     description:
-      "Make me a site that has easy to make recipes in a grid that you can click into and see the full recipe. Also make it possible for me to add my own",
+      "Make me a blog app that has a few blogs there for people to read. Users can click into the blogs and read them, then go back to the homepage to see more.",
   },
+  // {
+  //   title: "Recipe site",
+  //   description:
+  //     "Make me a site that has easy to make recipes in a grid that you can click into and see the full recipe. Also make it possible for me to add my own",
+  // },
   {
     title: "Flashcard app",
     description:
