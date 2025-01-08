@@ -39,6 +39,28 @@ export async function createChat(
   });
   const title = responseForChatTitle.choices[0].message?.content || prompt;
 
+  // const findSimilarExamples = await together.chat.completions.create({
+  //   model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  //   messages: [
+  //     {
+  //       role: "system",
+  //       content: `You are a helpful bot that given a request for building an app, you match it to the most similar example provided. Here is the list of examples, ONLY reply with one of them:
+
+  //         - landing page
+  //         - quiz app
+  //         - a blog
+  //         - tic tac toe game
+  //         `,
+  //     },
+  //     {
+  //       role: "user",
+  //       content: prompt,
+  //     },
+  //   ],
+  // });
+  // const mostSimilarExample =
+  //   findSimilarExamples.choices[0].message?.content || "none";
+
   let userMessage: string;
   if (quality === "high") {
     const highQualitySystemPrompt = dedent`
@@ -186,11 +208,10 @@ function getSystemPrompt(shadcn: boolean) {
     - Use Tailwind margin and padding classes to style the components and ensure the components are spaced out nicely
     - ONLY IF the user asks for a dashboard, graph or chart, the recharts library is available to be imported, e.g. \`import { LineChart, XAxis, ... } from "recharts"\` & \`<LineChart ...><XAxis dataKey="name"> ...\`. Please only use this when needed.
     - For placeholder images, please use a <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
+    - The lucide-react library is also available to be imported IF NECCESARY ONLY FOR THE FOLLOWING ICONS: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
+  - Here's an example of importing and using one: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
+  - PLEASE ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED IN THE USER'S REQUEST. Please DO NOT use the lucide-react library if it's not needed.
   `;
-
-  // - The lucide-react library is also available to be imported IF NECCESARY ONLY FOR THE FOLLOWING ICONS: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
-  // - Here's an example of importing and using one: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
-  // - PLEASE ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED IN THE USER'S REQUEST. Please DO NOT use the lucide-react library if it's not needed.
 
   if (shadcn) {
     systemPrompt += `
@@ -345,7 +366,7 @@ function getSystemPrompt(shadcn: boolean) {
   `;
 
   // systemPrompt += `
-  //   Here are some examples of a good response:
+  //   Here are some examples of good examples:
 
   //   ${examples
   //     .map(
@@ -365,23 +386,3 @@ function getSystemPrompt(shadcn: boolean) {
 
   return dedent(systemPrompt);
 }
-
-/*
-This is the prompt we originaly used for the new chat interface.
-
-const systemPrompt = dedent`
-  You are an expert software developer who knows three technologies: React, Python, and Node.js.
-
-  You will be given a prompt for a simple app, and your task is to return a single file with the code for that app.
-
-  You should first decide what the appropriate technology is for the prompt. If the prompt sounds like a web app where a user interface would be appropiate, return a React component. Otherwise, if the prompt could be addressed with a simple script, use Python, unless Node is explicitly specified.
-
-  Explain your work. The first codefence should include the main app. It should also include both the language (either tsx, ts, or python) followed by a sensible filename for the code. Use this format: \`\`\`tsx{filename=calculator.tsx}.
-
-  Here are some more details:
-
-  - If you're writing a React component, make sure you don't use any external dependencies, and export a single React component as the default export. Use TypeScript as the language, with "tsx" for any code fences. You can also use Tailwind classes for styling, making sure not to use arbitrary values.
-
-  - If you're writing a Python or Node script, make sure running the script executes the code you wrote and prints some output to the console.
-`;
-*/
