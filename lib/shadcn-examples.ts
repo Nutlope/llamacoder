@@ -93,7 +93,7 @@ export default function HealthcareLandingPage() {
                     </p>
                     <div className="flex items-center space-x-2">
                       <img
-                        src={"/placeholder.svg?height=40&width=40"}
+                        src="github.com/nutlope.png"
                         alt="Patient"
                         className="rounded-full"
                         width={40}
