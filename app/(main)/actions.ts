@@ -1,11 +1,13 @@
 "use server";
 
+import assert from "assert";
 import prisma from "@/lib/prisma";
 import shadcnDocs from "@/lib/shadcn-docs";
 import dedent from "dedent";
 import { notFound } from "next/navigation";
 import Together from "together-ai";
 import { z } from "zod";
+import { examples } from "@/lib/shadcn-examples";
 
 export async function createChat(
   prompt: string,
@@ -23,43 +25,55 @@ export async function createChat(
   }
 
   const together = new Together(options);
-  const responseForChatTitle = await together.chat.completions.create({
-    model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
-  const title = responseForChatTitle.choices[0].message?.content || prompt;
 
-  // const findSimilarExamples = await together.chat.completions.create({
-  //   model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-  //   messages: [
-  //     {
-  //       role: "system",
-  //       content: `You are a helpful bot that given a request for building an app, you match it to the most similar example provided. Here is the list of examples, ONLY reply with one of them:
+  async function fetchTitle() {
+    const responseForChatTitle = await together.chat.completions.create({
+      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+    const title = responseForChatTitle.choices[0].message?.content || prompt;
+    return title;
+  }
 
-  //         - landing page
-  //         - quiz app
-  //         - a blog
-  //         - tic tac toe game
-  //         `,
-  //     },
-  //     {
-  //       role: "user",
-  //       content: prompt,
-  //     },
-  //   ],
-  // });
-  // const mostSimilarExample =
-  //   findSimilarExamples.choices[0].message?.content || "none";
+  async function fetchTopExample() {
+    const findSimilarExamples = await together.chat.completions.create({
+      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
+
+          - landing page
+          `,
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const mostSimilarExample =
+      findSimilarExamples.choices[0].message?.content || "none";
+    return mostSimilarExample;
+  }
+
+  const [title, mostSimilarExample] = await Promise.all([
+    fetchTitle(),
+    fetchTopExample(),
+  ]);
+
+  console.log({ mostSimilarExample });
 
   let userMessage: string;
   if (quality === "high") {
@@ -104,7 +118,11 @@ export async function createChat(
       messages: {
         createMany: {
           data: [
-            { role: "system", content: getSystemPrompt(shadcn), position: 0 },
+            {
+              role: "system",
+              content: getSystemPrompt(shadcn, mostSimilarExample),
+              position: 0,
+            },
             { role: "user", content: userMessage, position: 1 },
           ],
         },
@@ -196,7 +214,7 @@ export async function getNextCompletionStreamPromise(
   };
 }
 
-function getSystemPrompt(shadcn: boolean) {
+function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
   let systemPrompt = `
     You are an expert frontend React engineer who is also a great UI/UX designer. Follow the instructions carefully, I will tip you $1 million if you do a good job:
 
@@ -367,24 +385,18 @@ function getSystemPrompt(shadcn: boolean) {
     The component uses React's useState hook to manage the state of the display, operands, and current operation. The logic handles both immediate execution of operations and chaining of multiple operations."
   `;
 
-  // systemPrompt += `
-  //   Here are some examples of good examples:
+  if (mostSimilarExample !== "none") {
+    assert.ok(mostSimilarExample === "landing page"); // Add other possible values here when I add them
+    systemPrompt += `
+    Here another example (thats missing explanations and is just code):
 
-  //   ${examples
-  //     .map(
-  //       (example) => `
-  //         <example>
-  //         <prompt>
-  //         ${example.prompt}
-  //         </prompt>
-  //         <response>
-  //         ${example.response}
-  //         </response>
-  //         </example>
-  //       `,
-  //     )
-  //     .join("\n")}
-  // `;
+    Prompt:
+    ${examples[mostSimilarExample].prompt}
+
+    Response:
+    ${examples[mostSimilarExample].response}
+    `;
+  }
 
   return dedent(systemPrompt);
 }

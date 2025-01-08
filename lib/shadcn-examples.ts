@@ -1,5 +1,5 @@
-let examples = [
-  {
+export const examples = {
+  "landing page": {
     prompt: "Build a landing page for a healthcare company",
     response: `
     import React from 'react';
@@ -140,4 +140,4 @@ export default function HealthcareLandingPage() {
 }
     `,
   },
-];
+};
