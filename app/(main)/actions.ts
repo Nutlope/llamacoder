@@ -13,7 +13,7 @@ export async function createChat(
   prompt: string,
   model: string,
   quality: "high" | "low",
-  shadcn: boolean,
+  screenshotUrl: string | undefined,
 ) {
   let options: ConstructorParameters<typeof Together>[0] = {};
   if (process.env.HELICONE_API_KEY) {
@@ -74,16 +74,54 @@ export async function createChat(
     fetchTopExample(),
   ]);
 
+  let fullScreenshotDescription;
+  if (screenshotUrl) {
+    let getDescriptionPrompt = `Describe the attached screenshot in detail. I will send what you give me to a developer to recreate the original screenshot of a website that I sent you. Please listen very carefully. It's very important for my job that you follow these instructions:
+
+- Think step by step and describe the UI in great detail.
+- Make sure to describe where everything is in the UI so the developer can recreate it and if how elements are aligned
+- Pay close attention to background color, text color, font size, font family, padding, margin, border, etc. Match the colors and sizes exactly.
+- Make sure to mention every part of the screenshot including any headers, footers, sidebars, etc.
+- Make sure to use the exact text from the screenshot.
+`;
+
+    const screenshotResponse = await together.chat.completions.create({
+      model: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
+      temperature: 0.2,
+      max_tokens: 500,
+      messages: [
+        {
+          role: "user",
+          // @ts-expect-error Need to fix the TypeScript library type
+          content: [
+            { type: "text", text: getDescriptionPrompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: screenshotUrl,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    fullScreenshotDescription = screenshotResponse.choices[0].message?.content;
+  }
+
   let userMessage: string;
   if (quality === "high") {
     const highQualitySystemPrompt = dedent`
       You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app.
+
       Guidelines:
       - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
       - Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
       - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
       - Do not include any external API calls.
       - Skip code examples and commentary.
+
+      If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
     `;
 
     let initialRes = await together.chat.completions.create({
@@ -95,7 +133,9 @@ export async function createChat(
         },
         {
           role: "user",
-          content: prompt,
+          content: fullScreenshotDescription
+            ? fullScreenshotDescription + prompt
+            : prompt,
         },
       ],
       temperature: 0.2,
@@ -104,7 +144,10 @@ export async function createChat(
 
     userMessage = initialRes.choices[0].message?.content ?? prompt;
   } else {
-    userMessage = prompt;
+    userMessage =
+      prompt +
+      "RECREATE THIS APP AS CLOSELY AS POSSIBLE: " +
+      fullScreenshotDescription;
   }
 
   const chat = await prisma.chat.create({
@@ -113,13 +156,13 @@ export async function createChat(
       quality,
       prompt,
       title,
-      shadcn,
+      shadcn: true,
       messages: {
         createMany: {
           data: [
             {
               role: "system",
-              content: getSystemPrompt(shadcn, mostSimilarExample),
+              content: getSystemPrompt(mostSimilarExample),
               position: 0,
             },
             { role: "user", content: userMessage, position: 1 },
@@ -137,7 +180,10 @@ export async function createChat(
     .at(-1);
   if (!lastMessage) throw new Error("No new message");
 
-  return { chatId: chat.id, lastMessageId: lastMessage.id };
+  return {
+    chatId: chat.id,
+    lastMessageId: lastMessage.id,
+  };
 }
 
 export async function createMessage(
@@ -213,10 +259,14 @@ export async function getNextCompletionStreamPromise(
   };
 }
 
-function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
+function getSystemPrompt(mostSimilarExample: string) {
   let systemPrompt = `
-  You are LlamaCoder, an expert frontend React engineer who is also a great UI/UX designer created by Together AI. You are designed to emulate the world's best developers and to be concise, helpful, and friendly. Follow the following instructions very carefully:
+  <llamacoder-instructions>
+  You are LlamaCoder, an expert frontend React engineer who is also a great UI/UX designer created by Together AI. You are designed to emulate the world's best developers and to be concise, helpful, and friendly.
+  </llamacoder-instructions>
 
+  <general-instructions>
+  Follow the following instructions very carefully:
     - Before generating a React project, think through the right requirements, structure, styling, images, and formatting
     - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
     - Make sure the React app is interactive and functional by creating state when needed and having no required props
@@ -233,49 +283,51 @@ function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
     - Use the Lucide React library if icons are needed, but ONLY the following icons: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
     - Here's an example of importing and using an Icon: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
     - ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED. Please DO NOT use the lucide-react library if it's not needed.
-  `;
+  </general-instructions>
 
-  if (shadcn) {
-    systemPrompt += `
-    Here are some prestyled UI components available for use (Shadcn). Try to use this library of components when needed.
+  <shadcn-instructions>
+  Here are some prestyled UI components available for use from shadcn. Try to always default to using this library of components. Here are the UI components that are available, along with how to import them, and how to use them:
 
-    Here are the UI components that are available, along with how to import them, and how to use them:
+  ${shadcnDocs
+    .map(
+      (component) => `
+        <component>
+        <name>
+        ${component.name}
+        </name>
+        <import-instructions>
+        ${component.importDocs}
+        </import-instructions>
+        <usage-instructions>
+        ${component.usageDocs}
+        </usage-instructions>
+        </component>
+      `,
+    )
+    .join("\n")}
 
-    ${shadcnDocs
-      .map(
-        (component) => `
-          <component>
-          <name>
-          ${component.name}
-          </name>
-          <import-instructions>
-          ${component.importDocs}
-          </import-instructions>
-          <usage-instructions>
-          ${component.usageDocs}
-          </usage-instructions>
-          </component>
-        `,
-      )
-      .join("\n")}
+  Remember, if you use a UI component, make sure to import it FROM THE CORRECT PATH. Double check that imports are correct and import each from it's own path. Here's a list of imports again for your reference:
 
-    Remember, if you use a UI component, make sure to import it.
-    `;
-  }
+  ${shadcnDocs.map((component) => component.importDocs).join("\n")}
+  </shadcn-instructions>
 
-  systemPrompt += `
-    NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
+  <formatting-instructions>
 
-    Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code (please use kebab-case for file names). Use this format: \`\`\`tsx{filename=calculator.tsx}.
+  NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED BESIDES THOSE SPECIFIED ABOVE.
 
-    Here's a good example:
+  Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code (please use kebab-case for file names). Use this format: \`\`\`tsx{filename=calculator.tsx}.
 
-    Prompt:
-    ${examples["calculator app"].prompt}
+  </formatting-instructions>
 
-    Response:
-    ${examples["calculator app"].response}
+  <examples>
 
+  Here's a good example:
+
+  Prompt:
+  ${examples["calculator app"].prompt}
+
+  Response:
+  ${examples["calculator app"].response}
   `;
 
   if (mostSimilarExample !== "none") {
@@ -291,6 +343,12 @@ function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
 
     Response:
     ${examples[mostSimilarExample].response}
+
+    </examples>
+    `;
+  } else {
+    systemPrompt += `
+    </examples>
     `;
   }
 

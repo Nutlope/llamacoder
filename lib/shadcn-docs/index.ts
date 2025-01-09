@@ -12,12 +12,12 @@ const shadcnDocs = [
   Avatar,
   Button,
   Card,
-  // Checkbox,
   Input,
   Label,
   RadioGroup,
   Select,
   Textarea,
+  // Checkbox,
 ];
 
 export default shadcnDocs;

@@ -6,7 +6,7 @@ import ArrowRightIcon from "@/components/icons/arrow-right";
 import LightningBoltIcon from "@/components/icons/lightning-bolt";
 import LoadingButton from "@/components/loading-button";
 import Spinner from "@/components/spinner";
-import { Switch } from "@/components/ui/switch";
+// import { Switch } from "@/components/ui/switch";
 import bgImg from "@/public/halo.png";
 import * as Select from "@radix-ui/react-select";
 import assert from "assert";
@@ -14,7 +14,7 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, use, useState } from "react";
+import { startTransition, use, useState, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
@@ -88,22 +88,22 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState(MODELS[0].value);
   const [quality, setQuality] = useState("high");
-  const [imageUrl, setImageUrl] = useState<string | undefined>(
-    "https://napkinsdev.s3.us-east-1.amazonaws.com/next-s3-uploads/37ba6e68-3ddf-412a-9507-c52fbdee1ace/CleanShot-2025-01-07-at-10.31.33-2x.png",
+  const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
+    undefined,
   );
-
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
   const selectedModel = MODELS.find((m) => m.value === model);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { uploadToS3 } = useS3Upload();
-
-  const handleFileChange = async (event: any) => {
+  const handleScreenshotUpload = async (event: any) => {
+    setQuality("low");
+    setScreenshotLoading(true);
     let file = event.target.files[0];
-    let objectUrl = URL.createObjectURL(file);
-    setImageUrl(objectUrl);
     const { url } = await uploadToS3(file);
-    setImageUrl(url);
+    setScreenshotUrl(url);
+    setScreenshotLoading(false);
   };
-
-  console.log({ imageUrl });
 
   return (
     <div className="relative flex grow flex-col">
@@ -141,8 +141,7 @@ export default function Home() {
           <form
             className="relative pt-6 lg:pt-12"
             action={async (formData) => {
-              const { prompt, model, quality, shadcn } =
-                Object.fromEntries(formData);
+              const { prompt, model, quality } = Object.fromEntries(formData);
 
               assert.ok(typeof prompt === "string");
               assert.ok(typeof model === "string");
@@ -152,7 +151,7 @@ export default function Home() {
                 prompt,
                 model,
                 quality,
-                !!shadcn,
+                screenshotUrl,
               );
               const { streamPromise } = await getNextCompletionStreamPromise(
                 lastMessageId,
@@ -160,46 +159,64 @@ export default function Home() {
               );
               startTransition(() => {
                 setStreamPromise(streamPromise);
+                setScreenshotUrl(undefined);
                 router.push(`/chats/${chatId}`);
               });
             }}
           >
             <Fieldset>
-              {imageUrl && (
-                <div className="relative bg-gray-500">
-                  <div className="rounded-xl">
-                    <img
-                      alt="screenshot"
-                      src={imageUrl}
-                      className="group relative mb-2 h-16 w-[68px] rounded"
-                    />
-                  </div>
-                  <button className="absolute -right-3 -top-4 left-14 z-10 size-5 rounded-full bg-white text-gray-900 hover:text-gray-500">
-                    <XCircleIcon onClick={() => setImageUrl("")} />
-                  </button>
-                </div>
-              )}
               <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
-                <TextareaAutosize
-                  placeholder="Build me a budgeting app..."
-                  required
-                  name="prompt"
-                  rows={1}
-                  className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      const target = event.target;
-                      if (!(target instanceof HTMLTextAreaElement)) return;
-                      target.closest("form")?.requestSubmit();
-                    }
-                  }}
-                />
-
-                <div className="pointer-events-none absolute inset-0 rounded-lg peer-focus:outline peer-focus:outline-2 peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
-
+                <div className="w-full">
+                  {screenshotLoading && (
+                    <div className="relative mx-3 mt-3">
+                      <div className="rounded-xl">
+                        <div className="group mb-2 flex h-16 w-[68px] animate-pulse items-center justify-center rounded bg-gray-200">
+                          <Spinner />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {screenshotUrl && (
+                    <div className="relative mx-3 mt-3">
+                      <div className="rounded-xl">
+                        <img
+                          alt="screenshot"
+                          src={screenshotUrl}
+                          className="group relative mb-2 h-16 w-[68px] rounded"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="absolute -right-3 -top-4 left-14 z-10 size-5 rounded-full bg-white text-gray-900 hover:text-gray-500"
+                        onClick={() => {
+                          setScreenshotUrl(undefined);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                          }
+                        }}
+                      >
+                        <XCircleIcon />
+                      </button>
+                    </div>
+                  )}
+                  <TextareaAutosize
+                    placeholder="Build me a budgeting app..."
+                    required
+                    name="prompt"
+                    rows={1}
+                    className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        const target = event.target;
+                        if (!(target instanceof HTMLTextAreaElement)) return;
+                        target.closest("form")?.requestSubmit();
+                      }
+                    }}
+                  />
+                </div>
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Select.Root
@@ -305,7 +322,7 @@ export default function Home() {
                     <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
                     <div>
                       <label
-                        htmlFor="fileInput"
+                        htmlFor="screenshot"
                         className="flex cursor-pointer gap-2 text-sm text-gray-400 hover:underline"
                       >
                         <div className="flex size-6 items-center justify-center rounded bg-blue-400">
@@ -316,10 +333,13 @@ export default function Home() {
                         </div>
                       </label>
                       <input
-                        id="fileInput"
+                        // name="screenshot"
+                        id="screenshot"
                         type="file"
-                        onChange={handleFileChange}
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={handleScreenshotUpload}
                         className="hidden"
+                        ref={fileInputRef}
                       />
                     </div>
                   </div>
