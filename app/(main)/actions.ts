@@ -312,6 +312,13 @@ function getSystemPrompt(mostSimilarExample: string) {
 
   ${shadcnDocs.map((component) => component.importDocs).join("\n")}
 
+  Here's an example of an INCORRECT import:
+  import { Button, Input, Label } from "/components/ui/button"
+
+  Here's an example of a CORRECT import:
+  import { Button } from "/components/ui/button"
+  import { Input } from "/components/ui/input"
+  import { Label } from "/components/ui/label"
 
   # Formatting Instructions
 
