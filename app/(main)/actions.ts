@@ -8,6 +8,12 @@ import { notFound } from "next/navigation";
 import Together from "together-ai";
 import { z } from "zod";
 import { examples } from "@/lib/shadcn-examples";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
 export async function createChat(
   prompt: string,
@@ -226,7 +232,7 @@ export async function getNextCompletionStreamPromise(
   const messages = z
     .array(
       z.object({
-        role: z.enum(["system", "user", "assistant"]),
+        role: z.enum(["user", "assistant", "system"]),
         content: z.string(),
       }),
     )
@@ -242,12 +248,12 @@ export async function getNextCompletionStreamPromise(
     };
   }
 
-  const together = new Together(options);
+  // const together = new Together(options);
 
   return {
     streamPromise: new Promise<ReadableStream>(async (resolve) => {
-      const res = await together.chat.completions.create({
-        model,
+      const res = await openai.chat.completions.create({
+        model: "anthropic/claude-3.5-sonnet",
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
         stream: true,
         temperature: 0.2,
