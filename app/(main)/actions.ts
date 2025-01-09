@@ -13,7 +13,7 @@ export async function createChat(
   prompt: string,
   model: string,
   quality: "high" | "low",
-  shadcn: boolean,
+  screenshotUrl: string | undefined,
 ) {
   let options: ConstructorParameters<typeof Together>[0] = {};
   if (process.env.HELICONE_API_KEY) {
@@ -74,16 +74,55 @@ export async function createChat(
     fetchTopExample(),
   ]);
 
+  let fullScreenshotDescription;
+  if (screenshotUrl) {
+    let getDescriptionPrompt = `Describe the attached screenshot in detail. I will send what you give me to a developer to recreate the original screenshot of a website that I sent you. Please listen very carefully. It's very important for my job that you follow these instructions:
+
+- Think step by step and describe the UI in great detail.
+- Make sure to describe where everything is in the UI so the developer can recreate it and if how elements are aligned
+- Pay close attention to background color, text color, font size, font family, padding, margin, border, etc. Match the colors and sizes exactly.
+- Make sure to mention every part of the screenshot including any headers, footers, sidebars, etc.
+- Make sure to use the exact text from the screenshot.
+`;
+
+    const screenshotResponse = await together.chat.completions.create({
+      model: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
+      temperature: 0.2,
+      max_tokens: 1000,
+      messages: [
+        {
+          role: "user",
+          // @ts-expect-error Need to fix the TypeScript library type
+          content: [
+            { type: "text", text: getDescriptionPrompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: screenshotUrl,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    fullScreenshotDescription = screenshotResponse.choices[0].message?.content;
+  }
+
   let userMessage: string;
   if (quality === "high") {
     const highQualitySystemPrompt = dedent`
-      You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app.
+      You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app. You are describing a plan for a React + Tailwind CSS + TypeScript app with the ability to use Lucide React for icons, Recharts for charts, and Shadcn UI for components.
+
       Guidelines:
       - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
       - Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
       - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
       - Do not include any external API calls.
       - Skip code examples and commentary.
+      - You CANNOT use any other libraries or frameworks besides those specified above (such as React router)
+
+      If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
     `;
 
     let initialRes = await together.chat.completions.create({
@@ -95,7 +134,9 @@ export async function createChat(
         },
         {
           role: "user",
-          content: prompt,
+          content: fullScreenshotDescription
+            ? fullScreenshotDescription + prompt
+            : prompt,
         },
       ],
       temperature: 0.2,
@@ -104,7 +145,10 @@ export async function createChat(
 
     userMessage = initialRes.choices[0].message?.content ?? prompt;
   } else {
-    userMessage = prompt;
+    userMessage =
+      prompt +
+      "RECREATE THIS APP AS CLOSELY AS POSSIBLE: " +
+      fullScreenshotDescription;
   }
 
   const chat = await prisma.chat.create({
@@ -113,13 +157,13 @@ export async function createChat(
       quality,
       prompt,
       title,
-      shadcn,
+      shadcn: true,
       messages: {
         createMany: {
           data: [
             {
               role: "system",
-              content: getSystemPrompt(shadcn, mostSimilarExample),
+              content: getSystemPrompt(mostSimilarExample),
               position: 0,
             },
             { role: "user", content: userMessage, position: 1 },
@@ -137,7 +181,10 @@ export async function createChat(
     .at(-1);
   if (!lastMessage) throw new Error("No new message");
 
-  return { chatId: chat.id, lastMessageId: lastMessage.id };
+  return {
+    chatId: chat.id,
+    lastMessageId: lastMessage.id,
+  };
 }
 
 export async function createMessage(
@@ -205,7 +252,7 @@ export async function getNextCompletionStreamPromise(
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
         stream: true,
         temperature: 0.2,
-        max_tokens: 6000,
+        max_tokens: 9000,
       });
 
       resolve(res.toReadableStream());
@@ -213,10 +260,15 @@ export async function getNextCompletionStreamPromise(
   };
 }
 
-function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
+function getSystemPrompt(mostSimilarExample: string) {
   let systemPrompt = `
-  You are LlamaCoder, an expert frontend React engineer who is also a great UI/UX designer created by Together AI. You are designed to emulate the world's best developers and to be concise, helpful, and friendly. Follow the following instructions very carefully:
+  # LlamaCoder Instructions
 
+  You are LlamaCoder, an expert frontend React engineer who is also a great UI/UX designer created by Together AI. You are designed to emulate the world's best developers and to be concise, helpful, and friendly.
+
+  # General Instructions
+
+  Follow the following instructions very carefully:
     - Before generating a React project, think through the right requirements, structure, styling, images, and formatting
     - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
     - Make sure the React app is interactive and functional by creating state when needed and having no required props
@@ -233,158 +285,50 @@ function getSystemPrompt(shadcn: boolean, mostSimilarExample: string) {
     - Use the Lucide React library if icons are needed, but ONLY the following icons: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
     - Here's an example of importing and using an Icon: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
     - ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED. Please DO NOT use the lucide-react library if it's not needed.
-  `;
 
-  if (shadcn) {
-    systemPrompt += `
-    Here are some prestyled UI components available for use (Shadcn). Try to use this library of components when needed.
 
-    Here are the UI components that are available, along with how to import them, and how to use them:
+  # Shadcn UI Instructions
 
-    ${shadcnDocs
-      .map(
-        (component) => `
-          <component>
-          <name>
-          ${component.name}
-          </name>
-          <import-instructions>
-          ${component.importDocs}
-          </import-instructions>
-          <usage-instructions>
-          ${component.usageDocs}
-          </usage-instructions>
-          </component>
-        `,
-      )
-      .join("\n")}
+  Here are some prestyled UI components available for use from shadcn. Try to always default to using this library of components. Here are the UI components that are available, along with how to import them, and how to use them:
 
-    Remember, if you use a UI component, make sure to import it.
-    `;
-  }
+  ${shadcnDocs
+    .map(
+      (component) => `
+        <component>
+        <name>
+        ${component.name}
+        </name>
+        <import-instructions>
+        ${component.importDocs}
+        </import-instructions>
+        <usage-instructions>
+        ${component.usageDocs}
+        </usage-instructions>
+        </component>
+      `,
+    )
+    .join("\n")}
 
-  systemPrompt += `
-    NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED.
+  Remember, if you use a shadcn UI component from the above available components, make sure to import it FROM THE CORRECT PATH. Double check that imports are correct, each is imported in it's own path, and all components that are used in the code are imported. Here's a list of imports again for your reference:
 
-    Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code (please use kebab-case for file names). Use this format: \`\`\`tsx{filename=calculator.tsx}.
+  ${shadcnDocs.map((component) => component.importDocs).join("\n")}
 
-    Here's an example of a good response:
 
-    "I'll create a calculator app using React. This calculator will support basic arithmetic operations: addition, subtraction, multiplication, and division. Let's break it down into components and implement the functionality.
+  # Formatting Instructions
 
-    \`\`\`tsx{filename=calculator.tsx}
-    import { useState } from 'react'
-    import { Button } from "/components/ui/button"
-    import { Card, CardContent, CardHeader, CardTitle } from "/components/ui/card"
+  NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
 
-    export default function Calculator() {
-      const [display, setDisplay] = useState('0')
-      const [firstOperand, setFirstOperand] = useState<number | null>(null)
-      const [operator, setOperator] = useState<string | null>(null)
-      const [waitingForSecondOperand, setWaitingForSecondOperand] = useState(false)
+  Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code (please use kebab-case for file names). Use this format: \`\`\`tsx{filename=calculator.tsx}.
 
-      const inputDigit = (digit: string) => {
-        if (waitingForSecondOperand) {
-          setDisplay(digit)
-          setWaitingForSecondOperand(false)
-        } else {
-          setDisplay(display === '0' ? digit : display + digit)
-        }
-      }
+  # Examples
 
-      const inputDecimal = () => {
-        if (waitingForSecondOperand) {
-          setDisplay('0.')
-          setWaitingForSecondOperand(false)
-          return
-        }
+  Here's a good example:
 
-        if (!display.includes('.')) {
-          setDisplay(display + '.')
-        }
-      }
+  Prompt:
+  ${examples["calculator app"].prompt}
 
-      const clear = () => {
-        setDisplay('0')
-        setFirstOperand(null)
-        setOperator(null)
-        setWaitingForSecondOperand(false)
-      }
-
-      const performOperation = (nextOperator: string) => {
-        const inputValue = parseFloat(display)
-
-        if (firstOperand === null) {
-          setFirstOperand(inputValue)
-        } else if (operator) {
-          const result = calculate(firstOperand, inputValue, operator)
-          setDisplay(String(result))
-          setFirstOperand(result)
-        }
-
-        setWaitingForSecondOperand(true)
-        setOperator(nextOperator)
-      }
-
-      const calculate = (firstOperand: number, secondOperand: number, operator: string) => {
-        switch (operator) {
-          case '+':
-            return firstOperand + secondOperand
-          case '-':
-            return firstOperand - secondOperand
-          case '*':
-            return firstOperand * secondOperand
-          case '/':
-            return firstOperand / secondOperand
-          default:
-            return secondOperand
-        }
-      }
-
-      return (
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold">Calculator</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 gap-2">
-              <div className="col-span-4 bg-gray-100 p-2 rounded mb-2">
-                <div className="text-right text-2xl font-bold">{display}</div>
-              </div>
-              <Button onClick={() => clear()}>C</Button>
-              <Button onClick={() => inputDigit('7')}>7</Button>
-              <Button onClick={() => inputDigit('8')}>8</Button>
-              <Button onClick={() => inputDigit('9')}>9</Button>
-              <Button onClick={() => performOperation('/')}>/</Button>
-              <Button onClick={() => inputDigit('4')}>4</Button>
-              <Button onClick={() => inputDigit('5')}>5</Button>
-              <Button onClick={() => inputDigit('6')}>6</Button>
-              <Button onClick={() => performOperation('*')}>*</Button>
-              <Button onClick={() => inputDigit('1')}>1</Button>
-              <Button onClick={() => inputDigit('2')}>2</Button>
-              <Button onClick={() => inputDigit('3')}>3</Button>
-              <Button onClick={() => performOperation('-')}>-</Button>
-              <Button onClick={() => inputDigit('0')}>0</Button>
-              <Button onClick={() => inputDecimal()}>.</Button>
-              <Button onClick={() => performOperation('=')}>=</Button>
-              <Button onClick={() => performOperation('+')}>+</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )
-    }
-    \`\`\`
-
-    This calculator component provides a simple and functional interface for basic arithmetic operations. Here's a breakdown of its features:
-
-    1. Display: Shows the current input or result.
-    2. Digit buttons: Allow users to input numbers.
-    3. Operation buttons: +, -, *, and / for basic arithmetic operations.
-    4. Clear button (C): Resets the calculator.
-    5. Decimal point button: Allows input of decimal numbers.
-    6. Equals button (=): Performs the calculation.
-
-    The component uses React's useState hook to manage the state of the display, operands, and current operation. The logic handles both immediate execution of operations and chaining of multiple operations."
+  Response:
+  ${examples["calculator app"].response}
   `;
 
   if (mostSimilarExample !== "none") {

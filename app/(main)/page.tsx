@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Fieldset from "@/components/fieldset";
@@ -5,7 +6,6 @@ import ArrowRightIcon from "@/components/icons/arrow-right";
 import LightningBoltIcon from "@/components/icons/lightning-bolt";
 import LoadingButton from "@/components/loading-button";
 import Spinner from "@/components/spinner";
-import { Switch } from "@/components/ui/switch";
 import bgImg from "@/public/halo.png";
 import * as Select from "@radix-ui/react-select";
 import assert from "assert";
@@ -13,69 +13,15 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, use, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { use, useState, useRef, useTransition } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
 import Header from "@/components/header";
-
-const MODELS = [
-  {
-    label: "Qwen 2.5 Coder 32B",
-    value: "Qwen/Qwen2.5-Coder-32B-Instruct",
-  },
-  {
-    label: "Llama 3.1 405B",
-    value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
-  },
-  {
-    label: "Llama 3.3 70B",
-    value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-  },
-  {
-    label: "DeepSeek V3",
-    value: "deepseek-ai/DeepSeek-V3",
-  },
-];
-
-const SUGGESTED_PROMPTS = [
-  {
-    title: "Quiz app",
-    description:
-      "Make me a quiz app about American history. Make sure to give the user an explanation on each question whether they got it right or wrong and keep a score going",
-  },
-  {
-    title: "SaaS Landing page",
-    description:
-      "A landing page for a SaaS business that includes a clear value proposition in a prominent hero section, concise feature overviews, testimonials, pricing, and a clear call-to-action button leading to a free trial or demo.",
-  },
-  {
-    title: "Pomodoro Timer",
-    description:
-      "Make a beautiful pomodoro timer where I can adjust the lengths of the focus time and the break and it will beep when done.",
-  },
-  {
-    title: "Blog app",
-    description:
-      "Make me a blog app that has a few blogs there for people to read. Users can click into the blogs and read them, then go back to the homepage to see more.",
-  },
-  // {
-  //   title: "Recipe site",
-  //   description:
-  //     "Make me a site that has easy to make recipes in a grid that you can click into and see the full recipe. Also make it possible for me to add my own",
-  // },
-  {
-    title: "Flashcard app",
-    description:
-      "Build me a flashcard app about llamas. Have some flash cards and also have the ability for users to add their own. Show one side of a card at first and reveal the answer on button click, keeping track of correct guesses to measure progress.",
-  },
-  {
-    title: "Timezone dashboard",
-    description:
-      "Make me a time zone dashboard that shows me the time zone in the top 6 most popular time zones and gives me a dropdown to add others",
-  },
-];
+import { useS3Upload } from "next-s3-upload";
+import UploadIcon from "@/components/icons/upload-icon";
+import { XCircleIcon } from "@heroicons/react/20/solid";
+import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
 
 export default function Home() {
   const { setStreamPromise } = use(Context);
@@ -84,8 +30,25 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState(MODELS[0].value);
   const [quality, setQuality] = useState("high");
-
+  const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
+    undefined,
+  );
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
   const selectedModel = MODELS.find((m) => m.value === model);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isPending, startTransition] = useTransition();
+
+  const { uploadToS3 } = useS3Upload();
+  const handleScreenshotUpload = async (event: any) => {
+    if (prompt.length === 0) setPrompt("Build this");
+    setQuality("low");
+    setScreenshotLoading(true);
+    let file = event.target.files[0];
+    const { url } = await uploadToS3(file);
+    setScreenshotUrl(url);
+    setScreenshotLoading(false);
+  };
 
   return (
     <div className="relative flex grow flex-col">
@@ -123,51 +86,86 @@ export default function Home() {
           <form
             className="relative pt-6 lg:pt-12"
             action={async (formData) => {
-              const { prompt, model, quality, shadcn } =
-                Object.fromEntries(formData);
+              startTransition(async () => {
+                const { prompt, model, quality } = Object.fromEntries(formData);
 
-              assert.ok(typeof prompt === "string");
-              assert.ok(typeof model === "string");
-              assert.ok(quality === "high" || quality === "low");
+                assert.ok(typeof prompt === "string");
+                assert.ok(typeof model === "string");
+                assert.ok(quality === "high" || quality === "low");
 
-              const { chatId, lastMessageId } = await createChat(
-                prompt,
-                model,
-                quality,
-                !!shadcn,
-              );
-              const { streamPromise } = await getNextCompletionStreamPromise(
-                lastMessageId,
-                model,
-              );
-              startTransition(() => {
-                setStreamPromise(streamPromise);
-                router.push(`/chats/${chatId}`);
+                const { chatId, lastMessageId } = await createChat(
+                  prompt,
+                  model,
+                  quality,
+                  screenshotUrl,
+                );
+                const { streamPromise } = await getNextCompletionStreamPromise(
+                  lastMessageId,
+                  model,
+                );
+                startTransition(() => {
+                  setStreamPromise(streamPromise);
+                  router.push(`/chats/${chatId}`);
+                });
               });
             }}
           >
             <Fieldset>
               <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
-                <TextareaAutosize
-                  placeholder="Build me a budgeting app..."
-                  required
-                  name="prompt"
-                  rows={1}
-                  className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      const target = event.target;
-                      if (!(target instanceof HTMLTextAreaElement)) return;
-                      target.closest("form")?.requestSubmit();
-                    }
-                  }}
-                />
-
-                <div className="pointer-events-none absolute inset-0 rounded-lg peer-focus:outline peer-focus:outline-2 peer-focus:outline-offset-0 peer-focus:outline-blue-500" />
-
+                <div className="w-full">
+                  {screenshotLoading && (
+                    <div className="relative mx-3 mt-3">
+                      <div className="rounded-xl">
+                        <div className="group mb-2 flex h-16 w-[68px] animate-pulse items-center justify-center rounded bg-gray-200">
+                          <Spinner />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {screenshotUrl && (
+                    <div
+                      className={`${isPending ? "invisible" : ""} relative mx-3 mt-3`}
+                    >
+                      <div className="rounded-xl">
+                        <img
+                          alt="screenshot"
+                          src={screenshotUrl}
+                          className="group relative mb-2 h-16 w-[68px] rounded"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        id="x-circle-icon"
+                        className="absolute -right-3 -top-4 left-14 z-10 size-5 rounded-full bg-white text-gray-900 hover:text-gray-500"
+                        onClick={() => {
+                          setScreenshotUrl(undefined);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                          }
+                        }}
+                      >
+                        <XCircleIcon />
+                      </button>
+                    </div>
+                  )}
+                  <TextareaAutosize
+                    placeholder="Build me a budgeting app..."
+                    required
+                    name="prompt"
+                    rows={1}
+                    className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        const target = event.target;
+                        if (!(target instanceof HTMLTextAreaElement)) return;
+                        target.closest("form")?.requestSubmit();
+                      }
+                    }}
+                  />
+                </div>
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Select.Root
@@ -209,18 +207,6 @@ export default function Home() {
 
                     <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
 
-                    <label className="inline-flex items-center gap-2 text-sm text-gray-400">
-                      <span className="sm:hidden">shad</span>
-                      <span className="max-sm:hidden">
-                        shadcn<span className="font-medium">/</span>ui
-                      </span>
-                      <Switch className="mt-0.5" name="shadcn">
-                        shadcn/ui
-                      </Switch>
-                    </label>
-
-                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
-
                     <Select.Root
                       name="quality"
                       value={quality}
@@ -246,7 +232,10 @@ export default function Home() {
                           <Select.Viewport className="space-y-1 p-2">
                             {[
                               { value: "low", label: "Low quality [faster]" },
-                              { value: "high", label: "High quality [slower]" },
+                              {
+                                value: "high",
+                                label: "High quality [slower]",
+                              },
                             ].map((q) => (
                               <Select.Item
                                 key={q.value}
@@ -267,10 +256,34 @@ export default function Home() {
                         </Select.Content>
                       </Select.Portal>
                     </Select.Root>
+                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
+                    <div>
+                      <label
+                        htmlFor="screenshot"
+                        className="flex cursor-pointer gap-2 text-sm text-gray-400 hover:underline"
+                      >
+                        <div className="flex size-6 items-center justify-center rounded bg-black hover:bg-gray-700">
+                          <UploadIcon className="size-4" />
+                        </div>
+                        <div className="flex items-center justify-center transition hover:text-gray-700">
+                          Attach
+                        </div>
+                      </label>
+                      <input
+                        // name="screenshot"
+                        id="screenshot"
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={handleScreenshotUpload}
+                        className="hidden"
+                        ref={fileInputRef}
+                      />
+                    </div>
                   </div>
 
                   <div className="relative flex shrink-0 has-[:disabled]:opacity-50">
-                    <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
+                    <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-500" />
+
                     <LoadingButton
                       className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 hover:bg-blue-500/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                       type="submit"
@@ -280,7 +293,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <LoadingMessage />
+                {isPending && (
+                  <LoadingMessage
+                    isHighQuality={quality === "high"}
+                    screenshotUrl={screenshotUrl}
+                  />
+                )}
               </div>
               <div className="mt-4 flex w-full flex-wrap justify-center gap-3">
                 {SUGGESTED_PROMPTS.map((v) => (
@@ -350,22 +368,22 @@ export default function Home() {
   );
 }
 
-function LoadingMessage() {
-  const { pending, data } = useFormStatus();
-
-  if (!pending || !data || !(data instanceof FormData)) {
-    return null;
-  }
-
-  let isHighQuality = data.get("quality") === "high";
-
+function LoadingMessage({
+  isHighQuality,
+  screenshotUrl,
+}: {
+  isHighQuality: boolean;
+  screenshotUrl: string | undefined;
+}) {
   return (
     <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white px-1 py-3 md:px-3">
       <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
         <span className="animate-pulse text-balance text-center text-sm md:text-base">
           {isHighQuality
             ? `Coming up with project plan, may take 15 seconds...`
-            : `Creating your app...`}
+            : screenshotUrl
+              ? "Analyzing your screenshot..."
+              : `Creating your app...`}
         </span>
 
         <Spinner />
