@@ -118,10 +118,9 @@ export async function createChat(
       - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
       - Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
       - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
-      - Do not include any external API calls.
-      - Skip code examples and commentary.
+      - Skip code examples and commentary. Do not include any external API calls either.
+      - Make sure the implementation can fit into one big React component
       - You CANNOT use any other libraries or frameworks besides those specified above (such as React router)
-
       If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
     `;
 
