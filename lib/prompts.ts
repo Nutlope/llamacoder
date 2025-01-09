@@ -4,7 +4,7 @@ import assert from "assert";
 import { examples } from "./shadcn-examples";
 
 export const softwareArchitectPrompt = dedent`
-You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app. You are describing a plan for a React + Tailwind CSS + TypeScript app with the ability to use Lucide React for icons, Recharts for charts, and Shadcn UI for components.
+You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app. You are describing a plan for a single component React + Tailwind CSS + TypeScript app with the ability to use Lucide React for icons and Shadcn UI for components.
 
 Guidelines:
 - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
@@ -51,7 +51,7 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
     - Use the Lucide React library if icons are needed, but ONLY the following icons: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
     - Here's an example of importing and using an Icon: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
     - ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED. Please DO NOT use the lucide-react library if it's not needed.
-
+  - You also have access to framer-motion for animations and date-fns for date formatting
 
   # Shadcn UI Instructions
 
