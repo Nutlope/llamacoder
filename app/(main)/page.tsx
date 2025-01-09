@@ -136,6 +136,7 @@ export default function Home() {
                       </div>
                       <button
                         type="button"
+                        id="x-circle-icon"
                         className="absolute -right-3 -top-4 left-14 z-10 size-5 rounded-full bg-white text-gray-900 hover:text-gray-500"
                         onClick={() => {
                           setScreenshotUrl(undefined);
@@ -274,10 +275,10 @@ export default function Home() {
                         htmlFor="screenshot"
                         className="flex cursor-pointer gap-2 text-sm text-gray-400 hover:underline"
                       >
-                        <div className="flex size-6 items-center justify-center rounded bg-blue-400">
+                        <div className="flex size-6 items-center justify-center rounded bg-black hover:bg-gray-700">
                           <UploadIcon className="size-4" />
                         </div>
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center transition hover:text-gray-700">
                           Attach
                         </div>
                       </label>
