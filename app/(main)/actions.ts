@@ -306,7 +306,7 @@ function getSystemPrompt(mostSimilarExample: string) {
     )
     .join("\n")}
 
-  Remember, if you use a UI component, make sure to import it FROM THE CORRECT PATH. Double check that imports are correct and import each from it's own path. Here's a list of imports again for your reference:
+  Remember, if you use a shadcn UI component from the above available components, make sure to import it FROM THE CORRECT PATH. Double check that imports are correct, each is imported in it's own path, and all components that are used in the code are imported. Here's a list of imports again for your reference:
 
   ${shadcnDocs.map((component) => component.importDocs).join("\n")}
   </shadcn-instructions>
