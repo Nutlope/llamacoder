@@ -108,7 +108,8 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
     assert.ok(
       mostSimilarExample === "landing page" ||
         mostSimilarExample === "blog app" ||
-        mostSimilarExample === "quiz app",
+        mostSimilarExample === "quiz app" ||
+        mostSimilarExample === "pomodoro timer",
     );
     systemPrompt += `
     Here another example (thats missing explanations and is just code):

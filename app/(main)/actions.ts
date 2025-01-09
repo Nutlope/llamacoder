@@ -57,6 +57,7 @@ export async function createChat(
           - landing page
           - blog app
           - quiz app
+          - pomodoro timer
           `,
         },
         {
