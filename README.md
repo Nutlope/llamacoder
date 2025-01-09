@@ -4,7 +4,7 @@
 </a>
 
 <p align="center">
-  An open source Claude Artifacts – generate small apps with one prompt. Powered by Llama 3 405B & Together.ai.
+  An open source Claude Artifacts – generate small apps with one prompt. Powered by Llama 3 on Together.ai.
 </p>
 
 ## Tech stack
