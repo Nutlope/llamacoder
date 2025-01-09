@@ -95,6 +95,16 @@ const shadcnFiles = {
   "/components/ui/toggle.tsx": shadcnComponents.toggle,
   "/components/ui/tooltip.tsx": shadcnComponents.tooltip,
   "/components/ui/use-toast.tsx": shadcnComponents.useToast,
+  "/components/ui/index.tsx": `
+  export * from "./button"
+  export * from "./card"
+  export * from "./input"
+  export * from "./label"
+  export * from "./select"
+  export * from "./textarea"
+  export * from "./avatar"
+  export * from "./radio-group"
+  `,
   "/public/index.html": dedent`
     <!DOCTYPE html>
     <html lang="en">

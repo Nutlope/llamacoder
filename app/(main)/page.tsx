@@ -6,7 +6,6 @@ import ArrowRightIcon from "@/components/icons/arrow-right";
 import LightningBoltIcon from "@/components/icons/lightning-bolt";
 import LoadingButton from "@/components/loading-button";
 import Spinner from "@/components/spinner";
-// import { Switch } from "@/components/ui/switch";
 import bgImg from "@/public/halo.png";
 import * as Select from "@radix-ui/react-select";
 import assert from "assert";
@@ -207,18 +206,6 @@ export default function Home() {
                     </Select.Root>
 
                     <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
-
-                    {/* <label className="inline-flex items-center gap-2 text-sm text-gray-400">
-                      <span className="sm:hidden">shad</span>
-                      <span className="max-sm:hidden">
-                        shadcn<span className="font-medium">/</span>ui
-                      </span>
-                      <Switch className="mt-0.5" name="shadcn">
-                        shadcn/ui
-                      </Switch>
-                    </label>
-
-                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" /> */}
 
                     <Select.Root
                       name="quality"

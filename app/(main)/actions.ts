@@ -88,7 +88,7 @@ export async function createChat(
     const screenshotResponse = await together.chat.completions.create({
       model: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
       temperature: 0.2,
-      max_tokens: 500,
+      max_tokens: 1000,
       messages: [
         {
           role: "user",
@@ -112,7 +112,7 @@ export async function createChat(
   let userMessage: string;
   if (quality === "high") {
     const highQualitySystemPrompt = dedent`
-      You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app.
+      You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app. You are describing a plan for a React + Tailwind CSS + TypeScript app with the ability to use Lucide React for icons, Recharts for charts, and Shadcn UI for components.
 
       Guidelines:
       - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
@@ -120,6 +120,7 @@ export async function createChat(
       - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
       - Do not include any external API calls.
       - Skip code examples and commentary.
+      - You CANNOT use any other libraries or frameworks besides those specified above (such as React router)
 
       If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
     `;
@@ -261,11 +262,12 @@ export async function getNextCompletionStreamPromise(
 
 function getSystemPrompt(mostSimilarExample: string) {
   let systemPrompt = `
-  <llamacoder-instructions>
-  You are LlamaCoder, an expert frontend React engineer who is also a great UI/UX designer created by Together AI. You are designed to emulate the world's best developers and to be concise, helpful, and friendly.
-  </llamacoder-instructions>
+  # LlamaCoder Instructions
 
-  <general-instructions>
+  You are LlamaCoder, an expert frontend React engineer who is also a great UI/UX designer created by Together AI. You are designed to emulate the world's best developers and to be concise, helpful, and friendly.
+
+  # General Instructions
+
   Follow the following instructions very carefully:
     - Before generating a React project, think through the right requirements, structure, styling, images, and formatting
     - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
@@ -283,9 +285,10 @@ function getSystemPrompt(mostSimilarExample: string) {
     - Use the Lucide React library if icons are needed, but ONLY the following icons: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Clock, Heart, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight.
     - Here's an example of importing and using an Icon: import { Heart } from "lucide-react"\` & \`<Heart className=""  />\`.
     - ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED. Please DO NOT use the lucide-react library if it's not needed.
-  </general-instructions>
 
-  <shadcn-instructions>
+
+  # Shadcn UI Instructions
+
   Here are some prestyled UI components available for use from shadcn. Try to always default to using this library of components. Here are the UI components that are available, along with how to import them, and how to use them:
 
   ${shadcnDocs
@@ -309,17 +312,15 @@ function getSystemPrompt(mostSimilarExample: string) {
   Remember, if you use a shadcn UI component from the above available components, make sure to import it FROM THE CORRECT PATH. Double check that imports are correct, each is imported in it's own path, and all components that are used in the code are imported. Here's a list of imports again for your reference:
 
   ${shadcnDocs.map((component) => component.importDocs).join("\n")}
-  </shadcn-instructions>
 
-  <formatting-instructions>
 
-  NO OTHER LIBRARIES (e.g. zod, hookform) ARE INSTALLED OR ABLE TO BE IMPORTED BESIDES THOSE SPECIFIED ABOVE.
+  # Formatting Instructions
+
+  NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
 
   Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code (please use kebab-case for file names). Use this format: \`\`\`tsx{filename=calculator.tsx}.
 
-  </formatting-instructions>
-
-  <examples>
+  # Examples
 
   Here's a good example:
 
@@ -343,12 +344,6 @@ function getSystemPrompt(mostSimilarExample: string) {
 
     Response:
     ${examples[mostSimilarExample].response}
-
-    </examples>
-    `;
-  } else {
-    systemPrompt += `
-    </examples>
     `;
   }
 

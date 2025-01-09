@@ -10,24 +10,15 @@ To run the repo locally, simply `npm install` to install dependencies and then `
 
 ## Roadmap
 
-- [ ] Add evals with Braintrust
-- [ ] Experiment with a prompt rewriter and launch this as well
-- [ ] Add dynamic OG images to the specific generations & include the prompt
-- [ ] Add a bunch of good examples, and have an LLM call automatically choose which ones to include in the system prompt
-- [ ] Look into bolt.new and if I should be using the Stackblitz UI instead
-- [ ] New redesign
-  - [ ] Encourage best practices by making the input and textarea & having pills to generate apps w/ good prompts
-- [ ] Add more customizability in terms of changing the prompt, temperature, ect...
-- [ ] Save previous versions so people can go back and forth between the generated ones
-- [ ] Could be nice to show a "featured apps" route on the site on /featured. Have a /id/${prompt} dynamic route that can display a bunch of nice example apps in the sandbox ready to go
-- [ ] Support more languages starting with Python (like streamlit), check out E2B
-- [ ] Try finetuning a smaller model on good prompts from 405b or o1/Claude
-- [ ] Add dark mode to the site overall, nice design change
 - [ ] Add self-correcting to the app so it can fix its own errors
 - [ ] Compressing prompt: Use small model like llama 3.1 70B to retain what happened in the past, good memory management is key
-- [ ] New route for updateCode that only sends the latest generated code + the modify request
-- [ ] Fix bug where if a user edits the code, then does a change, it doesn't use the edited code
-- [ ] Apply code diffs directly instead of asking the model to generate the code from scratch
+- [ ] Add evals with Braintrust to be able to measure how good the system is over time and when making new changes
+- [ ] Add more good examples to the shadcn-examples.ts file (single components that span a whole app and use shadcn)
+- [ ] Add dynamic OG images to the specific generations & include the prompt + a screenshot in the image
+- [ ] Show a "featured apps" section on /gallery (or have some at the bottom of the homepage as templates). Have a /id/${prompt} dynamic route that can display a bunch of nice example apps in the sandbox ready to go
+- [ ] Try finetuning a smaller model on good prompts from deepseek-v2 or o1/Claude
+- [ ] Add dark mode to the site overall, nice design change
+- [ ] Support more languages starting with Python (like streamlit) and see if I can run them on CSB SDK
 
 ## License
 
