@@ -102,6 +102,7 @@ export default function Home() {
                 const { streamPromise } = await getNextCompletionStreamPromise(
                   lastMessageId,
                   model,
+                  chatId,
                 );
                 startTransition(() => {
                   setStreamPromise(streamPromise);

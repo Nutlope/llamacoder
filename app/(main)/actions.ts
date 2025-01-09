@@ -16,12 +16,24 @@ export async function createChat(
   quality: "high" | "low",
   screenshotUrl: string | undefined,
 ) {
+  const chat = await prisma.chat.create({
+    data: {
+      model,
+      quality,
+      prompt,
+      title: "",
+      shadcn: true,
+    },
+  });
+
   let options: ConstructorParameters<typeof Together>[0] = {};
   if (process.env.HELICONE_API_KEY) {
     options.baseURL = "https://together.helicone.ai/v1";
     options.defaultHeaders = {
       "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
       "Helicone-Property-appname": "LlamaCoder",
+      "Helicone-Session-Id": chat.id,
+      "Helicone-Session-Name": "LlamaCoder Chat",
     };
   }
 
@@ -124,20 +136,21 @@ export async function createChat(
     });
 
     userMessage = initialRes.choices[0].message?.content ?? prompt;
-  } else {
+  } else if (fullScreenshotDescription) {
     userMessage =
       prompt +
       "RECREATE THIS APP AS CLOSELY AS POSSIBLE: " +
       fullScreenshotDescription;
+  } else {
+    userMessage = prompt;
   }
 
-  const chat = await prisma.chat.create({
+  let newChat = await prisma.chat.update({
+    where: {
+      id: chat.id,
+    },
     data: {
-      model,
-      quality,
-      prompt,
       title,
-      shadcn: true,
       messages: {
         createMany: {
           data: [
@@ -156,7 +169,9 @@ export async function createChat(
     },
   });
 
-  const lastMessage = chat.messages
+  console.log(chat, newChat);
+
+  const lastMessage = newChat.messages
     .sort((a, b) => a.position - b.position)
     .at(-1);
   if (!lastMessage) throw new Error("No new message");
@@ -195,6 +210,7 @@ export async function createMessage(
 export async function getNextCompletionStreamPromise(
   messageId: string,
   model: string,
+  chatId: string,
 ) {
   const message = await prisma.message.findUnique({ where: { id: messageId } });
   if (!message) notFound();
@@ -219,7 +235,8 @@ export async function getNextCompletionStreamPromise(
     options.defaultHeaders = {
       "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
       "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Property-chatId": message.chatId,
+      "Helicone-Session-Id": chatId,
+      "Helicone-Session-Name": "LlamaCoder Chat",
     };
   }
 
