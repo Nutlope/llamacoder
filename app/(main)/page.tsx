@@ -14,8 +14,7 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, use, useState, useRef, useTransition } from "react";
-import { useFormStatus } from "react-dom";
+import { use, useState, useRef, useTransition } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
@@ -43,6 +42,7 @@ export default function Home() {
 
   const { uploadToS3 } = useS3Upload();
   const handleScreenshotUpload = async (event: any) => {
+    if (prompt.length === 0) setPrompt("Build this");
     setQuality("low");
     setScreenshotLoading(true);
     let file = event.target.files[0];
@@ -307,7 +307,10 @@ export default function Home() {
                 </div>
 
                 {isPending && (
-                  <LoadingMessage isHighQuality={quality === "high"} />
+                  <LoadingMessage
+                    isHighQuality={quality === "high"}
+                    screenshotUrl={screenshotUrl}
+                  />
                 )}
               </div>
               <div className="mt-4 flex w-full flex-wrap justify-center gap-3">
@@ -378,14 +381,22 @@ export default function Home() {
   );
 }
 
-function LoadingMessage({ isHighQuality }: { isHighQuality: boolean }) {
+function LoadingMessage({
+  isHighQuality,
+  screenshotUrl,
+}: {
+  isHighQuality: boolean;
+  screenshotUrl: string | undefined;
+}) {
   return (
     <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white px-1 py-3 md:px-3">
       <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
         <span className="animate-pulse text-balance text-center text-sm md:text-base">
           {isHighQuality
             ? `Coming up with project plan, may take 15 seconds...`
-            : `Creating your app...`}
+            : screenshotUrl
+              ? "Analyzing your screenshot..."
+              : `Creating your app...`}
         </span>
 
         <Spinner />
