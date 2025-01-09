@@ -157,5 +157,6 @@ const dependencies = {
   "react-day-picker": "^8.10.1",
   "tailwind-merge": "^2.4.0",
   "tailwindcss-animate": "^1.0.7",
+  "framer-motion": "^11.15.0",
   vaul: "^0.9.1",
 };
