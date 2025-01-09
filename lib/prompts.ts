@@ -107,7 +107,8 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   if (mostSimilarExample !== "none") {
     assert.ok(
       mostSimilarExample === "landing page" ||
-        mostSimilarExample === "blog app",
+        mostSimilarExample === "blog app" ||
+        mostSimilarExample === "quiz app",
     );
     systemPrompt += `
     Here another example (thats missing explanations and is just code):
