@@ -169,8 +169,6 @@ export async function createChat(
     },
   });
 
-  console.log(chat, newChat);
-
   const lastMessage = newChat.messages
     .sort((a, b) => a.position - b.position)
     .at(-1);
