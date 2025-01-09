@@ -14,7 +14,7 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, use, useState, useRef } from "react";
+import { startTransition, use, useState, useRef, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
@@ -38,6 +38,8 @@ export default function Home() {
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const selectedModel = MODELS.find((m) => m.value === model);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isPending, startTransition] = useTransition();
 
   const { uploadToS3 } = useS3Upload();
   const handleScreenshotUpload = async (event: any) => {
@@ -85,31 +87,27 @@ export default function Home() {
           <form
             className="relative pt-6 lg:pt-12"
             action={async (formData) => {
-              const { prompt, model, quality } = Object.fromEntries(formData);
+              startTransition(async () => {
+                const { prompt, model, quality } = Object.fromEntries(formData);
 
-              assert.ok(typeof prompt === "string");
-              assert.ok(typeof model === "string");
-              assert.ok(quality === "high" || quality === "low");
+                assert.ok(typeof prompt === "string");
+                assert.ok(typeof model === "string");
+                assert.ok(quality === "high" || quality === "low");
 
-              // Clear screenshot state first
-              setScreenshotUrl(undefined);
-              if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-              }
-
-              const { chatId, lastMessageId } = await createChat(
-                prompt,
-                model,
-                quality,
-                screenshotUrl,
-              );
-              const { streamPromise } = await getNextCompletionStreamPromise(
-                lastMessageId,
-                model,
-              );
-              startTransition(() => {
-                setStreamPromise(streamPromise);
-                router.push(`/chats/${chatId}`);
+                const { chatId, lastMessageId } = await createChat(
+                  prompt,
+                  model,
+                  quality,
+                  screenshotUrl,
+                );
+                const { streamPromise } = await getNextCompletionStreamPromise(
+                  lastMessageId,
+                  model,
+                );
+                startTransition(() => {
+                  setStreamPromise(streamPromise);
+                  router.push(`/chats/${chatId}`);
+                });
               });
             }}
           >
@@ -126,7 +124,9 @@ export default function Home() {
                     </div>
                   )}
                   {screenshotUrl && (
-                    <div className="relative mx-3 mt-3">
+                    <div
+                      className={`${isPending ? "invisible" : ""} relative mx-3 mt-3`}
+                    >
                       <div className="rounded-xl">
                         <img
                           alt="screenshot"
@@ -305,7 +305,10 @@ export default function Home() {
                     </LoadingButton>
                   </div>
                 </div>
-                <LoadingMessage />
+
+                {isPending && (
+                  <LoadingMessage isHighQuality={quality === "high"} />
+                )}
               </div>
               <div className="mt-4 flex w-full flex-wrap justify-center gap-3">
                 {SUGGESTED_PROMPTS.map((v) => (
@@ -375,15 +378,7 @@ export default function Home() {
   );
 }
 
-function LoadingMessage() {
-  const { pending, data } = useFormStatus();
-
-  if (!pending || !data || !(data instanceof FormData)) {
-    return null;
-  }
-
-  let isHighQuality = data.get("quality") === "high";
-
+function LoadingMessage({ isHighQuality }: { isHighQuality: boolean }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white px-1 py-3 md:px-3">
       <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
