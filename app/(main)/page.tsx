@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Fieldset from "@/components/fieldset";
@@ -19,6 +20,9 @@ import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
 import Header from "@/components/header";
+import { useS3Upload } from "next-s3-upload";
+import UploadIcon from "@/components/icons/upload-icon";
+import { XCircleIcon } from "@heroicons/react/20/solid";
 
 const MODELS = [
   {
@@ -84,8 +88,22 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState(MODELS[0].value);
   const [quality, setQuality] = useState("high");
+  const [imageUrl, setImageUrl] = useState<string | undefined>(
+    "https://napkinsdev.s3.us-east-1.amazonaws.com/next-s3-uploads/37ba6e68-3ddf-412a-9507-c52fbdee1ace/CleanShot-2025-01-07-at-10.31.33-2x.png",
+  );
 
   const selectedModel = MODELS.find((m) => m.value === model);
+  const { uploadToS3 } = useS3Upload();
+
+  const handleFileChange = async (event: any) => {
+    let file = event.target.files[0];
+    let objectUrl = URL.createObjectURL(file);
+    setImageUrl(objectUrl);
+    const { url } = await uploadToS3(file);
+    setImageUrl(url);
+  };
+
+  console.log({ imageUrl });
 
   return (
     <div className="relative flex grow flex-col">
@@ -147,6 +165,20 @@ export default function Home() {
             }}
           >
             <Fieldset>
+              {imageUrl && (
+                <div className="relative bg-gray-500">
+                  <div className="rounded-xl">
+                    <img
+                      alt="screenshot"
+                      src={imageUrl}
+                      className="group relative mb-2 h-16 w-[68px] rounded"
+                    />
+                  </div>
+                  <button className="absolute -right-3 -top-4 left-14 z-10 size-5 rounded-full bg-white text-gray-900 hover:text-gray-500">
+                    <XCircleIcon onClick={() => setImageUrl("")} />
+                  </button>
+                </div>
+              )}
               <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <TextareaAutosize
                   placeholder="Build me a budgeting app..."
@@ -209,7 +241,7 @@ export default function Home() {
 
                     <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
 
-                    <label className="inline-flex items-center gap-2 text-sm text-gray-400">
+                    {/* <label className="inline-flex items-center gap-2 text-sm text-gray-400">
                       <span className="sm:hidden">shad</span>
                       <span className="max-sm:hidden">
                         shadcn<span className="font-medium">/</span>ui
@@ -219,7 +251,7 @@ export default function Home() {
                       </Switch>
                     </label>
 
-                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
+                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" /> */}
 
                     <Select.Root
                       name="quality"
@@ -246,7 +278,10 @@ export default function Home() {
                           <Select.Viewport className="space-y-1 p-2">
                             {[
                               { value: "low", label: "Low quality [faster]" },
-                              { value: "high", label: "High quality [slower]" },
+                              {
+                                value: "high",
+                                label: "High quality [slower]",
+                              },
                             ].map((q) => (
                               <Select.Item
                                 key={q.value}
@@ -267,10 +302,31 @@ export default function Home() {
                         </Select.Content>
                       </Select.Portal>
                     </Select.Root>
+                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
+                    <div>
+                      <label
+                        htmlFor="fileInput"
+                        className="flex cursor-pointer gap-2 text-sm text-gray-400 hover:underline"
+                      >
+                        <div className="flex size-6 items-center justify-center rounded bg-blue-400">
+                          <UploadIcon className="size-4" />
+                        </div>
+                        <div className="flex items-center justify-center">
+                          Attach
+                        </div>
+                      </label>
+                      <input
+                        id="fileInput"
+                        type="file"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </div>
                   </div>
 
                   <div className="relative flex shrink-0 has-[:disabled]:opacity-50">
-                    <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-700" />
+                    <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-500" />
+
                     <LoadingButton
                       className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 hover:bg-blue-500/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                       type="submit"
@@ -279,7 +335,6 @@ export default function Home() {
                     </LoadingButton>
                   </div>
                 </div>
-
                 <LoadingMessage />
               </div>
               <div className="mt-4 flex w-full flex-wrap justify-center gap-3">

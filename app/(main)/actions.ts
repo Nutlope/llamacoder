@@ -205,7 +205,7 @@ export async function getNextCompletionStreamPromise(
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
         stream: true,
         temperature: 0.2,
-        max_tokens: 6000,
+        max_tokens: 9000,
       });
 
       resolve(res.toReadableStream());
