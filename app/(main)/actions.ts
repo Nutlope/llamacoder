@@ -202,7 +202,7 @@ export async function createMessage(
     },
   });
 
-  return newMessage;
+  return { newMessage: newMessage as any, chatId: chat.id };
 }
 
 export async function getNextCompletionStreamPromise(
