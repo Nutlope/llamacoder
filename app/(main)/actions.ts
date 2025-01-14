@@ -202,13 +202,12 @@ export async function createMessage(
     },
   });
 
-  return { message: newMessage, chatId: chat.id };
+  return newMessage;
 }
 
 export async function getNextCompletionStreamPromise(
   messageId: string,
   model: string,
-  chatId: string,
 ) {
   const message = await prisma.message.findUnique({ where: { id: messageId } });
   if (!message) notFound();
@@ -233,7 +232,7 @@ export async function getNextCompletionStreamPromise(
     options.defaultHeaders = {
       "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
       "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Session-Id": chatId,
+      "Helicone-Session-Id": message.chatId,
       "Helicone-Session-Name": "LlamaCoder Chat",
     };
   }

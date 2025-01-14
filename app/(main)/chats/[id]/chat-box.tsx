@@ -44,15 +44,10 @@ export default function ChatBox({
             const prompt = formData.get("prompt");
             assert.ok(typeof prompt === "string");
 
-            const { message, chatId } = await createMessage(
-              chat.id,
-              prompt,
-              "user",
-            );
+            const message = await createMessage(chat.id, prompt, "user");
             const { streamPromise } = await getNextCompletionStreamPromise(
               message.id,
               chat.model,
-              chatId,
             );
             onNewStreamPromise(streamPromise);
 
