@@ -3,6 +3,7 @@
 import type { Chat, Message } from "./page";
 import ArrowLeftIcon from "@/components/icons/arrow-left";
 import { splitByFirstCodeFence } from "@/lib/utils";
+import { Fragment } from "react";
 import Markdown from "react-markdown";
 import { StickToBottom } from "use-stick-to-bottom";
 
@@ -29,7 +30,7 @@ export default function ChatLog({
         <UserMessage content={chat.prompt} />
 
         {chat.messages.slice(2).map((message) => (
-          <div key={message.id}>
+          <Fragment key={message.id}>
             {message.role === "user" ? (
               <UserMessage content={message.content} />
             ) : (
@@ -43,7 +44,7 @@ export default function ChatLog({
                 onMessageClick={onMessageClick}
               />
             )}
-          </div>
+          </Fragment>
         ))}
 
         {streamText && (
@@ -60,9 +61,10 @@ export default function ChatLog({
 
 function UserMessage({ content }: { content: string }) {
   return (
-    <div className="inline-flex items-center gap-3">
-      <div className="size-4 rotate-45 rounded-sm bg-gray-700" />
-      <div className="italic text-gray-600">{content}</div>
+    <div className="relative inline-flex w-4/5 items-end gap-3 self-end">
+      <div className="whitespace-pre-wrap rounded bg-white px-4 py-2 text-gray-600 shadow">
+        {content}
+      </div>
     </div>
   );
 }

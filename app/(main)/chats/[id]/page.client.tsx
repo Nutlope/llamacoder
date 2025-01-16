@@ -16,7 +16,6 @@ import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat } from "./page";
 import { Context } from "../../providers";
-import dedent from "dedent";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
@@ -147,15 +146,11 @@ export default function PageClient({ chat }: { chat: Chat }) {
               }}
               onRequestFix={(error: string) => {
                 startTransition(async () => {
+                  let newMessageText = `The code is not working. Can you fix it? Here's the error:\n\n`;
+                  newMessageText += error.trimStart();
                   const message = await createMessage(
                     chat.id,
-                    dedent`
-                      The code is not working. Here's the error:
-
-                      ${error}
-
-                      Could you please fix it?
-                    `,
+                    newMessageText,
                     "user",
                   );
                   const { streamPromise } =
