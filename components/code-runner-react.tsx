@@ -15,7 +15,7 @@ export default function ReactCodeRunner({
   onRequestFix,
 }: {
   code: string;
-  onRequestFix: (e: string) => void;
+  onRequestFix?: (e: string) => void;
 }) {
   return (
     <SandpackProvider
@@ -61,7 +61,7 @@ export default function ReactCodeRunner({
         showOpenNewtab={false}
         className="h-full w-full"
       />
-      <ErrorMessage onRequestFix={onRequestFix} />
+      {onRequestFix && <ErrorMessage onRequestFix={onRequestFix} />}
     </SandpackProvider>
   );
 }

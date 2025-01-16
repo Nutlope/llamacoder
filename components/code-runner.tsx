@@ -12,7 +12,7 @@ export default function CodeRunner({
 }: {
   language: string;
   code: string;
-  onRequestFix: (e: string) => void;
+  onRequestFix?: (e: string) => void;
 }) {
   return <CodeRunnerReact code={code} onRequestFix={onRequestFix} />;
 
