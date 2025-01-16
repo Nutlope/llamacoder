@@ -98,7 +98,6 @@ export async function createChat(
       messages: [
         {
           role: "user",
-          // @ts-expect-error Need to fix the TypeScript library type
           content: [
             { type: "text", text: screenshotToCodePrompt },
             {
