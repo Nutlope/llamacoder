@@ -14,7 +14,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState, useRef, useTransition } from "react";
-import TextareaAutosize from "react-textarea-autosize";
 import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { Context } from "./providers";
 import Header from "@/components/header";
@@ -50,6 +49,11 @@ export default function Home() {
     setScreenshotLoading(false);
   };
 
+  const textareaResizePrompt = prompt
+    .split("\n")
+    .map((text) => (text === "" ? "a" : text))
+    .join("\n");
+
   return (
     <div className="relative flex grow flex-col">
       <div className="absolute inset-0 flex justify-center">
@@ -84,7 +88,7 @@ export default function Home() {
           </h1>
 
           <form
-            className="relative pt-6 lg:pt-12"
+            className="relative w-full max-w-2xl pt-6 lg:pt-12"
             action={async (formData) => {
               startTransition(async () => {
                 const { prompt, model, quality } = Object.fromEntries(formData);
@@ -111,7 +115,7 @@ export default function Home() {
             }}
           >
             <Fieldset>
-              <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
+              <div className="relative flex w-full max-w-2xl rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <div className="w-full">
                   {screenshotLoading && (
                     <div className="relative mx-3 mt-3">
@@ -148,23 +152,30 @@ export default function Home() {
                       </button>
                     </div>
                   )}
-                  <TextareaAutosize
-                    placeholder="Build me a budgeting app..."
-                    required
-                    name="prompt"
-                    rows={1}
-                    className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey) {
-                        event.preventDefault();
-                        const target = event.target;
-                        if (!(target instanceof HTMLTextAreaElement)) return;
-                        target.closest("form")?.requestSubmit();
-                      }
-                    }}
-                  />
+                  <div className="relative">
+                    <div className="p-3">
+                      <p className="invisible w-full whitespace-pre-wrap">
+                        {textareaResizePrompt}
+                      </p>
+                    </div>
+                    <textarea
+                      placeholder="Build me a budgeting app..."
+                      required
+                      name="prompt"
+                      rows={1}
+                      className="peer absolute inset-0 w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          const target = event.target;
+                          if (!(target instanceof HTMLTextAreaElement)) return;
+                          target.closest("form")?.requestSubmit();
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
