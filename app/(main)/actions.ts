@@ -217,7 +217,7 @@ export async function getNextCompletionStreamPromise(
     orderBy: { position: "asc" },
   });
 
-  const messages = z
+  let messages = z
     .array(
       z.object({
         role: z.enum(["system", "user", "assistant"]),
@@ -225,6 +225,10 @@ export async function getNextCompletionStreamPromise(
       }),
     )
     .parse(messagesRes);
+
+  if (messages.length > 10) {
+    messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
+  }
 
   let options: ConstructorParameters<typeof Together>[0] = {};
   if (process.env.HELICONE_API_KEY) {
@@ -238,7 +242,6 @@ export async function getNextCompletionStreamPromise(
   }
 
   const together = new Together(options);
-
   return {
     streamPromise: new Promise<ReadableStream>(async (resolve) => {
       const res = await together.chat.completions.create({
