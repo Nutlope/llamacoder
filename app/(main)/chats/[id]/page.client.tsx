@@ -1,6 +1,9 @@
 "use client";
 
-import { createMessage } from "@/app/(main)/actions";
+import {
+  createMessage,
+  getNextCompletionStreamPromise,
+} from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
 import { splitByFirstCodeFence } from "@/lib/utils";
 import Link from "next/link";
@@ -13,6 +16,7 @@ import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat } from "./page";
 import { Context } from "../../providers";
+import dedent from "dedent";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
@@ -140,6 +144,28 @@ export default function PageClient({ chat }: { chat: Chat }) {
               onClose={() => {
                 setActiveMessage(undefined);
                 setIsShowingCodeViewer(false);
+              }}
+              onRequestFix={(error: string) => {
+                startTransition(async () => {
+                  const message = await createMessage(
+                    chat.id,
+                    dedent`
+                      The code is not working. Here's the error:
+
+                      ${error}
+
+                      Could you please fix it?
+                    `,
+                    "user",
+                  );
+                  const { streamPromise } =
+                    await getNextCompletionStreamPromise(
+                      message.id,
+                      chat.model,
+                    );
+                  setStreamPromise(streamPromise);
+                  router.refresh();
+                });
               }}
             />
           )}
