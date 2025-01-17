@@ -71,7 +71,7 @@ export default function Home() {
         <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
           <a
             className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] bg-white px-7 py-2 text-xs text-gray-800 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)] md:text-base"
-            href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
+            href="https://togetherai.link/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
             target="_blank"
           >
             <span className="text-center">
@@ -342,14 +342,14 @@ export default function Home() {
             <div className="font-medium">
               Built with{" "}
               <a
-                href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
+                href="https://togetherai.link/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
                 className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
               >
                 Llama 3.1
               </a>{" "}
               and{" "}
               <a
-                href="https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
+                href="https://togetherai.link/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup"
                 className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
               >
                 Together AI
