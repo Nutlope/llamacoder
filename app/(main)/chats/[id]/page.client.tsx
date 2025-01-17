@@ -1,6 +1,9 @@
 "use client";
 
-import { createMessage } from "@/app/(main)/actions";
+import {
+  createMessage,
+  getNextCompletionStreamPromise,
+} from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
 import { splitByFirstCodeFence } from "@/lib/utils";
 import Link from "next/link";
@@ -140,6 +143,24 @@ export default function PageClient({ chat }: { chat: Chat }) {
               onClose={() => {
                 setActiveMessage(undefined);
                 setIsShowingCodeViewer(false);
+              }}
+              onRequestFix={(error: string) => {
+                startTransition(async () => {
+                  let newMessageText = `The code is not working. Can you fix it? Here's the error:\n\n`;
+                  newMessageText += error.trimStart();
+                  const message = await createMessage(
+                    chat.id,
+                    newMessageText,
+                    "user",
+                  );
+                  const { streamPromise } =
+                    await getNextCompletionStreamPromise(
+                      message.id,
+                      chat.model,
+                    );
+                  setStreamPromise(streamPromise);
+                  router.refresh();
+                });
               }}
             />
           )}

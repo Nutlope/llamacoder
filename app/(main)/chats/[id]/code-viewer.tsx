@@ -20,6 +20,7 @@ export default function CodeViewer({
   activeTab,
   onTabChange,
   onClose,
+  onRequestFix,
 }: {
   chat: Chat;
   streamText: string;
@@ -28,6 +29,7 @@ export default function CodeViewer({
   activeTab: string;
   onTabChange: (v: "code" | "preview") => void;
   onClose: () => void;
+  onRequestFix: (e: string) => void;
 }) {
   const app = message ? extractFirstCodeBlock(message.content) : undefined;
   const streamAppParts = splitByFirstCodeFence(streamText);
@@ -113,7 +115,12 @@ export default function CodeViewer({
             <>
               {language && (
                 <div className="flex h-full items-center justify-center">
-                  <CodeRunner language={language} code={code} key={refresh} />
+                  <CodeRunner
+                    onRequestFix={onRequestFix}
+                    language={language}
+                    code={code}
+                    key={refresh}
+                  />
                 </div>
               )}
             </>
@@ -128,7 +135,12 @@ export default function CodeViewer({
             <div className="border-t border-gray-300 px-4 py-4">Output</div>
             <div className="flex grow items-center justify-center border-t">
               {!streamAppIsGenerating && (
-                <CodeRunner language={language} code={code} key={refresh} />
+                <CodeRunner
+                  onRequestFix={onRequestFix}
+                  language={language}
+                  code={code}
+                  key={refresh}
+                />
               )}
             </div>
           </div>
