@@ -104,11 +104,11 @@ export default function Home() {
                   quality,
                   screenshotUrl,
                 );
-                // console.log("-- CLIENT: getNextCompletionStreamPromise");
-                // const { streamPromise } = await getNextCompletionStreamPromise(
-                //   lastMessageId,
-                //   model,
-                // );
+                console.log("-- CLIENT: getNextCompletionStreamPromise");
+                const { streamPromise } = await getNextCompletionStreamPromise(
+                  lastMessageId,
+                  model,
+                );
                 startTransition(() => {
                   // setStreamPromise(streamPromise);
                   router.push(`/chats/${chatId}`);
