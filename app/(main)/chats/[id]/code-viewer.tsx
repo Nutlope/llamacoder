@@ -1,11 +1,11 @@
 "use client";
 
-import CodeRunner from "@/components/code-runner";
+// import CodeRunner from "@/components/code-runner";
 import ChevronLeftIcon from "@/components/icons/chevron-left";
 import ChevronRightIcon from "@/components/icons/chevron-right";
 import CloseIcon from "@/components/icons/close-icon";
 import RefreshIcon from "@/components/icons/refresh";
-// import SyntaxHighlighter from "@/components/syntax-highlighter";
+import SyntaxHighlighter from "@/components/syntax-highlighter";
 import { extractFirstCodeBlock, splitByFirstCodeFence } from "@/lib/utils";
 import { useState } from "react";
 import type { Chat, Message } from "./page";
@@ -106,15 +106,14 @@ export default function CodeViewer({
               initial={streamAppIsGenerating ? "smooth" : false}
             >
               <StickToBottom.Content>
-                {/* <SyntaxHighlighter code={code} language={language} /> */}
-                <p>placeholder</p>
+                <SyntaxHighlighter code={code} language={language} />
               </StickToBottom.Content>
             </StickToBottom>
           ) : (
             <>
               {language && (
                 <div className="flex h-full items-center justify-center">
-                  <CodeRunner language={language} code={code} key={refresh} />
+                  {/* <CodeRunner language={language} code={code} key={refresh} /> */}
                 </div>
               )}
             </>
@@ -123,15 +122,14 @@ export default function CodeViewer({
       ) : (
         <div className="flex grow flex-col bg-white">
           <div className="h-1/2 overflow-y-auto">
-            {/* <SyntaxHighlighter code={code} language={language} /> */}
-            <p>placeholder</p>
+            <SyntaxHighlighter code={code} language={language} />
           </div>
           <div className="flex h-1/2 flex-col">
             <div className="border-t border-gray-300 px-4 py-4">Output</div>
             <div className="flex grow items-center justify-center border-t">
-              {!streamAppIsGenerating && (
+              {/* {!streamAppIsGenerating && (
                 <CodeRunner language={language} code={code} key={refresh} />
-              )}
+              )} */}
             </div>
           </div>
         </div>
