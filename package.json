@@ -17,8 +17,8 @@
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@neondatabase/serverless": "^0.10.4",
-    "@prisma/adapter-neon": "^5",
-    "@prisma/client": "^5",
+    "@prisma/adapter-neon": "^6",
+    "@prisma/client": "^6",
     "@radix-ui/react-radio-group": "^1.2.2",
     "@radix-ui/react-select": "^2.1.4",
     "@radix-ui/react-switch": "^1.1.2",
@@ -54,7 +54,7 @@
     "postcss": "^8",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.10",
-    "prisma": "^5.18.0",
+    "prisma": "^6.2.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
