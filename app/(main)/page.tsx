@@ -106,6 +106,7 @@ export default function Home() {
                 );
                 console.log("-- CLIENT: getNextCompletionStreamPromise");
                 await getNextCompletionStreamPromise(lastMessageId, model);
+                console.log(setStreamPromise);
                 // const { streamPromise } = await getNextCompletionStreamPromise(
                 //   lastMessageId,
                 //   model,

@@ -50,13 +50,11 @@ export default function ChatBox({
             assert.ok(typeof prompt === "string");
 
             const message = await createMessage(chat.id, prompt, "user");
-            const { streamPromise } = await getNextCompletionStreamPromise(
-              message.id,
-              chat.model,
-            );
-            onNewStreamPromise(streamPromise);
+            await getNextCompletionStreamPromise(message.id, chat.model);
+            console.log(router);
+            // onNewStreamPromise(streamPromise);
 
-            router.refresh();
+            // router.refresh();
           });
         }}
       >

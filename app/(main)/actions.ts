@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Together from "together-ai";
-import { z } from "zod";
+// import { z } from "zod";
 import {
   getMainCodingPrompt,
   screenshotToCodePrompt,
