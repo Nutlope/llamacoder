@@ -178,6 +178,7 @@ export async function createChat(
   if (!lastMessage) throw new Error("No new message");
 
   console.log("-- RESPONDING");
+  console.log({ chatId: chat.id, lastMessageId: lastMessage.id });
   return {
     chatId: chat.id,
     lastMessageId: lastMessage.id,

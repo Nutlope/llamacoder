@@ -97,12 +97,14 @@ export default function Home() {
                 assert.ok(typeof model === "string");
                 assert.ok(quality === "high" || quality === "low");
 
+                console.log("-- CLIENT: createChat");
                 const { chatId, lastMessageId } = await createChat(
                   prompt,
                   model,
                   quality,
                   screenshotUrl,
                 );
+                console.log("-- CLIENT: getNextCompletionStreamPromise");
                 const { streamPromise } = await getNextCompletionStreamPromise(
                   lastMessageId,
                   model,
