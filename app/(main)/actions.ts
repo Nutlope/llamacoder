@@ -16,6 +16,7 @@ export async function createChat(
   quality: "high" | "low",
   screenshotUrl: string | undefined,
 ) {
+  console.log("-- CREATING CHAT");
   const chat = await prisma.chat.create({
     data: {
       model,
@@ -40,6 +41,7 @@ export async function createChat(
   const together = new Together(options);
 
   async function fetchTitle() {
+    console.log("-- FETCHING TITLE");
     const responseForChatTitle = await together.chat.completions.create({
       model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       messages: [
@@ -59,6 +61,7 @@ export async function createChat(
   }
 
   async function fetchTopExample() {
+    console.log("-- FETCHING TOP EXAMPLE");
     const findSimilarExamples = await together.chat.completions.create({
       model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       messages: [
@@ -144,6 +147,7 @@ export async function createChat(
     userMessage = prompt;
   }
 
+  console.log("-- UPDATING CHAT WITH MESSAGES");
   let newChat = await prisma.chat.update({
     where: {
       id: chat.id,
@@ -173,6 +177,7 @@ export async function createChat(
     .at(-1);
   if (!lastMessage) throw new Error("No new message");
 
+  console.log("-- RESPONDING");
   return {
     chatId: chat.id,
     lastMessageId: lastMessage.id,
