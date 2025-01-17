@@ -104,7 +104,7 @@ export default function Home() {
                   screenshotUrl,
                 );
 
-                let streamPromise = fetch(
+                const streamPromise = fetch(
                   "/api/get-next-completion-stream-promise",
                   {
                     method: "POST",
@@ -112,7 +112,7 @@ export default function Home() {
                   },
                 ).then((res) => {
                   if (!res.body) {
-                    throw "foo";
+                    throw new Error("No body on response");
                   }
                   return res.body;
                 });

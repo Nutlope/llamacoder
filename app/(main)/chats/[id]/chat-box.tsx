@@ -60,7 +60,7 @@ export default function ChatBox({
               },
             ).then((res) => {
               if (!res.body) {
-                throw "foo";
+                throw new Error("No body on response");
               }
               return res.body;
             });
