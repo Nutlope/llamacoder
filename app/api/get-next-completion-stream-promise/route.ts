@@ -5,12 +5,12 @@ import Together from "together-ai";
 export async function POST(req: Request) {
   const { messageId, model } = await req.json();
 
-  const message = await prisma.message.findUniqueOrThrow({
+  const message = await prisma.message.findUnique({
     where: { id: messageId },
   });
 
   if (!message) {
-    new Response(null, { status: 404 });
+    return new Response(null, { status: 404 });
   }
 
   const messagesRes = await prisma.message.findMany({
@@ -56,3 +56,4 @@ export async function POST(req: Request) {
 }
 
 export const runtime = "edge";
+export const maxDuration = 45;
