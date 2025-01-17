@@ -10,5 +10,6 @@ const neon = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaNeon(neon);
 const client = globalThis.prisma || new PrismaClient({ adapter });
 if (process.env.NODE_ENV !== "production") globalThis.prisma = client;
+console.log({ client });
 
 export default client;

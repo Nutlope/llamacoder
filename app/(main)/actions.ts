@@ -179,6 +179,11 @@ export async function createChat(
 
   console.log("-- RESPONDING");
   console.log({ chatId: chat.id, lastMessageId: lastMessage.id });
+  console.log("-- Before findUnique");
+  const message = await prisma.message.findUnique({
+    where: { id: lastMessage.id },
+  });
+  console.log("-- After findUnique: ", message?.id);
   return {
     chatId: chat.id,
     lastMessageId: lastMessage.id,
