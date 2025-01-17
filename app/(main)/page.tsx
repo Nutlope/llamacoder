@@ -14,7 +14,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState, useRef, useTransition } from "react";
-import { createChat, getNextCompletionStreamPromise } from "./actions";
+// import { createChat, getNextCompletionStreamPromise } from "./actions";
+import { createChat } from "./actions";
 import { Context } from "./providers";
 import Header from "@/components/header";
 import { useS3Upload } from "next-s3-upload";
@@ -105,7 +106,16 @@ export default function Home() {
                   screenshotUrl,
                 );
                 console.log("-- CLIENT: getNextCompletionStreamPromise");
-                await getNextCompletionStreamPromise(lastMessageId, model);
+                let res = await fetch(
+                  "/api/get-next-completion-stream-promise",
+                  {
+                    method: "POST",
+                    body: JSON.stringify({ messageId: lastMessageId, model }),
+                  },
+                );
+                let json = await res.json();
+                console.log(json);
+                // await getNextCompletionStreamPromise(lastMessageId, model);
                 console.log(setStreamPromise);
                 // const { streamPromise } = await getNextCompletionStreamPromise(
                 //   lastMessageId,
