@@ -3,7 +3,6 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Together from "together-ai";
-// import { z } from "zod";
 import {
   getMainCodingPrompt,
   screenshotToCodePrompt,
@@ -16,7 +15,6 @@ export async function createChat(
   quality: "high" | "low",
   screenshotUrl: string | undefined,
 ) {
-  console.log("-- CREATING CHAT");
   const chat = await prisma.chat.create({
     data: {
       model,
@@ -41,7 +39,6 @@ export async function createChat(
   const together = new Together(options);
 
   async function fetchTitle() {
-    console.log("-- FETCHING TITLE");
     const responseForChatTitle = await together.chat.completions.create({
       model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       messages: [
@@ -61,7 +58,6 @@ export async function createChat(
   }
 
   async function fetchTopExample() {
-    console.log("-- FETCHING TOP EXAMPLE");
     const findSimilarExamples = await together.chat.completions.create({
       model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       messages: [
@@ -147,7 +143,6 @@ export async function createChat(
     userMessage = prompt;
   }
 
-  console.log("-- UPDATING CHAT WITH MESSAGES");
   let newChat = await prisma.chat.update({
     where: {
       id: chat.id,
@@ -177,8 +172,6 @@ export async function createChat(
     .at(-1);
   if (!lastMessage) throw new Error("No new message");
 
-  console.log("-- RESPONDING");
-  console.log({ chatId: chat.id, lastMessageId: lastMessage.id });
   return {
     chatId: chat.id,
     lastMessageId: lastMessage.id,
@@ -208,74 +201,4 @@ export async function createMessage(
   });
 
   return newMessage;
-}
-
-export async function getNextCompletionStreamPromise(
-  messageId: string,
-  model: string,
-) {
-  console.log("getNextCompletionStreamPromise: start");
-  console.log({ messageId, model });
-  let message;
-  try {
-    message = await prisma.message.findUniqueOrThrow({
-      where: { id: messageId },
-    });
-  } catch (error) {
-    console.log("IN ERROR BLOCK");
-    console.log(error);
-  }
-  console.log("-- getNextCompletionStreamPromise: Found message ", message?.id);
-  // if (!message) notFound();
-
-  // const messagesRes = await prisma.message.findMany({
-  //   where: { chatId: message.chatId, position: { lte: message.position } },
-  //   orderBy: { position: "asc" },
-  // });
-  // console.log("-- getNextCompletionStreamPromise: found messages");
-
-  // let messages = z
-  //   .array(
-  //     z.object({
-  //       role: z.enum(["system", "user", "assistant"]),
-  //       content: z.string(),
-  //     }),
-  //   )
-  //   .parse(messagesRes);
-  // console.log("-- getNextCompletionStreamPromise: parsed messages");
-
-  // if (messages.length > 10) {
-  //   messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
-  // }
-
-  // let options: ConstructorParameters<typeof Together>[0] = {};
-  // if (process.env.HELICONE_API_KEY) {
-  //   options.baseURL = "https://together.helicone.ai/v1";
-  //   options.defaultHeaders = {
-  //     "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-  //     "Helicone-Property-appname": "LlamaCoder",
-  //     "Helicone-Session-Id": message.chatId,
-  //     "Helicone-Session-Name": "LlamaCoder Chat",
-  //   };
-  // }
-
-  // console.log("getNextCompletionStreamPromise: creating together client");
-  // const together = new Together(options);
-
-  // console.log("getNextCompletionStreamPromise: returning stream");
-  // return {
-  //   streamPromise: new Promise<ReadableStream>(async (resolve) => {
-  //     console.log("getNextCompletionStreamPromise: querying together");
-  //     const res = await together.chat.completions.create({
-  //       model,
-  //       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-  //       stream: true,
-  //       temperature: 0.2,
-  //       max_tokens: 9000,
-  //     });
-
-  //     console.log("getNextCompletionStreamPromise: resolving promise");
-  //     resolve(res.toReadableStream());
-  //   }),
-  // };
 }

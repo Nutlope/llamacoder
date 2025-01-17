@@ -5,8 +5,7 @@ import Spinner from "@/components/spinner";
 import assert from "assert";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-// import TextareaAutosize from "react-textarea-autosize";
-import { createMessage, getNextCompletionStreamPromise } from "../../actions";
+import { createMessage } from "../../actions";
 import { type Chat } from "./page";
 
 export default function ChatBox({
@@ -50,11 +49,24 @@ export default function ChatBox({
             assert.ok(typeof prompt === "string");
 
             const message = await createMessage(chat.id, prompt, "user");
-            await getNextCompletionStreamPromise(message.id, chat.model);
-            console.log(router);
-            // onNewStreamPromise(streamPromise);
+            const streamPromise = fetch(
+              "/api/get-next-completion-stream-promise",
+              {
+                method: "POST",
+                body: JSON.stringify({
+                  messageId: message.id,
+                  model: chat.model,
+                }),
+              },
+            ).then((res) => {
+              if (!res.body) {
+                throw "foo";
+              }
+              return res.body;
+            });
 
-            // router.refresh();
+            onNewStreamPromise(streamPromise);
+            router.refresh();
           });
         }}
       >

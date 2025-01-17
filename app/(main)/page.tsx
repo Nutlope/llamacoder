@@ -14,7 +14,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState, useRef, useTransition } from "react";
-// import { createChat, getNextCompletionStreamPromise } from "./actions";
 import { createChat } from "./actions";
 import { Context } from "./providers";
 import Header from "@/components/header";
@@ -98,31 +97,28 @@ export default function Home() {
                 assert.ok(typeof model === "string");
                 assert.ok(quality === "high" || quality === "low");
 
-                console.log("-- CLIENT: createChat");
                 const { chatId, lastMessageId } = await createChat(
                   prompt,
                   model,
                   quality,
                   screenshotUrl,
                 );
-                console.log("-- CLIENT: getNextCompletionStreamPromise");
-                let res = await fetch(
+
+                let streamPromise = fetch(
                   "/api/get-next-completion-stream-promise",
                   {
                     method: "POST",
                     body: JSON.stringify({ messageId: lastMessageId, model }),
                   },
-                );
-                let json = await res.json();
-                console.log(json);
-                // await getNextCompletionStreamPromise(lastMessageId, model);
-                console.log(setStreamPromise);
-                // const { streamPromise } = await getNextCompletionStreamPromise(
-                //   lastMessageId,
-                //   model,
-                // );
+                ).then((res) => {
+                  if (!res.body) {
+                    throw "foo";
+                  }
+                  return res.body;
+                });
+
                 startTransition(() => {
-                  // setStreamPromise(streamPromise);
+                  setStreamPromise(streamPromise);
                   router.push(`/chats/${chatId}`);
                 });
               });
