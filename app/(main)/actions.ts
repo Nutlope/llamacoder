@@ -179,11 +179,6 @@ export async function createChat(
 
   console.log("-- RESPONDING");
   console.log({ chatId: chat.id, lastMessageId: lastMessage.id });
-  console.log("-- Before findUnique");
-  const message = await prisma.message.findUnique({
-    where: { id: lastMessage.id },
-  });
-  console.log("-- After findUnique: ", message?.id);
   return {
     chatId: chat.id,
     lastMessageId: lastMessage.id,
@@ -221,7 +216,9 @@ export async function getNextCompletionStreamPromise(
 ) {
   console.log("getNextCompletionStreamPromise: start");
   console.log({ messageId, model });
-  const message = await prisma.message.findUnique({ where: { id: messageId } });
+  const message = await prisma.message.findUniqueOrThrow({
+    where: { id: messageId },
+  });
   console.log("-- getNextCompletionStreamPromise: Found message ", message?.id);
   if (!message) notFound();
 
