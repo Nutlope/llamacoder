@@ -216,12 +216,14 @@ export async function getNextCompletionStreamPromise(
 ) {
   console.log("getNextCompletionStreamPromise: start");
   const message = await prisma.message.findUnique({ where: { id: messageId } });
+  console.log("-- getNextCompletionStreamPromise: Found message ", message?.id);
   if (!message) notFound();
 
   const messagesRes = await prisma.message.findMany({
     where: { chatId: message.chatId, position: { lte: message.position } },
     orderBy: { position: "asc" },
   });
+  console.log("-- getNextCompletionStreamPromise: found messages");
 
   let messages = z
     .array(
@@ -231,6 +233,7 @@ export async function getNextCompletionStreamPromise(
       }),
     )
     .parse(messagesRes);
+  console.log("-- getNextCompletionStreamPromise: parsed messages");
 
   if (messages.length > 10) {
     messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
