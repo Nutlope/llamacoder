@@ -1,6 +1,5 @@
 "use client";
 
-// import CodeRunner from "@/components/code-runner";
 import ChevronLeftIcon from "@/components/icons/chevron-left";
 import ChevronRightIcon from "@/components/icons/chevron-right";
 import CloseIcon from "@/components/icons/close-icon";
@@ -11,6 +10,11 @@ import { useState } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
 import { StickToBottom } from "use-stick-to-bottom";
+import dynamic from "next/dynamic";
+
+const CodeRunner = dynamic(() => import("@/components/code-runner"), {
+  ssr: false,
+});
 
 export default function CodeViewer({
   chat,
@@ -113,7 +117,7 @@ export default function CodeViewer({
             <>
               {language && (
                 <div className="flex h-full items-center justify-center">
-                  {/* <CodeRunner language={language} code={code} key={refresh} /> */}
+                  <CodeRunner language={language} code={code} key={refresh} />
                 </div>
               )}
             </>
@@ -127,9 +131,9 @@ export default function CodeViewer({
           <div className="flex h-1/2 flex-col">
             <div className="border-t border-gray-300 px-4 py-4">Output</div>
             <div className="flex grow items-center justify-center border-t">
-              {/* {!streamAppIsGenerating && (
+              {!streamAppIsGenerating && (
                 <CodeRunner language={language} code={code} key={refresh} />
-              )} */}
+              )}
             </div>
           </div>
         </div>
