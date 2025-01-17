@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  createMessage,
-  getNextCompletionStreamPromise,
-} from "@/app/(main)/actions";
+import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
 import { splitByFirstCodeFence } from "@/lib/utils";
 import Link from "next/link";
@@ -153,11 +150,22 @@ export default function PageClient({ chat }: { chat: Chat }) {
                     newMessageText,
                     "user",
                   );
-                  const { streamPromise } =
-                    await getNextCompletionStreamPromise(
-                      message.id,
-                      chat.model,
-                    );
+
+                  const streamPromise = fetch(
+                    "/api/get-next-completion-stream-promise",
+                    {
+                      method: "POST",
+                      body: JSON.stringify({
+                        messageId: message.id,
+                        model: chat.model,
+                      }),
+                    },
+                  ).then((res) => {
+                    if (!res.body) {
+                      throw new Error("No body on response");
+                    }
+                    return res.body;
+                  });
                   setStreamPromise(streamPromise);
                   router.refresh();
                 });

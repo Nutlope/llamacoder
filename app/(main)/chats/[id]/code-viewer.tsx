@@ -1,6 +1,5 @@
 "use client";
 
-import CodeRunner from "@/components/code-runner";
 import ChevronLeftIcon from "@/components/icons/chevron-left";
 import ChevronRightIcon from "@/components/icons/chevron-right";
 import CloseIcon from "@/components/icons/close-icon";
@@ -11,6 +10,11 @@ import { useState } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
 import { StickToBottom } from "use-stick-to-bottom";
+import dynamic from "next/dynamic";
+
+const CodeRunner = dynamic(() => import("@/components/code-runner"), {
+  ssr: false,
+});
 
 export default function CodeViewer({
   chat,

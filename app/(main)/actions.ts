@@ -3,7 +3,6 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Together from "together-ai";
-import { z } from "zod";
 import {
   getMainCodingPrompt,
   screenshotToCodePrompt,
@@ -98,7 +97,6 @@ export async function createChat(
       messages: [
         {
           role: "user",
-          // @ts-expect-error Need to fix the TypeScript library type
           content: [
             { type: "text", text: screenshotToCodePrompt },
             {
@@ -203,56 +201,4 @@ export async function createMessage(
   });
 
   return newMessage;
-}
-
-export async function getNextCompletionStreamPromise(
-  messageId: string,
-  model: string,
-) {
-  const message = await prisma.message.findUnique({ where: { id: messageId } });
-  if (!message) notFound();
-
-  const messagesRes = await prisma.message.findMany({
-    where: { chatId: message.chatId, position: { lte: message.position } },
-    orderBy: { position: "asc" },
-  });
-
-  let messages = z
-    .array(
-      z.object({
-        role: z.enum(["system", "user", "assistant"]),
-        content: z.string(),
-      }),
-    )
-    .parse(messagesRes);
-
-  if (messages.length > 10) {
-    messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
-  }
-
-  let options: ConstructorParameters<typeof Together>[0] = {};
-  if (process.env.HELICONE_API_KEY) {
-    options.baseURL = "https://together.helicone.ai/v1";
-    options.defaultHeaders = {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Session-Id": message.chatId,
-      "Helicone-Session-Name": "LlamaCoder Chat",
-    };
-  }
-
-  const together = new Together(options);
-  return {
-    streamPromise: new Promise<ReadableStream>(async (resolve) => {
-      const res = await together.chat.completions.create({
-        model,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-        stream: true,
-        temperature: 0.2,
-        max_tokens: 9000,
-      });
-
-      resolve(res.toReadableStream());
-    }),
-  };
 }
