@@ -216,9 +216,15 @@ export async function getNextCompletionStreamPromise(
 ) {
   console.log("getNextCompletionStreamPromise: start");
   console.log({ messageId, model });
-  const message = await prisma.message.findUniqueOrThrow({
-    where: { id: messageId },
-  });
+  let message;
+  try {
+    message = await prisma.message.findUniqueOrThrow({
+      where: { id: messageId },
+    });
+  } catch (error) {
+    console.log("IN ERROR BLOCK");
+    console.log(error);
+  }
   console.log("-- getNextCompletionStreamPromise: Found message ", message?.id);
   if (!message) notFound();
 
