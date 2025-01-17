@@ -105,10 +105,11 @@ export default function Home() {
                   screenshotUrl,
                 );
                 console.log("-- CLIENT: getNextCompletionStreamPromise");
-                const { streamPromise } = await getNextCompletionStreamPromise(
-                  lastMessageId,
-                  model,
-                );
+                await getNextCompletionStreamPromise(lastMessageId, model);
+                // const { streamPromise } = await getNextCompletionStreamPromise(
+                //   lastMessageId,
+                //   model,
+                // );
                 startTransition(() => {
                   // setStreamPromise(streamPromise);
                   router.push(`/chats/${chatId}`);
