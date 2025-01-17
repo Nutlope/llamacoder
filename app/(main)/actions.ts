@@ -214,6 +214,7 @@ export async function getNextCompletionStreamPromise(
   messageId: string,
   model: string,
 ) {
+  console.log("getNextCompletionStreamPromise: start");
   const message = await prisma.message.findUnique({ where: { id: messageId } });
   if (!message) notFound();
 
@@ -246,9 +247,13 @@ export async function getNextCompletionStreamPromise(
     };
   }
 
+  console.log("getNextCompletionStreamPromise: creating together client");
   const together = new Together(options);
+
+  console.log("getNextCompletionStreamPromise: returning stream");
   return {
     streamPromise: new Promise<ReadableStream>(async (resolve) => {
+      console.log("getNextCompletionStreamPromise: querying together");
       const res = await together.chat.completions.create({
         model,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
@@ -257,6 +262,7 @@ export async function getNextCompletionStreamPromise(
         max_tokens: 9000,
       });
 
+      console.log("getNextCompletionStreamPromise: resolving promise");
       resolve(res.toReadableStream());
     }),
   };
