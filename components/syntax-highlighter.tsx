@@ -1,19 +1,34 @@
 "use client";
 
-import javascript from "@shikijs/langs/javascript";
-import jsx from "@shikijs/langs/jsx";
-import tsx from "@shikijs/langs/tsx";
-import typescript from "@shikijs/langs/typescript";
-import githubLightDefault from "@shikijs/themes/github-light-default";
 import { use } from "react";
-import { createHighlighterCore } from "shiki/core";
-import { createOnigurumaEngine } from "shiki/engine/oniguruma";
-import shikiWasm from "shiki/wasm";
+import { createHighlighter } from "shiki/bundle/web";
 
-const highlighterPromise = createHighlighterCore({
-  themes: [githubLightDefault],
-  langs: [javascript, typescript, jsx, tsx],
-  engine: createOnigurumaEngine(shikiWasm),
+const highlighterPromise = createHighlighter({
+  langs: [
+    "html",
+    "css",
+    "js",
+    "graphql",
+    "javascript",
+    "json",
+    "jsx",
+    "markdown",
+    "md",
+    "mdx",
+    "plaintext",
+    "py",
+    "python",
+    "sh",
+    "shell",
+    "sql",
+    "text",
+    "ts",
+    "tsx",
+    "txt",
+    "typescript",
+    "zsh",
+  ],
+  themes: ["github-light-default"],
 });
 
 export default function SyntaxHighlighter({
