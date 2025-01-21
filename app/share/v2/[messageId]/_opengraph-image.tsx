@@ -1,8 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
+import { getPrisma } from "@/lib/prisma";
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import client from "@/lib/prisma";
 
 export const size = {
   width: 1200,
@@ -17,7 +17,8 @@ export default async function Image({
   params: { messageId: string };
 }) {
   let messageId = params.messageId;
-  let message = await client.message.findUnique({
+  const prisma = getPrisma();
+  let message = await prisma.message.findUnique({
     where: {
       id: messageId,
     },

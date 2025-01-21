@@ -1,7 +1,35 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
-import { codeToHtml } from "shiki/bundle/web";
+import { use } from "react";
+import { createHighlighter } from "shiki/bundle/web";
+
+const highlighterPromise = createHighlighter({
+  langs: [
+    "html",
+    "css",
+    "js",
+    "graphql",
+    "javascript",
+    "json",
+    "jsx",
+    "markdown",
+    "md",
+    "mdx",
+    "plaintext",
+    "py",
+    "python",
+    "sh",
+    "shell",
+    "sql",
+    "text",
+    "ts",
+    "tsx",
+    "txt",
+    "typescript",
+    "zsh",
+  ],
+  themes: ["github-light-default"],
+});
 
 export default function SyntaxHighlighter({
   code,
@@ -10,27 +38,13 @@ export default function SyntaxHighlighter({
   code: string;
   language: string;
 }) {
-  const [codeHtml, setCodeHtml] = useState("");
-
-  useEffect(() => {
-    if (!code) return;
-
-    startTransition(async () => {
-      const html = await codeToHtml(code, {
-        lang: language,
-        theme: "github-light-default",
-      });
-
-      startTransition(() => {
-        setCodeHtml(html);
-      });
-    });
-  }, [code, language]);
+  const highlighter = use(highlighterPromise);
+  const html = highlighter.codeToHtml(code, {
+    lang: language,
+    theme: "github-light-default",
+  });
 
   return (
-    <div
-      className="p-4 text-sm"
-      dangerouslySetInnerHTML={{ __html: codeHtml }}
-    />
+    <div className="p-4 text-sm" dangerouslySetInnerHTML={{ __html: html }} />
   );
 }

@@ -14,8 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState, useRef, useTransition } from "react";
-import TextareaAutosize from "react-textarea-autosize";
-import { createChat, getNextCompletionStreamPromise } from "./actions";
+import { createChat } from "./actions";
 import { Context } from "./providers";
 import Header from "@/components/header";
 import { useS3Upload } from "next-s3-upload";
@@ -49,6 +48,11 @@ export default function Home() {
     setScreenshotUrl(url);
     setScreenshotLoading(false);
   };
+
+  const textareaResizePrompt = prompt
+    .split("\n")
+    .map((text) => (text === "" ? "a" : text))
+    .join("\n");
 
   return (
     <div className="relative flex grow flex-col">
@@ -84,7 +88,7 @@ export default function Home() {
           </h1>
 
           <form
-            className="relative pt-6 lg:pt-12"
+            className="relative w-full max-w-2xl pt-6 lg:pt-12"
             action={async (formData) => {
               startTransition(async () => {
                 const { prompt, model, quality } = Object.fromEntries(formData);
@@ -99,10 +103,20 @@ export default function Home() {
                   quality,
                   screenshotUrl,
                 );
-                const { streamPromise } = await getNextCompletionStreamPromise(
-                  lastMessageId,
-                  model,
-                );
+
+                const streamPromise = fetch(
+                  "/api/get-next-completion-stream-promise",
+                  {
+                    method: "POST",
+                    body: JSON.stringify({ messageId: lastMessageId, model }),
+                  },
+                ).then((res) => {
+                  if (!res.body) {
+                    throw new Error("No body on response");
+                  }
+                  return res.body;
+                });
+
                 startTransition(() => {
                   setStreamPromise(streamPromise);
                   router.push(`/chats/${chatId}`);
@@ -111,7 +125,7 @@ export default function Home() {
             }}
           >
             <Fieldset>
-              <div className="relative flex rounded-xl border-4 border-gray-300 bg-white pb-10">
+              <div className="relative flex w-full max-w-2xl rounded-xl border-4 border-gray-300 bg-white pb-10">
                 <div className="w-full">
                   {screenshotLoading && (
                     <div className="relative mx-3 mt-3">
@@ -148,23 +162,30 @@ export default function Home() {
                       </button>
                     </div>
                   )}
-                  <TextareaAutosize
-                    placeholder="Build me a budgeting app..."
-                    required
-                    name="prompt"
-                    rows={1}
-                    className="peer relative w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey) {
-                        event.preventDefault();
-                        const target = event.target;
-                        if (!(target instanceof HTMLTextAreaElement)) return;
-                        target.closest("form")?.requestSubmit();
-                      }
-                    }}
-                  />
+                  <div className="relative">
+                    <div className="p-3">
+                      <p className="invisible w-full whitespace-pre-wrap">
+                        {textareaResizePrompt}
+                      </p>
+                    </div>
+                    <textarea
+                      placeholder="Build me a budgeting app..."
+                      required
+                      name="prompt"
+                      rows={1}
+                      className="peer absolute inset-0 w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          const target = event.target;
+                          if (!(target instanceof HTMLTextAreaElement)) return;
+                          target.closest("form")?.requestSubmit();
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -392,4 +413,5 @@ function LoadingMessage({
   );
 }
 
+export const runtime = "edge";
 export const maxDuration = 45;

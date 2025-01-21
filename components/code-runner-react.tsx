@@ -69,8 +69,6 @@ export default function ReactCodeRunner({
 function ErrorMessage({ onRequestFix }: { onRequestFix: (e: string) => void }) {
   const { sandpack } = useSandpack();
   const [didCopy, setDidCopy] = useState(false);
-  console.log("error:");
-  console.log(sandpack.error);
 
   if (!sandpack.error) return null;
 
