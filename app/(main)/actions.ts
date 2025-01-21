@@ -1,6 +1,8 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import { Pool } from "@neondatabase/serverless";
 import { notFound } from "next/navigation";
 import Together from "together-ai";
 import {
@@ -15,7 +17,9 @@ export async function createChat(
   quality: "high" | "low",
   screenshotUrl: string | undefined,
 ) {
-  console.log("--- createChat");
+  const neon = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaNeon(neon);
+  const prisma = new PrismaClient({ adapter });
   let chat;
   try {
     chat = await prisma.chat.create({
@@ -191,6 +195,9 @@ export async function createMessage(
   text: string,
   role: "assistant" | "user",
 ) {
+  const neon = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaNeon(neon);
+  const prisma = new PrismaClient({ adapter });
   const chat = await prisma.chat.findUnique({
     where: { id: chatId },
     include: { messages: true },
