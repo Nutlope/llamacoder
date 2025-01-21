@@ -1,10 +1,8 @@
 // import client from "@/lib/prisma";
-import PageClient from "./page.client";
+import { getPrisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool } from "@neondatabase/serverless";
+import PageClient from "./page.client";
 
 export default async function Page({
   params,
@@ -20,9 +18,7 @@ export default async function Page({
 }
 
 const getChatById = cache(async (id: string) => {
-  const neon = new Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaNeon(neon);
-  const prisma = new PrismaClient({ adapter });
+  const prisma = getPrisma();
   return await prisma.chat.findFirst({
     where: { id },
     include: { messages: { orderBy: { position: "asc" } } },

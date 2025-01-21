@@ -43,11 +43,8 @@ export default function ChatBox({
     <div className="mx-auto mb-5 flex w-full max-w-prose shrink-0 px-8">
       <form
         className="relative flex w-full"
-        action={async (formData) => {
+        action={async () => {
           startTransition(async () => {
-            const prompt = formData.get("prompt");
-            assert.ok(typeof prompt === "string");
-
             const message = await createMessage(chat.id, prompt, "user");
             const streamPromise = fetch(
               "/api/get-next-completion-stream-promise",
@@ -66,7 +63,10 @@ export default function ChatBox({
             });
 
             onNewStreamPromise(streamPromise);
-            router.refresh();
+            startTransition(() => {
+              router.refresh();
+              setPrompt("");
+            });
           });
         }}
       >

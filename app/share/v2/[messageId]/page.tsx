@@ -1,5 +1,5 @@
 import CodeRunner from "@/components/code-runner";
-import client from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { extractFirstCodeBlock } from "@/lib/utils";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -41,7 +41,8 @@ export default async function SharePage({
 }) {
   const { messageId } = await params;
 
-  const message = await client.message.findUnique({ where: { id: messageId } });
+  const prisma = getPrisma();
+  const message = await prisma.message.findUnique({ where: { id: messageId } });
   if (!message) {
     notFound();
   }
@@ -59,7 +60,8 @@ export default async function SharePage({
 }
 
 const getMessage = cache(async (messageId: string) => {
-  return client.message.findUnique({
+  const prisma = getPrisma();
+  return prisma.message.findUnique({
     where: {
       id: messageId,
     },
