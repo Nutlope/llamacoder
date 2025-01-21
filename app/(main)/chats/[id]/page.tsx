@@ -1,4 +1,3 @@
-// import client from "@/lib/prisma";
 import { getPrisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { cache } from "react";
