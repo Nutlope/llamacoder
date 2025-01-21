@@ -15,15 +15,23 @@ export async function createChat(
   quality: "high" | "low",
   screenshotUrl: string | undefined,
 ) {
-  const chat = await prisma.chat.create({
-    data: {
-      model,
-      quality,
-      prompt,
-      title: "",
-      shadcn: true,
-    },
-  });
+  console.log("--- createChat");
+  let chat;
+  try {
+    chat = await prisma.chat.create({
+      data: {
+        model,
+        quality,
+        prompt,
+        title: "",
+        shadcn: true,
+      },
+    });
+  } catch (error) {
+    console.log("ERROR");
+    console.log(error);
+    throw error;
+  }
 
   let options: ConstructorParameters<typeof Together>[0] = {};
   if (process.env.HELICONE_API_KEY) {
