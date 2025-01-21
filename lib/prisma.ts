@@ -11,6 +11,8 @@ const adapter = new PrismaNeon(neon);
 
 let client: PrismaClient;
 
+console.log("NODE_ENV IS: ");
+console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV !== "production") {
   client = globalThis.prisma || new PrismaClient({ adapter });
   globalThis.prisma = client;
