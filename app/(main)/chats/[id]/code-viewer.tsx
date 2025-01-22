@@ -4,6 +4,8 @@ import ChevronLeftIcon from "@/components/icons/chevron-left";
 import ChevronRightIcon from "@/components/icons/chevron-right";
 import CloseIcon from "@/components/icons/close-icon";
 import RefreshIcon from "@/components/icons/refresh";
+import CopyIcon from "@/components/icons/copy-icon"; // Import Copy Icon
+import { useCopyToClipboard } from "react-use"; // Ensure react-use is installed
 import { extractFirstCodeBlock, splitByFirstCodeFence } from "@/lib/utils";
 import { useState } from "react";
 import type { Chat, Message } from "./page";
@@ -73,6 +75,7 @@ export default function CodeViewer({
       : undefined;
 
   const [refresh, setRefresh] = useState(0);
+  const [, copyToClipboard] = useCopyToClipboard(); // Initialize useCopyToClipboard
 
   return (
     <>
@@ -165,6 +168,13 @@ export default function CodeViewer({
           >
             <RefreshIcon className="size-3" />
             Refresh
+          </button>
+          <button
+            className="inline-flex items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition enabled:hover:bg-white disabled:opacity-50"
+            onClick={() => copyToClipboard(code)} // Add onClick handler
+          >
+            <CopyIcon className="size-3" /> {/* Use Copy Icon */}
+            Copy
           </button>
         </div>
         <div className="flex items-center justify-end gap-3">
