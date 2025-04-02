@@ -15,12 +15,14 @@
 - Next.js app router with Tailwind
 - Helicone for observability
 - Plausible for website analytics
+- WIP: Add the possibility to use Ollama server (dev)
 
 ## Cloning & running
 
 1. Clone the repo: `git clone https://github.com/Nutlope/llamacoder`
 2. Create a `.env` file and add your [Together AI API key](https://togetherai.link/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
+4. If you want to use Ollama: set `OLLAMA_BASE_URL` and install and run a model.
 
 ## Contributing
 
