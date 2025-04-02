@@ -15,6 +15,11 @@ export const MODELS = [
     label: "DeepSeek V3",
     value: "deepseek-ai/DeepSeek-V3",
   },
+  // Ollama models
+  {
+    label: "Gemma3-12b (Ollama)",
+    value: "gemma3:12b",
+  },
 ];
 
 export const SUGGESTED_PROMPTS = [

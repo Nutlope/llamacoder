@@ -14,6 +14,73 @@ import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat } from "./page";
 import { Context } from "../../providers";
 
+// Custom stream handler that works with both Together API and Ollama API
+function createStreamHandler(stream: ReadableStream, callbacks: {
+  onContent: (delta: string, content: string) => void;
+  onFinalContent: (content: string) => void;
+}) {
+  // Try to use Together's ChatCompletionStream if available
+  try {
+    return ChatCompletionStream.fromReadableStream(stream)
+      .on("content", callbacks.onContent)
+      .on("finalContent", callbacks.onFinalContent);
+  } catch (error) {
+    // Fallback for Ollama or other stream sources
+    console.log("Using fallback stream handler");
+    
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let content = '';
+    
+    const read = async () => {
+      try {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          callbacks.onFinalContent(content);
+          return;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim() && line.startsWith('data: '));
+        
+        for (const line of lines) {
+          try {
+            const data = line.substring(6); // Remove 'data: ' prefix
+            
+            if (data === '[DONE]') {
+              callbacks.onFinalContent(content);
+              return;
+            }
+            
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            
+            if (delta) {
+              content += delta;
+              callbacks.onContent(delta, content);
+            }
+          } catch (e) {
+            console.error('Error parsing stream chunk:', e);
+          }
+        }
+        
+        return read();
+      } catch (error) {
+        console.error('Stream reading error:', error);
+        callbacks.onFinalContent(content);
+      }
+    };
+    
+    read();
+    
+    // Return a dummy object with cancel method to match Together's API
+    return {
+      cancel: () => reader.cancel(),
+    };
+  }
+}
+
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
   const [streamPromise, setStreamPromise] = useState<
@@ -41,8 +108,8 @@ export default function PageClient({ chat }: { chat: Chat }) {
       let didPushToCode = false;
       let didPushToPreview = false;
 
-      ChatCompletionStream.fromReadableStream(stream)
-        .on("content", (delta, content) => {
+      createStreamHandler(stream, {
+        onContent: (delta, content) => {
           setStreamText((text) => text + delta);
 
           if (
@@ -66,8 +133,8 @@ export default function PageClient({ chat }: { chat: Chat }) {
             setIsShowingCodeViewer(true);
             setActiveTab("preview");
           }
-        })
-        .on("finalContent", async (finalText) => {
+        },
+        onFinalContent: async (finalText) => {
           startTransition(async () => {
             const message = await createMessage(
               chat.id,
@@ -83,12 +150,14 @@ export default function PageClient({ chat }: { chat: Chat }) {
               router.refresh();
             });
           });
-        });
+        }
+      });
     }
 
     f();
   }, [chat.id, router, streamPromise, context]);
 
+  // Rest of the component remains unchanged
   return (
     <div className="h-dvh">
       <div className="flex h-full">
