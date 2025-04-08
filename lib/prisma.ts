@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client/edge";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { Pool } from "@neondatabase/serverless";
 import { cache } from "react";
@@ -6,5 +6,5 @@ import { cache } from "react";
 export const getPrisma = cache(() => {
   const neon = new Pool({ connectionString: process.env.DATABASE_URL });
   const adapter = new PrismaNeon(neon);
-  return new PrismaClient({ adapter });
+  return new PrismaClient({  });
 });
