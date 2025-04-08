@@ -20,6 +20,11 @@ export const MODELS = [
     label: "Llama 3.1 405B",
     value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
   },
+  // Ollama models
+  {
+    label: "Gemma3-12b (Ollama)",
+    value: "gemma3:12b",
+  },
 ];
 
 export const SUGGESTED_PROMPTS = [

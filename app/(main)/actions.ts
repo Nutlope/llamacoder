@@ -9,6 +9,53 @@ import {
 import { notFound } from "next/navigation";
 import Together from "together-ai";
 
+// Helper function to determine if a model is an Ollama model
+function isOllamaModel() {
+  return !!process.env.OLLAMA_BASE_URL;//model.includes(':') || model.startsWith('gemma');
+}
+
+// Function to call Ollama API
+async function callOllamaAPI(model: string, messages: any[], options: any = {}) {
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  
+  try {
+    const response = await fetch(`${ollamaBaseUrl}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: options.temperature || 0.7,
+        max_tokens: options.max_tokens,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Transform Ollama response to match Together.ai format
+    return {
+      choices: [
+        {
+          message: {
+            content: data.message?.content || '',
+            role: data.message?.role || 'assistant',
+          },
+        },
+      ],
+    };
+  } catch (error) {
+    console.error('Error calling Ollama API:', error);
+    throw error;
+  }
+}
+
 export async function createChat(
   prompt: string,
   model: string,
@@ -39,48 +86,68 @@ export async function createChat(
 
   const together = new Together(options);
 
+  // Use a fallback model for title generation if using Ollama
+  const titleModel = isOllamaModel() ? 
+    "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo" : 
+    "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo";
+
   async function fetchTitle() {
-    const responseForChatTitle = await together.chat.completions.create({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
-    const title = responseForChatTitle.choices[0].message?.content || prompt;
+    const titleMessages = [
+      {
+        role: "system",
+        content:
+          "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ];
+
+    let titleResponse;
+    if (isOllamaModel()) {
+      titleResponse = await callOllamaAPI(titleModel, titleMessages);
+    } else {
+      titleResponse = await together.chat.completions.create({
+        model: titleModel,
+        messages: titleMessages,
+      });
+    }
+    
+    const title = titleResponse.choices[0].message?.content || prompt;
     return title;
   }
 
   async function fetchTopExample() {
-    const findSimilarExamples = await together.chat.completions.create({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
+    const exampleMessages = [
+      {
+        role: "system",
+        content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
 
-          - landing page
-          - blog app
-          - quiz app
-          - pomodoro timer
-          `,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
+        - landing page
+        - blog app
+        - quiz app
+        - pomodoro timer
+        `,
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ];
+
+    let exampleResponse;
+    if (isOllamaModel()) {
+      exampleResponse = await callOllamaAPI(titleModel, exampleMessages);
+    } else {
+      exampleResponse = await together.chat.completions.create({
+        model: titleModel,
+        messages: exampleMessages,
+      });
+    }
 
     const mostSimilarExample =
-      findSimilarExamples.choices[0].message?.content || "none";
+      exampleResponse.choices[0].message?.content || "none";
     return mostSimilarExample;
   }
 
@@ -91,6 +158,7 @@ export async function createChat(
 
   let fullScreenshotDescription;
   if (screenshotUrl) {
+    // For screenshots, always use Together.ai as Ollama may not support vision
     const screenshotResponse = await together.chat.completions.create({
       model: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
       temperature: 0.2,
@@ -116,23 +184,34 @@ export async function createChat(
 
   let userMessage: string;
   if (quality === "high") {
-    let initialRes = await together.chat.completions.create({
-      model: "Qwen/Qwen2.5-Coder-32B-Instruct",
-      messages: [
-        {
-          role: "system",
-          content: softwareArchitectPrompt,
-        },
-        {
-          role: "user",
-          content: fullScreenshotDescription
-            ? fullScreenshotDescription + prompt
-            : prompt,
-        },
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    });
+    const highQualityModel = isOllamaModel() ? model : "Qwen/Qwen2.5-Coder-32B-Instruct";
+    const highQualityMessages = [
+      {
+        role: "system",
+        content: softwareArchitectPrompt,
+      },
+      {
+        role: "user",
+        content: fullScreenshotDescription
+          ? fullScreenshotDescription + prompt
+          : prompt,
+      },
+    ];
+
+    let initialRes;
+    if (isOllamaModel()) {
+      initialRes = await callOllamaAPI(highQualityModel, highQualityMessages, {
+        temperature: 0.2,
+        max_tokens: 3000,
+      });
+    } else {
+      initialRes = await together.chat.completions.create({
+        model: highQualityModel,
+        messages: highQualityMessages,
+        temperature: 0.2,
+        max_tokens: 3000,
+      });
+    }
 
     userMessage = initialRes.choices[0].message?.content ?? prompt;
   } else if (fullScreenshotDescription) {
