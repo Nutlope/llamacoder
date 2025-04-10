@@ -21,6 +21,7 @@ import { useS3Upload } from "next-s3-upload";
 import UploadIcon from "@/components/icons/upload-icon";
 import { XCircleIcon } from "@heroicons/react/20/solid";
 import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
+import TextareaAutosize from "@/components/textarea-autosize";
 
 export default function Home() {
   const { setStreamPromise } = use(Context);
@@ -48,11 +49,6 @@ export default function Home() {
     setScreenshotUrl(url);
     setScreenshotLoading(false);
   };
-
-  const textareaResizePrompt = prompt
-    .split("\n")
-    .map((text) => (text === "" ? "a" : text))
-    .join("\n");
 
   return (
     <div className="relative flex grow flex-col">
@@ -162,30 +158,22 @@ export default function Home() {
                       </button>
                     </div>
                   )}
-                  <div className="relative">
-                    <div className="p-3">
-                      <p className="invisible w-full whitespace-pre-wrap">
-                        {textareaResizePrompt}
-                      </p>
-                    </div>
-                    <textarea
-                      placeholder="Build me a budgeting app..."
-                      required
-                      name="prompt"
-                      rows={1}
-                      className="peer absolute inset-0 w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" && !event.shiftKey) {
-                          event.preventDefault();
-                          const target = event.target;
-                          if (!(target instanceof HTMLTextAreaElement)) return;
-                          target.closest("form")?.requestSubmit();
-                        }
-                      }}
-                    />
-                  </div>
+
+                  <TextareaAutosize
+                    placeholder="Build me a budgeting app..."
+                    required
+                    name="prompt"
+                    rows={1}
+                    className="w-full bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        event.currentTarget.closest("form")?.requestSubmit();
+                      }
+                    }}
+                  />
                 </div>
                 <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
