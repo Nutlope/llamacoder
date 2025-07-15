@@ -41,7 +41,7 @@
     "sonner": "^1.7.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "together-ai": "^0.11.1",
+    "together-ai": "^0.20.0",
     "use-stick-to-bottom": "^1.0.43",
     "vaul": "^1.1.2",
     "zod": "^3.24.1"

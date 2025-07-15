@@ -59,7 +59,9 @@ export async function POST(req: Request) {
     max_tokens: 9000,
   });
 
-  const [s1, s2] = res.tee();
+  const stream = res.toReadableStream();
+
+  const [s1, s2] = stream.tee();
 
   let unlock: () => void;
   const promise = new Promise<void>((resolve) => {
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
 
   console.log("last message:", messages.at(-1));
 
-  ChatCompletionStream.fromReadableStream(s2.toReadableStream())
+  ChatCompletionStream.fromReadableStream(s1)
     .on("content", (delta) => {
       // console.log("Stream content:", delta);
     })
@@ -94,7 +96,7 @@ export async function POST(req: Request) {
     console.log("exiting after hook");
   });
 
-  return new Response(s1.toReadableStream());
+  return new Response(s2);
 }
 
 export const maxDuration = 240;
