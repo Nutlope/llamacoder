@@ -4,21 +4,16 @@ export const MODELS = [
     value: "deepseek-ai/DeepSeek-V3",
   },
   {
+    label: "Kimi K2",
+    value: "moonshotai/Kimi-K2-Instruct",
+  },
+  {
     label: "Qwen 2.5 Coder 32B",
     value: "Qwen/Qwen2.5-Coder-32B-Instruct",
-  },
-
-  {
-    label: "Llama 4 Maverick",
-    value: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
   },
   {
     label: "Llama 3.3 70B",
     value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-  },
-  {
-    label: "Llama 3.1 405B",
-    value: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
   },
 ];
 
