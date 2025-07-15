@@ -70,14 +70,14 @@ export async function POST(req: Request) {
 
   ChatCompletionStream.fromReadableStream(s2.toReadableStream())
     .on("content", (delta) => {
-      console.log("Stream content:", delta);
+      // console.log("Stream content:", delta);
     })
     .on("error", (error) => {
       console.error("Stream error:", error);
       unlock();
     })
     .on("finalContent", (finalText) => {
-      console.log("Final content:", finalText);
+      console.log("Final content hook called");
     })
     .on("end", () => {
       console.log("Stream ended");
