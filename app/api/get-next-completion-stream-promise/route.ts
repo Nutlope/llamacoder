@@ -68,6 +68,8 @@ export async function POST(req: Request) {
     };
   });
 
+  console.log("last message:", messages.at(-1));
+
   ChatCompletionStream.fromReadableStream(s2.toReadableStream())
     .on("content", (delta) => {
       // console.log("Stream content:", delta);
@@ -75,6 +77,9 @@ export async function POST(req: Request) {
     .on("error", (error) => {
       console.error("Stream error:", error);
       unlock();
+    })
+    .on("finalChatCompletion", (finalChunk) => {
+      console.log("Final Chat Completion:", finalChunk);
     })
     .on("finalContent", (finalText) => {
       console.log("Final content hook called");
@@ -92,4 +97,4 @@ export async function POST(req: Request) {
   return new Response(s1.toReadableStream());
 }
 
-export const maxDuration = 60;
+export const maxDuration = 240;
