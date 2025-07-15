@@ -3,6 +3,7 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
+import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 
 export async function POST(req: Request) {
   const neon = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -57,7 +58,23 @@ export async function POST(req: Request) {
     max_tokens: 9000,
   });
 
-  return new Response(res.toReadableStream());
+  const [s1, s2] = res.tee();
+
+  ChatCompletionStream.fromReadableStream(s2.toReadableStream())
+    .on("content", (delta) => {
+      console.log("Stream content:", delta);
+    })
+    .on("error", (error) => {
+      console.error("Stream error:", error);
+    })
+    .on("finalContent", (finalText) => {
+      console.log("Final content:", finalText);
+    })
+    .on("end", () => {
+      console.log("Stream ended");
+    });
+
+  return new Response(s1.toReadableStream());
 }
 
 export const maxDuration = 60;
