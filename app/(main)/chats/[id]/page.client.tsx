@@ -6,7 +6,7 @@ import { splitByFirstCodeFence } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, use, useEffect, useRef, useState } from "react";
-import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
+import Together from "together-ai";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
 import CodeViewer from "./code-viewer";
@@ -30,6 +30,8 @@ export default function PageClient({ chat }: { chat: Chat }) {
     chat.messages.filter((m) => m.role === "assistant").at(-1),
   );
 
+  const client = new Together();
+
   useEffect(() => {
     async function f() {
       if (!streamPromise || isHandlingStreamRef.current) return;
@@ -37,57 +39,68 @@ export default function PageClient({ chat }: { chat: Chat }) {
       isHandlingStreamRef.current = true;
       context.setStreamPromise(undefined);
 
-      const stream = await streamPromise;
+      const response = await client.chat.completions.create({
+        messages: chat.messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })) as any,
+        model: chat.model,
+        stream: true,
+      }).asResponse();
+
       let didPushToCode = false;
       let didPushToPreview = false;
+      let content = "";
 
-      ChatCompletionStream.fromReadableStream(stream)
-        .on("content", (delta, content) => {
-          setStreamText((text) => text + delta);
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
 
-          if (
-            !didPushToCode &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence-generating",
-            )
-          ) {
-            didPushToCode = true;
-            setIsShowingCodeViewer(true);
-            setActiveTab("code");
-          }
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value);
+        content += chunkValue;
+        setStreamText(content);
 
-          if (
-            !didPushToPreview &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence",
-            )
-          ) {
-            didPushToPreview = true;
-            setIsShowingCodeViewer(true);
-            setActiveTab("preview");
-          }
-        })
-        .on("finalContent", async (finalText) => {
-          startTransition(async () => {
-            const message = await createMessage(
-              chat.id,
-              finalText,
-              "assistant",
-            );
+        if (
+          !didPushToCode &&
+          splitByFirstCodeFence(content).some(
+            (part) => part.type === "first-code-fence-generating",
+          )
+        ) {
+          didPushToCode = true;
+          setIsShowingCodeViewer(true);
+          setActiveTab("code");
+        }
 
-            startTransition(() => {
-              isHandlingStreamRef.current = false;
-              setStreamText("");
-              setStreamPromise(undefined);
-              setActiveMessage(message);
-              router.refresh();
-            });
-          });
+        if (
+          !didPushToPreview &&
+          splitByFirstCodeFence(content).some(
+            (part) => part.type === "first-code-fence",
+          )
+        ) {
+          didPushToPreview = true;
+          setIsShowingCodeViewer(true);
+          setActiveTab("preview");
+        }
+      }
+
+      startTransition(async () => {
+        const message = await createMessage(chat.id, content, "assistant");
+
+        startTransition(() => {
+          isHandlingStreamRef.current = false;
+          setStreamText("");
+          setStreamPromise(undefined);
+          setActiveMessage(message);
+          router.refresh();
         });
+      });
     }
 
     f();
-  }, [chat.id, router, streamPromise, context]);
+  }, [chat.id, router, streamPromise, context, chat.messages, chat.model, client.chat.completions]);
 
   return (
     <div className="h-dvh">
