@@ -1,5 +1,13 @@
 export const MODELS = [
   {
+    label: "Qwen Coder (Free)",
+    value: "qwen/qwen3-coder:free",
+  },
+  {
+    label: "Kimi (Free)",
+    value: "moonshotai/kimi-k2:free",
+  },
+  {
     label: "Kimi K2",
     value: "moonshotai/Kimi-K2-Instruct",
   },
@@ -10,6 +18,10 @@ export const MODELS = [
   {
     label: "DeepSeek V3",
     value: "deepseek-ai/DeepSeek-V3",
+  },
+  {
+    label: "Llama 405B (Free)",
+    value: "meta-llama/llama-3.1-405b-instruct:free",
   },
   {
     label: "Llama 3.3 70B",

@@ -52,6 +52,7 @@ export default function ChatBox({
                 method: "POST",
                 body: JSON.stringify({
                   messageId: message.id,
+                  chatId: chat.id,
                   model: chat.model,
                 }),
               },

@@ -1,64 +1,53 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool } from "@neondatabase/serverless";
-import { z } from "zod";
-import Together from "together-ai";
+import { memoryDB } from "@/lib/memory-db";
+import OpenAI from "openai";
 
 export async function POST(req: Request) {
-  const neon = new Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaNeon(neon);
-  const prisma = new PrismaClient({ adapter });
-  const { messageId, model } = await req.json();
+  const { messageId, model, chatId } = await req.json();
 
-  const message = await prisma.message.findUnique({
-    where: { id: messageId },
+  // Skip message lookup and get all messages for the chat
+  const messagesRes = await memoryDB.findMessagesByChat(chatId);
+  let messages = messagesRes.slice(-10);
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: "https://openrouter.ai/api/v1",
   });
 
-  if (!message) {
-    return new Response(null, { status: 404 });
-  }
-
-  const messagesRes = await prisma.message.findMany({
-    where: { chatId: message.chatId, position: { lte: message.position } },
-    orderBy: { position: "asc" },
-  });
-
-  let messages = z
-    .array(
-      z.object({
-        role: z.enum(["system", "user", "assistant"]),
-        content: z.string(),
-      }),
-    )
-    .parse(messagesRes);
-
-  if (messages.length > 10) {
-    messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
-  }
-
-  let options: ConstructorParameters<typeof Together>[0] = {};
-  if (process.env.HELICONE_API_KEY) {
-    options.baseURL = "https://together.helicone.ai/v1";
-    options.defaultHeaders = {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Session-Id": message.chatId,
-      "Helicone-Session-Name": "LlamaCoder Chat",
-    };
-  }
-
-  const together = new Together(options);
-
-  const res = await together.chat.completions.create({
+  const res = await openai.chat.completions.create({
     model,
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    messages: messages.map((m) => ({ 
+      role: m.role as "system" | "user" | "assistant", 
+      content: m.content 
+    })),
     stream: true,
     temperature: 0.2,
     max_tokens: 9000,
   });
 
-  return new Response(res.toReadableStream());
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of res) {
+          const chunkData = `data: ${JSON.stringify(chunk)}\n\n`;
+          controller.enqueue(encoder.encode(chunkData));
+        }
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 }
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const maxDuration = 45;

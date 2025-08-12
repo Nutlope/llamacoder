@@ -1,13 +1,13 @@
 "use server";
 
-import { getPrisma } from "@/lib/prisma";
+import { memoryDB } from "@/lib/memory-db";
 import {
   getMainCodingPrompt,
   screenshotToCodePrompt,
   softwareArchitectPrompt,
 } from "@/lib/prompts";
 import { notFound } from "next/navigation";
-import Together from "together-ai";
+import OpenAI from "openai";
 
 export async function createChat(
   prompt: string,
@@ -15,33 +15,34 @@ export async function createChat(
   quality: "high" | "low",
   screenshotUrl: string | undefined,
 ) {
-  const prisma = getPrisma();
-  const chat = await prisma.chat.create({
-    data: {
-      model,
-      quality,
-      prompt,
-      title: "",
-      shadcn: true,
-    },
+  const chat = await memoryDB.createChat({
+    model,
+    quality,
+    prompt,
+    title: "",
+    llamaCoderVersion: "v2",
+    shadcn: true,
   });
 
-  let options: ConstructorParameters<typeof Together>[0] = {};
-  if (process.env.HELICONE_API_KEY) {
-    options.baseURL = "https://together.helicone.ai/v1";
-    options.defaultHeaders = {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Session-Id": chat.id,
-      "Helicone-Session-Name": "LlamaCoder Chat",
-    };
-  }
+  // Add Helicone headers if HELICONE_API_KEY is present
+  const defaultHeaders = process.env.HELICONE_API_KEY ? {
+    "HTTP-Referer": "https://llamacoder.io",
+    "X-Title": "LlamaCoder",
+    "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+    "Helicone-Property-appname": "LlamaCoder",
+    "Helicone-Session-Id": chat.id,
+    "Helicone-Session-Name": "LlamaCoder Chat",
+  } : {};
 
-  const together = new Together(options);
+  const openai = new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: "https://openrouter.ai/api/v1",
+    defaultHeaders,
+  });
 
   async function fetchTitle() {
-    const responseForChatTitle = await together.chat.completions.create({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    const responseForChatTitle = await openai.chat.completions.create({
+      model: "moonshotai/kimi-k2:free",
       messages: [
         {
           role: "system",
@@ -59,8 +60,8 @@ export async function createChat(
   }
 
   async function fetchTopExample() {
-    const findSimilarExamples = await together.chat.completions.create({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    const findSimilarExamples = await openai.chat.completions.create({
+      model: "moonshotai/kimi-k2:free",
       messages: [
         {
           role: "system",
@@ -91,8 +92,8 @@ export async function createChat(
 
   let fullScreenshotDescription;
   if (screenshotUrl) {
-    const screenshotResponse = await together.chat.completions.create({
-      model: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
+    const screenshotResponse = await openai.chat.completions.create({
+      model: "meta-llama/llama-3.1-405b-instruct:free",
       temperature: 0.2,
       max_tokens: 1000,
       messages: [
@@ -116,8 +117,8 @@ export async function createChat(
 
   let userMessage: string;
   if (quality === "high") {
-    let initialRes = await together.chat.completions.create({
-      model: "Qwen/Qwen2.5-Coder-32B-Instruct",
+    let initialRes = await openai.chat.completions.create({
+      model: "qwen/qwen3-coder:free",
       messages: [
         {
           role: "system",
@@ -144,33 +145,24 @@ export async function createChat(
     userMessage = prompt;
   }
 
-  let newChat = await prisma.chat.update({
-    where: {
-      id: chat.id,
-    },
-    data: {
-      title,
-      messages: {
-        createMany: {
-          data: [
-            {
-              role: "system",
-              content: getMainCodingPrompt(mostSimilarExample),
-              position: 0,
-            },
-            { role: "user", content: userMessage, position: 1 },
-          ],
-        },
-      },
-    },
-    include: {
-      messages: true,
-    },
+  await memoryDB.createMessage({
+    role: "system",
+    content: getMainCodingPrompt(mostSimilarExample),
+    position: 0,
+    chatId: chat.id,
   });
+  
+  const lastMessage = await memoryDB.createMessage({
+    role: "user",
+    content: userMessage,
+    position: 1,
+    chatId: chat.id,
+  });
+  
+  console.log('Created message with ID:', lastMessage.id);
+  
+  const newChat = await memoryDB.updateChat(chat.id, { title });
 
-  const lastMessage = newChat.messages
-    .sort((a, b) => a.position - b.position)
-    .at(-1);
   if (!lastMessage) throw new Error("No new message");
 
   return {
@@ -184,22 +176,16 @@ export async function createMessage(
   text: string,
   role: "assistant" | "user",
 ) {
-  const prisma = getPrisma();
-  const chat = await prisma.chat.findUnique({
-    where: { id: chatId },
-    include: { messages: true },
-  });
+  const chat = await memoryDB.findChatById(chatId);
   if (!chat) notFound();
 
-  const maxPosition = Math.max(...chat.messages.map((m) => m.position));
+  const maxPosition = Math.max(...chat.messages.map((m: { position: number }) => m.position), -1);
 
-  const newMessage = await prisma.message.create({
-    data: {
-      role,
-      content: text,
-      position: maxPosition + 1,
-      chatId,
-    },
+  const newMessage = await memoryDB.createMessage({
+    role,
+    content: text,
+    position: maxPosition + 1,
+    chatId,
   });
 
   return newMessage;

@@ -6,12 +6,11 @@ import { splitByFirstCodeFence } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, use, useEffect, useRef, useState } from "react";
-import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
 import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
-import type { Chat } from "./page";
+import type { Chat, Message } from "./page";
 import { Context } from "../../providers";
 
 export default function PageClient({ chat }: { chat: Chat }) {
@@ -21,13 +20,13 @@ export default function PageClient({ chat }: { chat: Chat }) {
   >(context.streamPromise);
   const [streamText, setStreamText] = useState("");
   const [isShowingCodeViewer, setIsShowingCodeViewer] = useState(
-    chat.messages.some((m) => m.role === "assistant"),
+    chat.messages.some((m: Message) => m.role === "assistant"),
   );
   const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
   const router = useRouter();
   const isHandlingStreamRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
-    chat.messages.filter((m) => m.role === "assistant").at(-1),
+    chat.messages.filter((m: Message) => m.role === "assistant").at(-1),
   );
 
   useEffect(() => {
@@ -41,49 +40,79 @@ export default function PageClient({ chat }: { chat: Chat }) {
       let didPushToCode = false;
       let didPushToPreview = false;
 
-      ChatCompletionStream.fromReadableStream(stream)
-        .on("content", (delta, content) => {
-          setStreamText((text) => text + delta);
+      // Handle the OpenAI streaming response
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = "";
 
-          if (
-            !didPushToCode &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence-generating",
-            )
-          ) {
-            didPushToCode = true;
-            setIsShowingCodeViewer(true);
-            setActiveTab("code");
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content || '';
+                if (delta) {
+                  fullContent += delta;
+                  setStreamText(fullContent);
+
+                  if (
+                    !didPushToCode &&
+                    splitByFirstCodeFence(fullContent).some(
+                      (part) => part.type === "first-code-fence-generating",
+                    )
+                  ) {
+                    didPushToCode = true;
+                    setIsShowingCodeViewer(true);
+                    setActiveTab("code");
+                  }
+
+                  if (
+                    !didPushToPreview &&
+                    splitByFirstCodeFence(fullContent).some(
+                      (part) => part.type === "first-code-fence",
+                    )
+                  ) {
+                    didPushToPreview = true;
+                    setIsShowingCodeViewer(true);
+                    setActiveTab("preview");
+                  }
+                }
+              } catch (e) {
+                // Ignore parsing errors
+              }
+            }
           }
+        }
 
-          if (
-            !didPushToPreview &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence",
-            )
-          ) {
-            didPushToPreview = true;
-            setIsShowingCodeViewer(true);
-            setActiveTab("preview");
-          }
-        })
-        .on("finalContent", async (finalText) => {
-          startTransition(async () => {
-            const message = await createMessage(
-              chat.id,
-              finalText,
-              "assistant",
-            );
+        // Handle final content
+        startTransition(async () => {
+          const message = await createMessage(
+            chat.id,
+            fullContent,
+            "assistant",
+          );
 
-            startTransition(() => {
-              isHandlingStreamRef.current = false;
-              setStreamText("");
-              setStreamPromise(undefined);
-              setActiveMessage(message);
-              router.refresh();
-            });
+          startTransition(() => {
+            isHandlingStreamRef.current = false;
+            setStreamText("");
+            setStreamPromise(undefined);
+            setActiveMessage(message);
+            router.refresh();
           });
         });
+      } finally {
+        reader.releaseLock();
+      }
     }
 
     f();
@@ -157,6 +186,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
                       method: "POST",
                       body: JSON.stringify({
                         messageId: message.id,
+                        chatId: chat.id,
                         model: chat.model,
                       }),
                     },
