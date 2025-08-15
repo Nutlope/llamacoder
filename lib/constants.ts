@@ -1,8 +1,8 @@
 export const MODELS = [
-  {
-    label: "Kimi K2",
-    value: "moonshotai/Kimi-K2-Instruct",
-  },
+  // {
+  //   label: "Kimi K2",
+  //   value: "moonshotai/Kimi-K2-Instruct",
+  // },
   {
     label: "Qwen 3 Coder",
     value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
