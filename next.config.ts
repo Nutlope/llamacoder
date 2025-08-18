@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@codesandbox/sdk"],
   webpack: (config, options) => {
     if (options.nextRuntime === "edge") {
       if (!config.resolve.conditionNames) {
