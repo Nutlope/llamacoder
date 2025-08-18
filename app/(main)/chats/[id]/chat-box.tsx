@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createMessage } from "../../actions";
 import { type Chat } from "./page";
+import { MODELS } from "@/lib/constants";
 
 export default function ChatBox({
   chat,
@@ -27,6 +28,9 @@ export default function ChatBox({
     .split("\n")
     .map((text) => (text === "" ? "a" : text))
     .join("\n");
+
+  const modelLabel =
+    MODELS.find((m) => m.value === chat.model)?.label || chat.model;
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -99,8 +103,11 @@ export default function ChatBox({
             </div>
 
             <div className="flex w-full justify-between p-1.5 has-[:disabled]:opacity-50">
-              <div className="max-w-[200px] items-center truncate px-3 font-mono text-xs text-gray-500">
-                {chat.model}
+              <div
+                className="max-w-[200px] items-center truncate px-3 font-mono text-xs text-gray-500"
+                title={chat.model}
+              >
+                {modelLabel}
               </div>
 
               <button
