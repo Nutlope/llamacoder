@@ -205,7 +205,7 @@ export default function CodeViewer({
             Refresh
           </button>
           <button
-            className="inline-flex items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition hover:bg-white disabled:opacity-50"
+            className="hidden items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition hover:bg-white disabled:opacity-50 md:inline-flex"
             onClick={handleCopyCode}
             disabled={disabledControls}
             title="Copy code"

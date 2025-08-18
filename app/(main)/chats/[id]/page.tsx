@@ -10,7 +10,9 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const chat = await getChatById(params.id);
+  // Await the params before accessing its properties
+  const resolvedParams = await params;
+  const chat = await getChatById(resolvedParams.id);
 
   if (!chat) {
     return {
