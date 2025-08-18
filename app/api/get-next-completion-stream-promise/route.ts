@@ -3,6 +3,8 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
+import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
+import { after } from "next/server";
 
 export async function POST(req: Request) {
   const neon = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -57,8 +59,44 @@ export async function POST(req: Request) {
     max_tokens: 9000,
   });
 
-  return new Response(res.toReadableStream());
+  const stream = res.toReadableStream();
+
+  const [s1, s2] = stream.tee();
+
+  let unlock: () => void;
+  const promise = new Promise<void>((resolve) => {
+    unlock = () => {
+      resolve();
+    };
+  });
+
+  console.log("last message:", messages.at(-1));
+
+  ChatCompletionStream.fromReadableStream(s1)
+    .on("content", (delta) => {
+      // console.log("Stream content:", delta);
+    })
+    .on("error", (error) => {
+      console.error("Stream error:", error);
+      unlock();
+    })
+    .on("finalChatCompletion", (finalChunk) => {
+      console.log("Final Chat Completion:", finalChunk);
+    })
+    .on("finalContent", (finalText) => {
+      console.log("Final content hook called");
+    })
+    .on("end", () => {
+      console.log("Stream ended");
+      unlock();
+    });
+
+  after(async () => {
+    await promise;
+    console.log("exiting after hook");
+  });
+
+  return new Response(s2);
 }
 
-export const runtime = "edge";
-export const maxDuration = 45;
+export const maxDuration = 240;

@@ -67,6 +67,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
             setActiveTab("preview");
           }
         })
+        .on("error", (error) => {
+          console.error("Stream error:", error);
+        })
         .on("finalContent", async (finalText) => {
           startTransition(async () => {
             const message = await createMessage(
