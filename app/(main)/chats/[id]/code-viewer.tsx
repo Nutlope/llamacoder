@@ -7,7 +7,7 @@ import RefreshIcon from "@/components/icons/refresh";
 import CopyIcon from "@/components/icons/copy-icon";
 import { toast } from "@/hooks/use-toast";
 import { extractFirstCodeBlock, splitByFirstCodeFence } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
 import { StickToBottom } from "use-stick-to-bottom";
@@ -91,6 +91,17 @@ export default function CodeViewer({
       console.error("Failed to copy code: ", err);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return (
     <>
