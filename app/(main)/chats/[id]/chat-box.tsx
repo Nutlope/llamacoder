@@ -75,7 +75,7 @@ export default function ChatBox({
         }}
       >
         <fieldset className="w-full" disabled={disabled}>
-          <div className="relative flex flex-col rounded-lg border-4 border-gray-300 bg-white">
+          <div className="relative flex flex-col rounded-lg border border-gray-300 bg-white">
             <div className="relative w-full">
               <div className="w-full p-2">
                 <p className="invisible min-h-[48px] w-full whitespace-pre-wrap">

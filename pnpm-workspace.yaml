@@ -1,8 +1,0 @@
-onlyBuiltDependencies:
-  - '@prisma/client'
-  - '@prisma/engines'
-  - es5-ext
-  - lzo
-  - prisma
-  - sharp
-  - unrs-resolver
