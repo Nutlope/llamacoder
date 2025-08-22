@@ -70,7 +70,7 @@ export default function Home() {
 
         <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
           <a
-            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] bg-white px-7 py-2 text-xs text-gray-800 shadow-[0px_1px_1px_0px_rgba(0,0,0,0.25)] md:text-base"
+            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow hover:shadow-sm"
             href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
             target="_blank"
           >
@@ -125,7 +125,7 @@ export default function Home() {
             }}
           >
             <Fieldset>
-              <div className="relative flex w-full max-w-2xl rounded-xl border-4 border-gray-300 bg-white pb-10">
+              <div className="relative flex w-full max-w-2xl rounded-xl border border-gray-300 bg-white pb-10">
                 <div className="w-full">
                   {screenshotLoading && (
                     <div className="relative mx-3 mt-3">
@@ -172,8 +172,8 @@ export default function Home() {
                       placeholder="Build me a budgeting app..."
                       required
                       name="prompt"
-                      rows={1}
-                      className="peer absolute inset-0 w-full resize-none bg-transparent p-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
+                      rows={2}
+                      className="peer absolute inset-0 w-full resize-none bg-transparent px-4 py-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       onKeyDown={(event) => {
@@ -187,7 +187,7 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                <div className="absolute bottom-2 left-2 right-2.5 flex items-center justify-between">
+                <div className="absolute bottom-2 left-3 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Select.Root
                       name="model"
@@ -321,13 +321,13 @@ export default function Home() {
                   />
                 )}
               </div>
-              <div className="mt-4 flex w-full flex-wrap justify-center gap-3">
+              <div className="mt-4 flex w-full flex-wrap justify-between gap-2.5">
                 {SUGGESTED_PROMPTS.map((v) => (
                   <button
                     key={v.title}
                     type="button"
                     onClick={() => setPrompt(v.description)}
-                    className="rounded bg-gray-200 px-2.5 py-1.5 text-xs hover:bg-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300"
+                    className="rounded bg-[#E5E9EF] px-2.5 py-1.5 text-xs hover:bg-[#cccfd5]"
                   >
                     {v.title}
                   </button>
