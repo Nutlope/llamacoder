@@ -8,6 +8,10 @@ export const MODELS = [
     value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
   },
   {
+    label: "GLM 4.5 Air",
+    value: "zai-org/GLM-4.5-Air-FP8",
+  },
+  {
     label: "DeepSeek V3",
     value: "deepseek-ai/DeepSeek-V3",
   },
