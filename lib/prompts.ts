@@ -8,6 +8,8 @@ You are an expert software architect and product lead responsible for taking an 
 Don't use @chakra-ui/react and don't use @headlessui/react.
 Just use Shacdn UI components with tailwind!
 
+Never use axios for data fetching just use the browser/nodejs native fetch.
+
 Guidelines:
 - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
 - Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
@@ -60,8 +62,8 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   Here are some prestyled UI components available for use from shadcn. Try to always default to using this library of components. Here are the UI components that are available, along with how to import them, and how to use them:
 
   ${shadcnDocs
-      .map(
-        (component) => `
+    .map(
+      (component) => `
         <component>
         <name>
         ${component.name}
@@ -74,8 +76,8 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
         </usage-instructions>
         </component>
       `,
-      )
-      .join("\n")}
+    )
+    .join("\n")}
 
   Remember, if you use a shadcn UI component from the above available components, make sure to import it FROM THE CORRECT PATH. Double check that imports are correct, each is imported in it's own path, and all components that are used in the code are imported. Here's a list of imports again for your reference:
 
@@ -109,9 +111,9 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   if (mostSimilarExample !== "none") {
     assert.ok(
       mostSimilarExample === "landing page" ||
-      mostSimilarExample === "blog app" ||
-      mostSimilarExample === "quiz app" ||
-      mostSimilarExample === "pomodoro timer",
+        mostSimilarExample === "blog app" ||
+        mostSimilarExample === "quiz app" ||
+        mostSimilarExample === "pomodoro timer",
     );
     systemPrompt += `
     Here another example (thats missing explanations and is just code):
