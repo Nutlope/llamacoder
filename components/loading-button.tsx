@@ -9,7 +9,7 @@ export default function LoadingButton({
   const { pending } = useFormStatus();
 
   return (
-    <button {...rest} disabled={pending}>
+    <button {...rest} disabled={pending || rest.disabled}>
       <Spinner loading={pending}>{children}</Spinner>
     </button>
   );
