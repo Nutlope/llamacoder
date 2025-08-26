@@ -21,8 +21,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const messagePreview = chat.title;
-
   return {
     title: `App: ${chat.title}`,
     description: `Building an app for ${chat.title} with ${chat.model}`,
