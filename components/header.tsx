@@ -25,7 +25,7 @@ export default function Header() {
         >
           <GithubIcon className="h-[18px] w-[18px]" />
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-gray-900">5k+</span>
+            <span className="font-semibold text-gray-900">6k+</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"

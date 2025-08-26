@@ -4,8 +4,10 @@ import ChevronLeftIcon from "@/components/icons/chevron-left";
 import ChevronRightIcon from "@/components/icons/chevron-right";
 import CloseIcon from "@/components/icons/close-icon";
 import RefreshIcon from "@/components/icons/refresh";
+import CopyIcon from "@/components/icons/copy-icon";
+import { toast } from "@/hooks/use-toast";
 import { extractFirstCodeBlock, splitByFirstCodeFence } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
 import { StickToBottom } from "use-stick-to-bottom";
@@ -73,6 +75,33 @@ export default function CodeViewer({
       : undefined;
 
   const [refresh, setRefresh] = useState(0);
+  const disabledControls = !!streamText || !code;
+
+  const handleCopyCode = async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+
+      toast({
+        title: "Code copied!",
+        description: "Code copied to clipboard",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Failed to copy code: ", err);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return (
     <>
@@ -158,13 +187,31 @@ export default function CodeViewer({
 
       <div className="flex items-center justify-between border-t border-gray-300 px-4 py-4">
         <div className="inline-flex items-center gap-2.5 text-sm">
-          <Share message={message && !streamApp ? message : undefined} />
+          <Share
+            message={
+              disabledControls
+                ? undefined
+                : message && !streamApp
+                  ? message
+                  : undefined
+            }
+          />
           <button
             className="inline-flex items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition enabled:hover:bg-white disabled:opacity-50"
             onClick={() => setRefresh((r) => r + 1)}
+            disabled={disabledControls}
           >
             <RefreshIcon className="size-3" />
             Refresh
+          </button>
+          <button
+            className="hidden items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition hover:bg-white disabled:opacity-50 md:inline-flex"
+            onClick={handleCopyCode}
+            disabled={disabledControls}
+            title="Copy code"
+          >
+            <CopyIcon className="size-3" />
+            Copy
           </button>
         </div>
         <div className="flex items-center justify-end gap-3">
