@@ -2,7 +2,10 @@
 
 import type { Chat, Message } from "./page";
 import ArrowLeftIcon from "@/components/icons/arrow-left";
-import { splitByFirstCodeFence } from "@/lib/utils";
+import {
+  splitByFirstCodeFence,
+  generateIntelligentFilename,
+} from "@/lib/utils";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
 import { StickToBottom } from "use-stick-to-bottom";
@@ -84,9 +87,27 @@ function AssistantMessage({
 }) {
   const parts = splitByFirstCodeFence(content);
 
+  // Generate better filenames for display
+  const enhancedParts = parts.map((part) => {
+    if (
+      part.type.includes("code-fence") &&
+      (!part.filename.name || part.filename.name.trim() === "")
+    ) {
+      const intelligentFilename = generateIntelligentFilename(
+        part.content,
+        part.language,
+      );
+      return {
+        ...part,
+        filename: intelligentFilename,
+      };
+    }
+    return part;
+  });
+
   return (
     <div>
-      {parts.map((part, i) => (
+      {enhancedParts.map((part, i) => (
         <div key={i}>
           {part.type === "text" ? (
             <Markdown className="prose">{part.content}</Markdown>

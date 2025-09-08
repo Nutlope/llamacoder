@@ -6,7 +6,11 @@ import CloseIcon from "@/components/icons/close-icon";
 import RefreshIcon from "@/components/icons/refresh";
 import CopyIcon from "@/components/icons/copy-icon";
 import { toast } from "@/hooks/use-toast";
-import { extractFirstCodeBlock, splitByFirstCodeFence } from "@/lib/utils";
+import {
+  extractFirstCodeBlock,
+  splitByFirstCodeFence,
+  generateIntelligentFilename,
+} from "@/lib/utils";
 import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
@@ -54,7 +58,12 @@ export default function CodeViewer({
 
   const code = streamApp ? streamApp.content : app?.code || "";
   const language = streamApp ? streamApp.language : app?.language || "";
-  const title = streamApp ? streamApp.filename.name : app?.filename?.name || "";
+  const rawFilename = streamApp
+    ? streamApp.filename.name
+    : app?.filename?.name || "";
+
+  // Generate intelligent filename if none provided or if it's empty
+  const title = rawFilename || generateIntelligentFilename(code, language).name;
   const layout = ["python", "ts", "js", "javascript", "typescript"].includes(
     language,
   )

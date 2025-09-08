@@ -169,6 +169,59 @@ export function splitByFirstCodeFence(markdown: string) {
   return result;
 }
 
+// Enhanced filename generation for when models don't provide filenames
+export function generateIntelligentFilename(
+  content: string,
+  language: string,
+): { name: string; extension: string } {
+  // Try to extract filename from common patterns in the content
+  const patterns = [
+    /export\s+default\s+(?:function\s+)?(\w+)/i,
+    /function\s+(\w+)\s*\(/i,
+    /const\s+(\w+)\s*=\s*\(/i,
+    /class\s+(\w+)/i,
+    /component\s*:\s*(\w+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      const name = match[1];
+      // Convert to kebab-case
+      const kebabName = name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+      return { name: kebabName, extension: getExtensionForLanguage(language) };
+    }
+  }
+
+  // Fallback to generic names based on language
+  return { name: `component`, extension: getExtensionForLanguage(language) };
+}
+
+function getExtensionForLanguage(language: string): string {
+  const extensions: Record<string, string> = {
+    javascript: "js",
+    js: "js",
+    typescript: "tsx",
+    ts: "ts",
+    tsx: "tsx",
+    jsx: "jsx",
+    python: "py",
+    py: "py",
+    html: "html",
+    css: "css",
+    json: "json",
+    markdown: "md",
+    md: "md",
+    sql: "sql",
+    bash: "sh",
+    sh: "sh",
+    yaml: "yaml",
+    yml: "yml",
+  };
+
+  return extensions[language.toLowerCase()] || "txt";
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
