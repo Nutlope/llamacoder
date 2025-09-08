@@ -13,7 +13,7 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useState, useRef, useTransition } from "react";
+import { use, useState, useRef, useTransition, useEffect } from "react";
 import { createChat } from "./actions";
 import { Context } from "./providers";
 import Header from "@/components/header";
@@ -34,8 +34,15 @@ export default function Home() {
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const selectedModel = MODELS.find((m) => m.value === model);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
 
   const { uploadToS3 } = useS3Upload();
   const handleScreenshotUpload = async (event: any) => {
@@ -181,6 +188,7 @@ export default function Home() {
                       </p>
                     </div>
                     <textarea
+                      ref={textareaRef}
                       placeholder="Build me a budgeting app..."
                       required
                       name="prompt"
