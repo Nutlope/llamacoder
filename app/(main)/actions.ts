@@ -92,7 +92,7 @@ export async function createChat(
   let fullScreenshotDescription;
   if (screenshotUrl) {
     const screenshotResponse = await together.chat.completions.create({
-      model: "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
+      model: "Qwen/Qwen2.5-VL-72B-Instruct",
       temperature: 0.2,
       max_tokens: 1000,
       messages: [
