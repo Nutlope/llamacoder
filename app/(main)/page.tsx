@@ -28,6 +28,7 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState(MODELS[0].value);
   const [quality, setQuality] = useState("high");
+  const [provider, setProvider] = useState("together");
   const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
     undefined,
   );
@@ -97,10 +98,12 @@ export default function Home() {
             className="relative w-full max-w-2xl pt-6 lg:pt-12"
             action={async (formData) => {
               startTransition(async () => {
-                const { prompt, model, quality } = Object.fromEntries(formData);
+                const { prompt, model, quality, provider } =
+                  Object.fromEntries(formData);
 
                 assert.ok(typeof prompt === "string");
                 assert.ok(typeof model === "string");
+                assert.ok(typeof provider === "string");
                 assert.ok(quality === "high" || quality === "low");
 
                 const { chatId, lastMessageId } = await createChat(
@@ -108,13 +111,18 @@ export default function Home() {
                   model,
                   quality,
                   screenshotUrl,
+                  provider,
                 );
 
                 const streamPromise = fetch(
                   "/api/get-next-completion-stream-promise",
                   {
                     method: "POST",
-                    body: JSON.stringify({ messageId: lastMessageId, model }),
+                    body: JSON.stringify({
+                      messageId: lastMessageId,
+                      model,
+                      provider,
+                    }),
                   },
                 ).then((res) => {
                   if (!res.body) {
@@ -209,6 +217,52 @@ export default function Home() {
                 </div>
                 <div className="absolute bottom-2 left-3 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
+                    <Select.Root
+                      name="provider"
+                      value={provider}
+                      onValueChange={setProvider}
+                    >
+                      <Select.Trigger className="inline-flex items-center gap-1 rounded-md p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
+                        <Select.Value aria-label={provider}>
+                          <span>
+                            {provider === "together"
+                              ? "Together AI"
+                              : "Ollama"}
+                          </span>
+                        </Select.Value>
+                        <Select.Icon>
+                          <ChevronDownIcon className="size-3" />
+                        </Select.Icon>
+                      </Select.Trigger>
+                      <Select.Portal>
+                        <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
+                          <Select.Viewport className="space-y-1 p-2">
+                            {[
+                              { value: "together", label: "Together AI" },
+                              { value: "ollama", label: "Ollama" },
+                            ].map((p) => (
+                              <Select.Item
+                                key={p.value}
+                                value={p.value}
+                                className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                              >
+                                <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
+                                  {p.label}
+                                </Select.ItemText>
+                                <Select.ItemIndicator>
+                                  <CheckIcon className="size-3 text-blue-600" />
+                                </Select.ItemIndicator>
+                              </Select.Item>
+                            ))}
+                          </Select.Viewport>
+                          <Select.ScrollDownButton />
+                          <Select.Arrow />
+                        </Select.Content>
+                      </Select.Portal>
+                    </Select.Root>
+
+                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
+
                     <Select.Root
                       name="model"
                       value={model}
@@ -410,6 +464,9 @@ export default function Home() {
   );
 }
 
+export const runtime = "edge";
+export const maxDuration = 45;
+
 function LoadingMessage({
   isHighQuality,
   screenshotUrl,
@@ -434,5 +491,3 @@ function LoadingMessage({
   );
 }
 
-export const runtime = "edge";
-export const maxDuration = 45;

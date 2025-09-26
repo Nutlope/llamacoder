@@ -34,6 +34,7 @@
     "next": "15.5.0",
     "next-plausible": "^3.12.4",
     "next-s3-upload": "^0.3.4",
+    "ollama": "^0.6.0",
     "react": "^19",
     "react-dom": "^19",
     "react-markdown": "^9.0.3",

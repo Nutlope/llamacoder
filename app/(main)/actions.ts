@@ -14,6 +14,7 @@ export async function createChat(
   model: string,
   quality: "high" | "low",
   screenshotUrl: string | undefined,
+  provider: string,
 ) {
   const prisma = getPrisma();
   const chat = await prisma.chat.create({
@@ -26,122 +27,184 @@ export async function createChat(
     },
   });
 
-  let options: ConstructorParameters<typeof Together>[0] = {};
-  if (process.env.HELICONE_API_KEY) {
-    options.baseURL = "https://together.helicone.ai/v1";
-    options.defaultHeaders = {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Session-Id": chat.id,
-      "Helicone-Session-Name": "LlamaCoder Chat",
-    };
-  }
+  let title, mostSimilarExample, userMessage;
 
-  const together = new Together(options);
+  if (provider === "ollama") {
+    const ollama = (await import("ollama")).default;
 
-  async function fetchTitle() {
-    const responseForChatTitle = await together.chat.completions.create({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
-    const title = responseForChatTitle.choices[0].message?.content || prompt;
-    return title;
-  }
+    async function fetchTitle() {
+      const responseForChatTitle = await ollama.chat({
+        model: "llama3",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
+          },
+          { role: "user", content: prompt },
+        ],
+      });
+      return responseForChatTitle.message.content || prompt;
+    }
 
-  async function fetchTopExample() {
-    const findSimilarExamples = await together.chat.completions.create({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
+    async function fetchTopExample() {
+      const findSimilarExamples = await ollama.chat({
+        model: "llama3",
+        messages: [
+          {
+            role: "system",
+            content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":\n\n- landing page\n- blog app\n- quiz app\n- pomodoro timer`,
+          },
+          { role: "user", content: prompt },
+        ],
+      });
+      return findSimilarExamples.message.content || "none";
+    }
 
-          - landing page
-          - blog app
-          - quiz app
-          - pomodoro timer
-          `,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
+    [title, mostSimilarExample] = await Promise.all([
+      fetchTitle(),
+      fetchTopExample(),
+    ]);
 
-    const mostSimilarExample =
-      findSimilarExamples.choices[0].message?.content || "none";
-    return mostSimilarExample;
-  }
+    let fullScreenshotDescription;
+    if (screenshotUrl) {
+      const imageResponse = await fetch(screenshotUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const screenshotResponse = await ollama.chat({
+        model: "llava",
+        messages: [
+          {
+            role: "user",
+            content: screenshotToCodePrompt,
+            images: [Buffer.from(imageBuffer)],
+          },
+        ],
+      });
+      fullScreenshotDescription = screenshotResponse.message.content;
+    }
 
-  const [title, mostSimilarExample] = await Promise.all([
-    fetchTitle(),
-    fetchTopExample(),
-  ]);
-
-  let fullScreenshotDescription;
-  if (screenshotUrl) {
-    const screenshotResponse = await together.chat.completions.create({
-      model: "Qwen/Qwen2.5-VL-72B-Instruct",
-      temperature: 0.2,
-      max_tokens: 1000,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: screenshotToCodePrompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: screenshotUrl,
-              },
-            },
-          ],
-        },
-      ],
-    });
-
-    fullScreenshotDescription = screenshotResponse.choices[0].message?.content;
-  }
-
-  let userMessage: string;
-  if (quality === "high") {
-    let initialRes = await together.chat.completions.create({
-      model: "Qwen/Qwen2.5-Coder-32B-Instruct",
-      messages: [
-        {
-          role: "system",
-          content: softwareArchitectPrompt,
-        },
-        {
-          role: "user",
-          content: fullScreenshotDescription
-            ? fullScreenshotDescription + prompt
-            : prompt,
-        },
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    });
-
-    userMessage = initialRes.choices[0].message?.content ?? prompt;
-  } else if (fullScreenshotDescription) {
-    userMessage =
-      prompt +
-      "RECREATE THIS APP AS CLOSELY AS POSSIBLE: " +
-      fullScreenshotDescription;
+    if (quality === "high") {
+      const initialRes = await ollama.chat({
+        model: "llama3",
+        messages: [
+          { role: "system", content: softwareArchitectPrompt },
+          {
+            role: "user",
+            content: fullScreenshotDescription
+              ? `${fullScreenshotDescription}\n\n${prompt}`
+              : prompt,
+          },
+        ],
+      });
+      userMessage = initialRes.message.content ?? prompt;
+    } else {
+      userMessage = fullScreenshotDescription
+        ? `${prompt}\n\nRECREATE THIS APP AS CLOSELY AS POSSIBLE: ${fullScreenshotDescription}`
+        : prompt;
+    }
   } else {
-    userMessage = prompt;
+    let options: ConstructorParameters<typeof Together>[0] = {};
+    if (process.env.HELICONE_API_KEY) {
+      options.baseURL = "https://together.helicone.ai/v1";
+      options.defaultHeaders = {
+        "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+        "Helicone-Property-appname": "LlamaCoder",
+        "Helicone-Session-Id": chat.id,
+        "Helicone-Session-Name": "LlamaCoder Chat",
+      };
+    }
+
+    const together = new Together(options);
+
+    async function fetchTitle() {
+      const responseForChatTitle = await together.chat.completions.create({
+        model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
+      return responseForChatTitle.choices[0].message?.content || prompt;
+    }
+
+    async function fetchTopExample() {
+      const findSimilarExamples = await together.chat.completions.create({
+        model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+        messages: [
+          {
+            role: "system",
+            content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":\n\n- landing page\n- blog app\n- quiz app\n- pomodoro timer`,
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
+      return findSimilarExamples.choices[0].message?.content || "none";
+    }
+
+    [title, mostSimilarExample] = await Promise.all([
+      fetchTitle(),
+      fetchTopExample(),
+    ]);
+
+    let fullScreenshotDescription;
+    if (screenshotUrl) {
+      const screenshotResponse = await together.chat.completions.create({
+        model: "Qwen/Qwen2.5-VL-72B-Instruct",
+        temperature: 0.2,
+        max_tokens: 1000,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: screenshotToCodePrompt },
+              {
+                type: "image_url",
+                image_url: {
+                  url: screenshotUrl,
+                },
+              },
+            ],
+          },
+        ],
+      });
+      fullScreenshotDescription =
+        screenshotResponse.choices[0].message?.content;
+    }
+
+    if (quality === "high") {
+      let initialRes = await together.chat.completions.create({
+        model: "Qwen/Qwen2.5-Coder-32B-Instruct",
+        messages: [
+          {
+            role: "system",
+            content: softwareArchitectPrompt,
+          },
+          {
+            role: "user",
+            content: fullScreenshotDescription
+              ? `${fullScreenshotDescription}\n\n${prompt}`
+              : prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 3000,
+      });
+      userMessage = initialRes.choices[0].message?.content ?? prompt;
+    } else {
+      userMessage = fullScreenshotDescription
+        ? `${prompt}\n\nRECREATE THIS APP AS CLOSELY AS POSSIBLE: ${fullScreenshotDescription}`
+        : prompt;
+    }
   }
 
   let newChat = await prisma.chat.update({
