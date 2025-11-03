@@ -117,7 +117,7 @@ export async function createChat(
   let userMessage: string;
   if (quality === "high") {
     let initialRes = await together.chat.completions.create({
-      model: "Qwen/Qwen2.5-Coder-32B-Instruct",
+      model: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
       messages: [
         {
           role: "system",
