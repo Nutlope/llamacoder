@@ -64,11 +64,6 @@ export default function CodeViewer({
 
   // Generate intelligent filename if none provided or if it's empty
   const title = rawFilename || generateIntelligentFilename(code, language).name;
-  const layout = ["python", "ts", "js", "javascript", "typescript"].includes(
-    language,
-  )
-    ? "two-up"
-    : "tabbed";
 
   const assistantMessages = chat.messages.filter((m) => m.role === "assistant");
   const currentVersion = streamApp
@@ -126,73 +121,50 @@ export default function CodeViewer({
             {title} v{currentVersion + 1}
           </span>
         </div>
-        {layout === "tabbed" && (
-          <div className="rounded-lg border-2 border-gray-300 p-1">
-            <button
-              onClick={() => onTabChange("code")}
-              data-active={activeTab === "code" ? true : undefined}
-              className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
-            >
-              Code
-            </button>
-            <button
-              onClick={() => onTabChange("preview")}
-              data-active={activeTab === "preview" ? true : undefined}
-              className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
-            >
-              Preview
-            </button>
-          </div>
-        )}
+        <div className="rounded-lg border-2 border-gray-300 p-1">
+          <button
+            onClick={() => onTabChange("code")}
+            data-active={activeTab === "code" ? true : undefined}
+            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
+          >
+            Code
+          </button>
+          <button
+            onClick={() => onTabChange("preview")}
+            data-active={activeTab === "preview" ? true : undefined}
+            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
+          >
+            Preview
+          </button>
+        </div>
       </div>
 
-      {layout === "tabbed" ? (
-        <div className="flex grow flex-col overflow-y-auto bg-white">
-          {activeTab === "code" ? (
-            <StickToBottom
-              className="relative grow overflow-hidden"
-              resize="smooth"
-              initial={streamAppIsGenerating ? "smooth" : false}
-            >
-              <StickToBottom.Content>
-                <SyntaxHighlighter code={code} language={language} />
-              </StickToBottom.Content>
-            </StickToBottom>
-          ) : (
-            <>
-              {language && (
-                <div className="flex h-full items-center justify-center">
-                  <CodeRunner
-                    onRequestFix={onRequestFix}
-                    language={language}
-                    code={code}
-                    key={refresh}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="flex grow flex-col bg-white">
-          <div className="h-1/2 overflow-y-auto">
-            <SyntaxHighlighter code={code} language={language} />
-          </div>
-          <div className="flex h-1/2 flex-col">
-            <div className="border-t border-gray-300 px-4 py-4">Output</div>
-            <div className="flex grow items-center justify-center border-t">
-              {!streamAppIsGenerating && (
+      <div className="flex grow flex-col overflow-y-auto bg-white">
+        {activeTab === "code" ? (
+          <StickToBottom
+            className="relative grow overflow-hidden"
+            resize="smooth"
+            initial={streamAppIsGenerating ? "smooth" : false}
+          >
+            <StickToBottom.Content>
+              <SyntaxHighlighter code={code} language={language} />
+            </StickToBottom.Content>
+          </StickToBottom>
+        ) : (
+          <>
+            {language && (
+              <div className="flex h-full items-center justify-center">
                 <CodeRunner
                   onRequestFix={onRequestFix}
                   language={language}
                   code={code}
                   key={refresh}
                 />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="flex items-center justify-between border-t border-gray-300 px-4 py-4">
         <div className="inline-flex items-center gap-2.5 text-sm">
