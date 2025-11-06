@@ -32,6 +32,27 @@ export async function POST(req: Request) {
     )
     .parse(messagesRes);
 
+  // Strip code blocks from assistant messages except the last 2 to save tokens
+  const assistantIndices: number[] = [];
+  for (
+    let i = messages.length - 1;
+    i >= 0 && assistantIndices.length < 2;
+    i--
+  ) {
+    if (messages[i].role === "assistant") {
+      assistantIndices.push(i);
+    }
+  }
+  messages = messages.map((msg, index) => {
+    if (msg.role === "assistant" && !assistantIndices.includes(index)) {
+      return {
+        ...msg,
+        content: msg.content.replace(/```[\s\S]*?```/g, "").trim(),
+      };
+    }
+    return msg;
+  });
+
   if (messages.length > 10) {
     messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
   }
@@ -48,6 +69,8 @@ export async function POST(req: Request) {
   }
 
   const together = new Together(options);
+
+  console.log("messages sent to AI", messages);
 
   const res = await together.chat.completions.create({
     model,
