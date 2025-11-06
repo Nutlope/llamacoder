@@ -95,9 +95,11 @@ export default function PageClient({ chat }: { chat: Chat }) {
   }, [chat.id, router, streamPromise, context]);
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", activeTab);
-    router.replace(`?${params.toString()}`, { scroll: false });
+    if (searchParams.get("tab") !== activeTab) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", activeTab);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
   }, [activeTab, router, searchParams]);
 
   return (
