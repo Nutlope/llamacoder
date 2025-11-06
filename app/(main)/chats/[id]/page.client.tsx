@@ -4,7 +4,7 @@ import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
 import { splitByFirstCodeFence } from "@/lib/utils";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { startTransition, use, useEffect, useRef, useState } from "react";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
@@ -16,6 +16,7 @@ import { Context } from "../../providers";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
+  const searchParams = useSearchParams();
   const [streamPromise, setStreamPromise] = useState<
     Promise<ReadableStream> | undefined
   >(context.streamPromise);
@@ -23,7 +24,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
   const [isShowingCodeViewer, setIsShowingCodeViewer] = useState(
     chat.messages.some((m) => m.role === "assistant"),
   );
-  const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
+  const [activeTab, setActiveTab] = useState<"code" | "preview">(
+    (searchParams.get("tab") as "code" | "preview") || "preview",
+  );
   const router = useRouter();
   const isHandlingStreamRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
@@ -88,6 +91,12 @@ export default function PageClient({ chat }: { chat: Chat }) {
 
     f();
   }, [chat.id, router, streamPromise, context]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", activeTab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [activeTab, router, searchParams]);
 
   return (
     <div className="h-dvh">
