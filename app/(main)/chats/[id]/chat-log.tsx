@@ -5,6 +5,7 @@ import ArrowLeftIcon from "@/components/icons/arrow-left";
 import {
   splitByFirstCodeFence,
   generateIntelligentFilename,
+  extractFirstCodeBlock,
 } from "@/lib/utils";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
@@ -21,7 +22,9 @@ export default function ChatLog({
   streamText: string;
   onMessageClick: (v: Message) => void;
 }) {
-  const assistantMessages = chat.messages.filter((m) => m.role === "assistant");
+  const assistantMessages = chat.messages.filter(
+    (m) => m.role === "assistant" && extractFirstCodeBlock(m.content),
+  );
 
   return (
     <StickToBottom
