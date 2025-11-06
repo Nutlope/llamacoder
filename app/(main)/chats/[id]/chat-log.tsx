@@ -1,7 +1,6 @@
 "use client";
 
 import type { Chat, Message } from "./page";
-import ArrowLeftIcon from "@/components/icons/arrow-left";
 import {
   splitByFirstCodeFence,
   generateIntelligentFilename,
@@ -10,6 +9,7 @@ import {
 import { Fragment } from "react";
 import Markdown from "react-markdown";
 import { StickToBottom } from "use-stick-to-bottom";
+import { AppVersionButton } from "@/components/app-version-button";
 
 export default function ChatLog({
   chat,
@@ -114,89 +114,18 @@ function AssistantMessage({
         <div key={i}>
           {part.type === "text" ? (
             <Markdown className="prose">{part.content}</Markdown>
-          ) : part.type === "first-code-fence-generating" ? (
-            <div className="my-4">
-              <button
-                disabled
-                className="inline-flex w-full animate-pulse items-center gap-2 rounded-lg border-4 border-gray-300 p-1.5"
-              >
-                <div className="flex size-8 items-center justify-center rounded bg-gray-300 font-bold">
-                  V{version}
-                </div>
-                <div className="flex flex-col gap-0.5 text-left leading-none">
-                  <div className="text-sm font-medium leading-none">
-                    Generating...
-                  </div>
-                </div>
-              </button>
-            </div>
-          ) : message ? (
-            <div className="my-4">
-              <button
-                className={`${isActive ? "bg-white" : "bg-gray-300 hover:border-gray-400 hover:bg-gray-400"} inline-flex w-full items-center gap-2 rounded-lg border-4 border-gray-300 p-1.5`}
-                onClick={() => onMessageClick(message)}
-              >
-                <div
-                  className={`${isActive ? "bg-gray-300" : "bg-gray-200"} flex size-8 items-center justify-center rounded font-bold`}
-                >
-                  V{version}
-                </div>
-                <div className="flex flex-col gap-0.5 text-left leading-none">
-                  <div className="text-sm font-medium leading-none">
-                    {toTitleCase(part.filename.name)}{" "}
-                    {version !== 1 && `v${version}`}
-                  </div>
-                  <div className="text-xs leading-none text-gray-500">
-                    {part.filename.name}
-                    {version !== 1 && `-v${version}`}
-                    {"."}
-                    {part.filename.extension}
-                  </div>
-                </div>
-                <div className="ml-auto">
-                  <ArrowLeftIcon />
-                </div>
-              </button>
-            </div>
           ) : (
-            <div className="my-4">
-              <button
-                className="inline-flex w-full items-center gap-2 rounded-lg border-4 border-gray-300 p-1.5"
-                disabled
-              >
-                <div className="flex size-8 items-center justify-center rounded bg-gray-300 font-bold">
-                  V{version}
-                </div>
-                <div className="flex flex-col gap-0.5 text-left leading-none">
-                  <div className="text-sm font-medium leading-none">
-                    {toTitleCase(part.filename.name)}{" "}
-                    {version !== 1 && `v${version}`}
-                  </div>
-                  <div className="text-xs leading-none text-gray-500">
-                    {part.filename.name}
-                    {version !== 1 && `-v${version}`}
-                    {"."}
-                    {part.filename.extension}
-                  </div>
-                </div>
-                <div className="ml-auto">
-                  <ArrowLeftIcon />
-                </div>
-              </button>
-            </div>
+            <AppVersionButton
+              version={version}
+              filename={part.filename}
+              generating={part.type === "first-code-fence-generating"}
+              disabled={!message || part.type === "first-code-fence-generating"}
+              onClick={message ? () => onMessageClick(message) : undefined}
+              isActive={isActive}
+            />
           )}
         </div>
       ))}
     </div>
   );
-}
-
-export function toTitleCase(rawName: string): string {
-  // Split on one or more hyphens or underscores
-  const parts = rawName.split(/[-_]+/);
-
-  // Capitalize each part and join them back with spaces
-  return parts
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
 }

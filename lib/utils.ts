@@ -269,3 +269,13 @@ export function getMonacoLanguage(language: string): string {
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function toTitleCase(rawName: string): string {
+  // Split on one or more hyphens or underscores
+  const parts = rawName.split(/[-_]+/);
+
+  // Capitalize each part and join them back with spaces
+  return parts
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
