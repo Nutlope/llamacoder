@@ -1,35 +1,8 @@
 "use client";
 
-import { use } from "react";
-import { createHighlighter } from "shiki/bundle/web";
-
-const highlighterPromise = createHighlighter({
-  langs: [
-    "html",
-    "css",
-    "js",
-    "graphql",
-    "javascript",
-    "json",
-    "jsx",
-    "markdown",
-    "md",
-    "mdx",
-    "plaintext",
-    "py",
-    "python",
-    "sh",
-    "shell",
-    "sql",
-    "text",
-    "ts",
-    "tsx",
-    "txt",
-    "typescript",
-    "zsh",
-  ],
-  themes: ["github-light-default"],
-});
+import { useMemo } from "react";
+import Editor from "@monaco-editor/react";
+import { getMonacoLanguage } from "@/lib/utils";
 
 export default function SyntaxHighlighter({
   code,
@@ -38,13 +11,20 @@ export default function SyntaxHighlighter({
   code: string;
   language: string;
 }) {
-  const highlighter = use(highlighterPromise);
-  const html = highlighter.codeToHtml(code, {
-    lang: language,
-    theme: "github-light-default",
-  });
+  const monacoLanguage = useMemo(() => getMonacoLanguage(language), [language]);
 
   return (
-    <div className="p-4 text-sm" dangerouslySetInnerHTML={{ __html: html }} />
+    <Editor
+      value={code}
+      language={monacoLanguage}
+      theme="github-light-default"
+      options={{
+        readOnly: true,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+      }}
+      height="90vh"
+    />
   );
 }

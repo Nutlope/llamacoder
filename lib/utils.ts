@@ -222,6 +222,50 @@ function getExtensionForLanguage(language: string): string {
   return extensions[language.toLowerCase()] || "txt";
 }
 
+export function getLanguageOfFile(filePath: string): string {
+  const extension = filePath.split(".").pop()?.toLowerCase();
+  const languages: Record<string, string> = {
+    js: "javascript",
+    ts: "typescript",
+    tsx: "typescript",
+    jsx: "javascript",
+    py: "python",
+    html: "html",
+    css: "css",
+    json: "json",
+    md: "markdown",
+    sql: "sql",
+    sh: "shell",
+    yaml: "yaml",
+    yml: "yaml",
+  };
+  return languages[extension || ""] || "plaintext";
+}
+
+export function getMonacoLanguage(language: string): string {
+  const map: Record<string, string> = {
+    js: "javascript",
+    javascript: "javascript",
+    ts: "typescript",
+    typescript: "typescript",
+    tsx: "typescript",
+    jsx: "javascript",
+    py: "python",
+    python: "python",
+    html: "html",
+    css: "css",
+    json: "json",
+    md: "markdown",
+    markdown: "markdown",
+    sql: "sql",
+    sh: "shell",
+    bash: "shell",
+    yaml: "yaml",
+    yml: "yaml",
+  };
+  return map[language.toLowerCase()] || "plaintext";
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
