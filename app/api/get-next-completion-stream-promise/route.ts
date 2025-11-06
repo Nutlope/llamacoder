@@ -4,6 +4,31 @@ import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
 
+function optimizeMessagesForTokens(
+  messages: { role: "system" | "user" | "assistant"; content: string }[],
+): { role: "system" | "user" | "assistant"; content: string }[] {
+  // Strip code blocks from assistant messages except the last 2 to save tokens
+  const assistantIndices: number[] = [];
+  for (
+    let i = messages.length - 1;
+    i >= 0 && assistantIndices.length < 2;
+    i--
+  ) {
+    if (messages[i].role === "assistant") {
+      assistantIndices.push(i);
+    }
+  }
+  return messages.map((msg, index) => {
+    if (msg.role === "assistant" && !assistantIndices.includes(index)) {
+      return {
+        ...msg,
+        content: msg.content.replace(/```[\s\S]*?```/g, "").trim(),
+      };
+    }
+    return msg;
+  });
+}
+
 export async function POST(req: Request) {
   const neon = new Pool({ connectionString: process.env.DATABASE_URL });
   const adapter = new PrismaNeon(neon);
@@ -32,26 +57,7 @@ export async function POST(req: Request) {
     )
     .parse(messagesRes);
 
-  // Strip code blocks from assistant messages except the last 2 to save tokens
-  const assistantIndices: number[] = [];
-  for (
-    let i = messages.length - 1;
-    i >= 0 && assistantIndices.length < 2;
-    i--
-  ) {
-    if (messages[i].role === "assistant") {
-      assistantIndices.push(i);
-    }
-  }
-  messages = messages.map((msg, index) => {
-    if (msg.role === "assistant" && !assistantIndices.includes(index)) {
-      return {
-        ...msg,
-        content: msg.content.replace(/```[\s\S]*?```/g, "").trim(),
-      };
-    }
-    return msg;
-  });
+  messages = optimizeMessagesForTokens(messages);
 
   if (messages.length > 10) {
     messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
