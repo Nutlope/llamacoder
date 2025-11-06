@@ -5,17 +5,19 @@ import Editor from "@monaco-editor/react";
 import { getMonacoLanguage } from "@/lib/utils";
 
 export default function SyntaxHighlighter({
-  code,
-  language,
+  files,
 }: {
-  code: string;
-  language: string;
+  files: Array<{ name: string; content: string; language: string }>;
 }) {
-  const monacoLanguage = useMemo(() => getMonacoLanguage(language), [language]);
+  const file = files[0];
+  const monacoLanguage = useMemo(
+    () => getMonacoLanguage(file.language),
+    [file.language],
+  );
 
   return (
     <Editor
-      value={code}
+      value={file.content}
       language={monacoLanguage}
       theme="github-light-default"
       options={{

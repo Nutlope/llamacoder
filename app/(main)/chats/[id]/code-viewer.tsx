@@ -201,7 +201,9 @@ export default function CodeViewer({
             initial={streamAppIsGenerating ? "smooth" : false}
           >
             <StickToBottom.Content>
-              <SyntaxHighlighter code={code} language={language} />
+              <SyntaxHighlighter
+                files={[{ name: "code", content: code, language }]}
+              />
             </StickToBottom.Content>
           </StickToBottom>
         ) : (
