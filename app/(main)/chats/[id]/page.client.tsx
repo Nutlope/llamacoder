@@ -2,7 +2,7 @@
 
 import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
-import { splitByFirstCodeFence } from "@/lib/utils";
+import { splitByFirstCodeFence, extractFirstCodeBlock } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { startTransition, use, useEffect, useRef, useState } from "react";
@@ -11,7 +11,7 @@ import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
 import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
-import type { Chat } from "./page";
+import type { Chat, Message } from "./page";
 import { Context } from "../../providers";
 
 export default function PageClient({ chat }: { chat: Chat }) {
@@ -30,7 +30,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
   const router = useRouter();
   const isHandlingStreamRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
-    chat.messages.filter((m) => m.role === "assistant").at(-1),
+    chat.messages
+      .filter((m) => m.role === "assistant" && extractFirstCodeBlock(m.content))
+      .at(-1),
   );
 
   useEffect(() => {
@@ -176,6 +178,25 @@ export default function PageClient({ chat }: { chat: Chat }) {
                     return res.body;
                   });
                   setStreamPromise(streamPromise);
+                  router.refresh();
+                });
+              }}
+              onRestore={async (
+                message: Message | undefined,
+                oldVersion: number,
+                newVersion: number,
+              ) => {
+                startTransition(async () => {
+                  if (!message) return;
+                  const app = extractFirstCodeBlock(message.content);
+                  if (!app) return;
+                  const newContent = `Version ${newVersion} was created by restoring version ${oldVersion}. Here's the code:\n\n\`\`\`${app.language}\n${app.code}\n\`\`\``;
+                  const newMessage = await createMessage(
+                    chat.id,
+                    newContent,
+                    "assistant",
+                  );
+                  setActiveMessage(newMessage);
                   router.refresh();
                 });
               }}
