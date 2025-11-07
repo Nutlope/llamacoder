@@ -2,7 +2,7 @@
 
 import CloseIcon from "@/components/icons/close-icon";
 import RefreshIcon from "@/components/icons/refresh";
-import CopyIcon from "@/components/icons/copy-icon";
+import { DownloadIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   Select,
@@ -20,6 +20,7 @@ import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
 import { StickToBottom } from "use-stick-to-bottom";
+import JSZip from "jszip";
 import dynamic from "next/dynamic";
 
 const CodeRunner = dynamic(() => import("@/components/code-runner"), {
@@ -143,19 +144,38 @@ export default function CodeViewer({
     return `${diffDays}d ago`;
   };
 
-  const handleCopyCode = async () => {
-    if (!mainFile) return;
-    try {
-      await navigator.clipboard.writeText(mainFile.code);
+  const handleDownloadFiles = async () => {
+    if (files.length === 0) return;
 
-      toast({
-        title: "Code copied!",
-        description: `${mainFile.path} copied to clipboard`,
-        variant: "default",
-      });
-    } catch (err) {
-      console.error("Failed to copy code: ", err);
-    }
+    const zip = new JSZip();
+
+    // Add each file to the zip
+    files.forEach((file) => {
+      zip.file(file.path, file.code);
+    });
+
+    // Generate the zip file
+    const content = await zip.generateAsync({ type: "blob" });
+
+    // Generate app title for filename
+    const appTitle = generateAppTitle(files);
+    const filename = `${appTitle.replace(/[^a-zA-Z0-9]/g, "-")}-llamacoder.zip`;
+
+    // Create a download link and trigger the download
+    const url = URL.createObjectURL(content);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Files downloaded!",
+      description: `${files.length} files downloaded as ${filename}`,
+      variant: "default",
+    });
   };
 
   useEffect(() => {
@@ -290,12 +310,12 @@ export default function CodeViewer({
           </button>
           <button
             className="hidden items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition hover:bg-white disabled:opacity-50 md:inline-flex"
-            onClick={handleCopyCode}
+            onClick={handleDownloadFiles}
             disabled={disabledControls}
-            title="Copy code"
+            title="Download files"
           >
-            <CopyIcon className="size-3" />
-            Copy
+            <DownloadIcon className="size-3" />
+            Download
           </button>
         </div>
       </div>

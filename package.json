@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "dedent": "^1.7.0",
     "framer-motion": "^11.18.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.468.0",
     "next": "16.0.1",
     "next-plausible": "^3.12.4",
