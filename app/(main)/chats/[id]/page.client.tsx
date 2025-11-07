@@ -5,7 +5,7 @@ import LogoSmall from "@/components/icons/logo-small";
 import { splitByFirstCodeFence, extractFirstCodeBlock } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { startTransition, use, useEffect, useRef, useState } from "react";
+import { memo, startTransition, use, useEffect, useRef, useState } from "react";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
@@ -13,6 +13,17 @@ import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat, Message } from "./page";
 import { Context } from "../../providers";
+
+const HeaderChat = memo(({ chat }: { chat: Chat }) => (
+  <div className="flex items-center gap-4 px-4 py-4">
+    <a href="/" target="_blank">
+      <LogoSmall />
+    </a>
+    <p className="italic text-gray-500">{chat.title}</p>
+  </div>
+));
+
+HeaderChat.displayName = "HeaderChat";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
@@ -24,9 +35,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
   const [isShowingCodeViewer, setIsShowingCodeViewer] = useState(
     chat.messages.some((m) => m.role === "assistant"),
   );
-  const [activeTab, setActiveTab] = useState<"code" | "preview">(
-    (searchParams.get("tab") as "code" | "preview") || "preview",
-  );
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
   const router = useRouter();
   const isHandlingStreamRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
@@ -69,7 +78,6 @@ export default function PageClient({ chat }: { chat: Chat }) {
           ) {
             didPushToPreview = true;
             setIsShowingCodeViewer(true);
-            setActiveTab("preview");
           }
         })
         .on("finalContent", async (finalText) => {
@@ -94,26 +102,13 @@ export default function PageClient({ chat }: { chat: Chat }) {
     f();
   }, [chat.id, router, streamPromise, context]);
 
-  useEffect(() => {
-    if (searchParams.get("tab") !== activeTab) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("tab", activeTab);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
-  }, [activeTab, router, searchParams]);
-
   return (
     <div className="h-dvh">
       <div className="flex h-full">
         <div
           className={`flex w-full shrink-0 flex-col overflow-hidden ${isShowingCodeViewer ? "lg:w-[30%]" : "lg:w-full"}`}
         >
-          <div className="flex items-center gap-4 px-4 py-4">
-            <Link href="/">
-              <LogoSmall />
-            </Link>
-            <p className="italic text-gray-500">{chat.title}</p>
-          </div>
+          <HeaderChat chat={chat} />
 
           <ChatLog
             chat={chat}
