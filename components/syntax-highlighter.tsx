@@ -25,8 +25,9 @@ export default function SyntaxHighlighter({
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         automaticLayout: true,
+        wordWrap: "on",
       }}
-      height="90vh"
+      height="85vh"
     />
   );
 }
