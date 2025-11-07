@@ -4,6 +4,7 @@ import { toTitleCase } from "@/lib/utils";
 export function AppVersionButton({
   version,
   filename,
+  fileCount,
   generating,
   disabled,
   onClick,
@@ -11,6 +12,7 @@ export function AppVersionButton({
 }: {
   version: number;
   filename?: { name: string; extension: string };
+  fileCount?: number;
   generating?: boolean;
   disabled: boolean;
   onClick?: () => void;
@@ -47,6 +49,16 @@ export function AppVersionButton({
             <div className="text-sm font-medium leading-none">
               Generating...
             </div>
+          ) : fileCount ? (
+            <>
+              <div className="text-sm font-medium leading-none">
+                {fileCount} file{fileCount !== 1 ? "s" : ""}{" "}
+                {version !== 1 && `v${version}`}
+              </div>
+              <div className="text-xs leading-none text-gray-500">
+                Version {version}
+              </div>
+            </>
           ) : filename ? (
             <>
               <div className="text-sm font-medium leading-none">
