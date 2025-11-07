@@ -70,17 +70,6 @@ export function extractAllCodeBlocks(input: string): Array<{
     files.push({ code, language, path, fullMatch });
   }
 
-  console.log(
-    "extractAllCodeBlocks: extracted",
-    files.length,
-    "files:",
-    files.map((f) => ({
-      path: f.path,
-      language: f.language,
-      codeLength: f.code.length,
-    })),
-  );
-
   return files;
 }
 

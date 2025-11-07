@@ -53,10 +53,27 @@ export default async function SharePage({
   }
 
   return (
-    <div className="flex h-full w-full grow items-center justify-center">
-      <CodeRunner
-        files={files.map((f) => ({ path: f.path, content: f.code }))}
-      />
+    <div className="flex h-full w-full grow flex-col">
+      <div className="flex h-full grow items-center justify-center">
+        <CodeRunner
+          files={files.map((f) => ({ path: f.path, content: f.code }))}
+        />
+      </div>
+
+      {/* Floating desktop banner */}
+      <div className="fixed bottom-4 right-4 z-50 hidden md:block">
+        <a
+          className="inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] bg-white px-3.5 py-1.5 text-xs text-black shadow-lg transition-shadow hover:shadow-sm"
+          href={`https://llamacoder.together.ai/?ref=${messageId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span className="text-center">
+            Powered by <span className="font-semibold">Together.ai</span> and{" "}
+            <span className="font-semibold">llamacoder</span>
+          </span>
+        </a>
+      </div>
     </div>
   );
 }
