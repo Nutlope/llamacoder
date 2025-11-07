@@ -105,7 +105,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
   return (
     <div className="h-dvh">
       <div className="flex h-full">
-        <div className="flex w-full shrink-0 flex-col overflow-hidden lg:w-[30%]">
+        <div
+          className={`flex w-full shrink-0 flex-col overflow-hidden ${isShowingCodeViewer ? "lg:w-[30%]" : "lg:w-full"}`}
+        >
           <div className="flex items-center gap-4 px-4 py-4">
             <Link href="/">
               <LogoSmall />

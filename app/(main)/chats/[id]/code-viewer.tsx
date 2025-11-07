@@ -136,6 +136,12 @@ export default function CodeViewer({
     <>
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-300 px-4">
         <div className="inline-flex items-center gap-4">
+          <button
+            className="text-gray-400 hover:text-gray-700"
+            onClick={onClose}
+          >
+            <CloseIcon className="size-5" />
+          </button>
           <span>{title}</span>
           <Select
             value={currentVersion.toString()}
