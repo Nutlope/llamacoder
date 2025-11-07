@@ -32,7 +32,7 @@ export default function ChatLog({
       resize="smooth"
       initial="smooth"
     >
-      <StickToBottom.Content className="mx-auto flex w-full max-w-prose flex-col gap-8 p-8">
+      <StickToBottom.Content className="mx-auto flex w-full max-w-prose flex-col gap-8 px-6 py-8">
         <UserMessage content={chat.prompt} />
 
         {chat.messages.slice(2).map((message) => (
