@@ -1,6 +1,6 @@
 import CodeRunner from "@/components/code-runner";
 import { getPrisma } from "@/lib/prisma";
-import { extractFirstCodeBlock } from "@/lib/utils";
+import { extractAllCodeBlocks } from "@/lib/utils";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -47,14 +47,16 @@ export default async function SharePage({
     notFound();
   }
 
-  const app = extractFirstCodeBlock(message.content);
-  if (!app || !app.language) {
+  const files = extractAllCodeBlocks(message.content);
+  if (files.length === 0) {
     notFound();
   }
 
   return (
     <div className="flex h-full w-full grow items-center justify-center">
-      <CodeRunner language={app.language} code={app.code} />
+      <CodeRunner
+        files={files.map((f) => ({ path: f.path, content: f.code }))}
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ export default function CodeRunner({
   files,
   onRequestFix,
 }: {
-  language: string;
+  language?: string;
   code?: string;
   files?: Array<{ path: string; content: string }>;
   onRequestFix?: (e: string) => void;
