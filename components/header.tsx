@@ -1,10 +1,11 @@
 import Image from "next/image";
+import { memo } from "react";
 
 import GithubIcon from "@/components/icons/github-icon";
 import logo from "@/public/logo.png";
 import Link from "next/link";
 
-export default function Header() {
+function Header() {
   return (
     <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-6">
       <Link href="/">
@@ -43,3 +44,5 @@ export default function Header() {
     </header>
   );
 }
+
+export default memo(Header);
