@@ -11,7 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { extractAllCodeBlocks, generateIntelligentFilename } from "@/lib/utils";
+import {
+  extractAllCodeBlocks,
+  generateIntelligentFilename,
+  toTitleCase,
+} from "@/lib/utils";
 import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
@@ -65,17 +69,45 @@ export default function CodeViewer({
     files.find((f) => f.path === "App.tsx") ||
     files.find((f) => f.path.endsWith(".tsx")) ||
     files[0];
-
-  console.log("CodeViewer: processing files", {
-    messageFiles: allFiles.length,
-    streamFiles: streamAllFiles.length,
-    finalFiles: files.length,
-    isStreaming: streamText.length > 0,
-    mainFile: mainFile?.path,
-  });
   const code = mainFile ? mainFile.code : "";
   const language = mainFile ? mainFile.language : "";
   const rawFilename = mainFile ? mainFile.path : "";
+
+  // Generate app title for display
+  const generateAppTitle = (fileList: typeof files) => {
+    if (fileList.length === 1) {
+      return generateIntelligentFilename(fileList[0].code, fileList[0].language)
+        .name;
+    }
+
+    // For multiple files, look for App.tsx or main component
+    const appFile = fileList.find(
+      (f) => f.path === "App.tsx" || f.path.endsWith("App.tsx"),
+    );
+    if (appFile) {
+      const appMatch = appFile.code.match(
+        /function\s+(\w+App|\w+Component|\w+)/,
+      );
+      if (appMatch) {
+        return toTitleCase(appMatch[1].replace(/(App|Component)$/, ""));
+      }
+    }
+
+    // Fallback: use the first file's name
+    const firstFile = fileList[0];
+    if (firstFile) {
+      const name =
+        firstFile.path
+          .split("/")
+          .pop()
+          ?.replace(/\.\w+$/, "") || "App";
+      return toTitleCase(name.replace(/(App|Component)$/, ""));
+    }
+
+    return "App";
+  };
+
+  const appTitle = generateAppTitle(files);
 
   // Generate intelligent filename if none provided or if it's empty
   const title = rawFilename || generateIntelligentFilename(code, language).name;
@@ -147,7 +179,7 @@ export default function CodeViewer({
           >
             <CloseIcon className="size-5" />
           </button>
-          <span>{title}</span>
+          <span>{appTitle}</span>
           <Select
             value={currentVersion.toString()}
             onValueChange={(value) =>

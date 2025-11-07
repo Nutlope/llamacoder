@@ -6,6 +6,7 @@ import {
   generateIntelligentFilename,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
+  toTitleCase,
 } from "@/lib/utils";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
@@ -24,7 +25,10 @@ export default function ChatLog({
   onMessageClick: (v: Message) => void;
 }) {
   const assistantMessages = chat.messages.filter(
-    (m) => m.role === "assistant" && extractFirstCodeBlock(m.content),
+    (m) =>
+      m.role === "assistant" &&
+      (extractFirstCodeBlock(m.content) ||
+        extractAllCodeBlocks(m.content).length > 0),
   );
 
   return (
@@ -96,13 +100,45 @@ function AssistantMessage({
   const parts = splitByFirstCodeFence(content);
   const hasSingleFile = parts.some((part) => part.type.includes("code-fence"));
 
+  // Generate app title for multiple files
+  const generateAppTitle = (files: typeof allFiles) => {
+    // Look for App.tsx or main component
+    const mainFile = files.find(
+      (f) => f.path === "App.tsx" || f.path.endsWith("App.tsx"),
+    );
+    if (mainFile) {
+      // Try to extract app name from content
+      const appMatch = mainFile.code.match(
+        /function\s+(\w+App|\w+Component|\w+)/,
+      );
+      if (appMatch) {
+        return toTitleCase(appMatch[1].replace(/(App|Component)$/, ""));
+      }
+    }
+
+    // Fallback: use the first file's name
+    const firstFile = files[0];
+    if (firstFile) {
+      const name =
+        firstFile.path
+          .split("/")
+          .pop()
+          ?.replace(/\.\w+$/, "") || "App";
+      return toTitleCase(name.replace(/(App|Component)$/, ""));
+    }
+
+    return "App";
+  };
+
   if (hasMultipleFiles) {
     // Show summary for multiple files
+    const appTitle = generateAppTitle(allFiles);
     return (
       <div>
         <AppVersionButton
           version={version}
           fileCount={allFiles.length}
+          appTitle={appTitle}
           generating={false}
           disabled={!message}
           onClick={message ? () => onMessageClick(message) : undefined}
