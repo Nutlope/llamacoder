@@ -177,7 +177,7 @@ function AssistantMessage({
         {enhancedParts.map((part, i) => (
           <div key={i}>
             {part.type === "text" ? (
-              <Markdown className="prose">{part.content}</Markdown>
+              <Markdown className="prose break-words">{part.content}</Markdown>
             ) : (
               <AppVersionButton
                 version={version}
@@ -196,6 +196,6 @@ function AssistantMessage({
     );
   } else {
     // No code blocks, just show text
-    return <Markdown className="prose">{content}</Markdown>;
+    return <Markdown className="prose break-words">{content}</Markdown>;
   }
 }
