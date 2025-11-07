@@ -37,6 +37,53 @@ export function extractFirstCodeBlock(input: string) {
   return null; // No code block found
 }
 
+export function extractAllCodeBlocks(input: string): Array<{
+  code: string;
+  language: string;
+  path: string;
+  fullMatch: string;
+}> {
+  const codeBlockRegex = /```([^\n]*)\n([\s\S]*?)\n```/g;
+  const files: Array<{
+    code: string;
+    language: string;
+    path: string;
+    fullMatch: string;
+  }> = [];
+
+  let match;
+  while ((match = codeBlockRegex.exec(input)) !== null) {
+    const fenceTag = match[1] || ""; // e.g. "tsx{path=src/App.tsx}"
+    const code = match[2]; // The actual code block content
+    const fullMatch = match[0]; // Entire matched string including backticks
+
+    // Parse language
+    const langMatch = fenceTag.match(/^([A-Za-z0-9]+)/);
+    const language = langMatch ? langMatch[1] : "text";
+
+    // Parse path from {path=...}
+    const pathMatch = fenceTag.match(/{\s*path\s*=\s*([^}]+)\s*}/);
+    const path = pathMatch
+      ? pathMatch[1]
+      : `file${files.length + 1}.${getExtensionForLanguage(language)}`;
+
+    files.push({ code, language, path, fullMatch });
+  }
+
+  console.log(
+    "extractAllCodeBlocks: extracted",
+    files.length,
+    "files:",
+    files.map((f) => ({
+      path: f.path,
+      language: f.language,
+      codeLength: f.code.length,
+    })),
+  );
+
+  return files;
+}
+
 function parseFileName(fileName: string): { name: string; extension: string } {
   // Split the string at the last dot
   const lastDotIndex = fileName.lastIndexOf(".");

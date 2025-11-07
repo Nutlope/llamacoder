@@ -5,6 +5,7 @@ import {
   splitByFirstCodeFence,
   generateIntelligentFilename,
   extractFirstCodeBlock,
+  extractAllCodeBlocks,
 } from "@/lib/utils";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
@@ -88,44 +89,70 @@ function AssistantMessage({
   isActive?: boolean;
   onMessageClick?: (v: Message) => void;
 }) {
+  const allFiles = extractAllCodeBlocks(content);
+  const hasMultipleFiles = allFiles.length > 1;
+
+  // For backward compatibility, also check for single file via splitByFirstCodeFence
   const parts = splitByFirstCodeFence(content);
+  const hasSingleFile = parts.some((part) => part.type.includes("code-fence"));
 
-  // Generate better filenames for display
-  const enhancedParts = parts.map((part) => {
-    if (
-      part.type.includes("code-fence") &&
-      (!part.filename.name || part.filename.name.trim() === "")
-    ) {
-      const intelligentFilename = generateIntelligentFilename(
-        part.content,
-        part.language,
-      );
-      return {
-        ...part,
-        filename: intelligentFilename,
-      };
-    }
-    return part;
-  });
+  if (hasMultipleFiles) {
+    // Show summary for multiple files
+    return (
+      <div>
+        <AppVersionButton
+          version={version}
+          fileCount={allFiles.length}
+          generating={false}
+          disabled={!message}
+          onClick={message ? () => onMessageClick(message) : undefined}
+          isActive={isActive}
+        />
+      </div>
+    );
+  } else if (hasSingleFile) {
+    // Handle single file (existing logic)
+    const enhancedParts = parts.map((part) => {
+      if (
+        part.type.includes("code-fence") &&
+        (!part.filename.name || part.filename.name.trim() === "")
+      ) {
+        const intelligentFilename = generateIntelligentFilename(
+          part.content,
+          part.language,
+        );
+        return {
+          ...part,
+          filename: intelligentFilename,
+        };
+      }
+      return part;
+    });
 
-  return (
-    <div>
-      {enhancedParts.map((part, i) => (
-        <div key={i}>
-          {part.type === "text" ? (
-            <Markdown className="prose">{part.content}</Markdown>
-          ) : (
-            <AppVersionButton
-              version={version}
-              filename={part.filename}
-              generating={part.type === "first-code-fence-generating"}
-              disabled={!message || part.type === "first-code-fence-generating"}
-              onClick={message ? () => onMessageClick(message) : undefined}
-              isActive={isActive}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
+    return (
+      <div>
+        {enhancedParts.map((part, i) => (
+          <div key={i}>
+            {part.type === "text" ? (
+              <Markdown className="prose">{part.content}</Markdown>
+            ) : (
+              <AppVersionButton
+                version={version}
+                filename={part.filename}
+                generating={part.type === "first-code-fence-generating"}
+                disabled={
+                  !message || part.type === "first-code-fence-generating"
+                }
+                onClick={message ? () => onMessageClick(message) : undefined}
+                isActive={isActive}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  } else {
+    // No code blocks, just show text
+    return <Markdown className="prose">{content}</Markdown>;
+  }
 }

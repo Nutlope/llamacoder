@@ -1,30 +1,86 @@
 import * as shadcnComponents from "@/lib/shadcn";
 
-export function getSandpackConfig(code: string) {
+export function getSandpackConfig(
+  files: Array<{ path: string; content: string }>,
+) {
+  console.log(
+    "getSandpackConfig: received",
+    files.length,
+    "files:",
+    files.map((f) => f.path),
+  );
+
+  const sandpackFiles: Record<string, string> = { ...shadcnFiles };
+
+  // Add tsconfig
+  sandpackFiles["/tsconfig.json"] = `{
+    "include": [
+      "./**/*"
+    ],
+    "compilerOptions": {
+      "strict": true,
+      "esModuleInterop": true,
+      "lib": [ "dom", "es2015" ],
+      "jsx": "react-jsx",
+      "baseUrl": "./",
+      "paths": {
+        "@/components/*": ["components/*"],
+        "@/lib/*": ["lib/*"],
+        "@/utils/*": ["utils/*"],
+        "@/types/*": ["types/*"]
+      }
+    }
+  }`;
+
+  // Add user files
+  for (const file of files) {
+    // Normalize paths - remove leading slash if present, and ensure proper structure
+    let normalizedPath = file.path.startsWith("/")
+      ? file.path.slice(1)
+      : file.path;
+
+    // If path starts with src/, remove it to place files at root level
+    if (normalizedPath.startsWith("src/")) {
+      normalizedPath = normalizedPath.slice(4);
+    }
+
+    console.log(`Sandpack file: ${file.path} -> ${normalizedPath}`);
+    sandpackFiles[normalizedPath] = file.content;
+  }
+
+  console.log(
+    "getSandpackConfig: final sandpack files:",
+    Object.keys(sandpackFiles).filter(
+      (key) => !key.startsWith("/components/") && !key.startsWith("/lib/"),
+    ),
+  );
+
+  // Ensure App.tsx is the entry point, or if not present, create one that imports the first file
+  if (!sandpackFiles["App.tsx"] && files.length > 0) {
+    const mainFile =
+      files.find((f) => f.path.endsWith(".tsx") || f.path.endsWith(".jsx")) ||
+      files[0];
+
+    // Normalize the path for import
+    let importPath = mainFile.path.startsWith("/")
+      ? mainFile.path.slice(1)
+      : mainFile.path;
+    if (importPath.startsWith("src/")) {
+      importPath = importPath.slice(4);
+    }
+    importPath = importPath.replace(/\.tsx?$/, "");
+
+    sandpackFiles["App.tsx"] = `import React from 'react';
+import MainComponent from './${importPath}';
+
+export default function App() {
+  return <MainComponent />;
+}`;
+  }
+
   return {
     template: "react-ts" as const,
-    files: {
-      "App.tsx": code,
-      ...shadcnFiles,
-      "/tsconfig.json": {
-        code: `{
-          "include": [
-            "./**/*"
-          ],
-          "compilerOptions": {
-            "strict": true,
-            "esModuleInterop": true,
-            "lib": [ "dom", "es2015" ],
-            "jsx": "react-jsx",
-            "baseUrl": "./",
-            "paths": {
-              "@/components/*": ["components/*"]
-            }
-          }
-        }
-      `,
-      },
-    },
+    files: sandpackFiles,
     options: {
       externalResources: [
         "https://unpkg.com/@tailwindcss/ui/dist/tailwind-ui.min.css",

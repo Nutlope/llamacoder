@@ -50,11 +50,10 @@ The user wants me to build a Next.js calculator application with:
 - Responsive design for desktop and mobile
 - Keyboard shortcuts for enhanced usability
 
-This is a single cohesive application, so I don't need a todo list. I should first generate design inspiration to create a polished, modern calculator interface, then search the repo to understand the structure, and finally build the calculator.
-\`\`\`
+\`\`\`tsx{path=App.tsx}
 ${calculator.content}
 \`\`\`
-      `),
+    `),
   },
   "quiz app": {
     prompt:

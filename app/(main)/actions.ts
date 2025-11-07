@@ -168,6 +168,13 @@ export async function createChat(
     },
   });
 
+  console.log("createChat: sending to AI", {
+    systemPrompt:
+      getMainCodingPrompt(mostSimilarExample).substring(0, 200) + "...",
+    userMessage: userMessage.substring(0, 200) + "...",
+    mostSimilarExample,
+  });
+
   const lastMessage = newChat.messages
     .sort((a, b) => a.position - b.position)
     .at(-1);

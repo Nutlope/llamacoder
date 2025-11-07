@@ -4,7 +4,7 @@ import assert from "assert";
 import { examples } from "./shadcn-examples";
 
 export const softwareArchitectPrompt = dedent`
-You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app. You are describing a plan for a single component React + Tailwind CSS + TypeScript app with the ability to use Lucide React for icons and Shadcn UI for components.
+You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app. You are describing a plan for a multi-file React + Tailwind CSS + TypeScript app with the ability to use Lucide React for icons and Shadcn UI for components.
 Don't use @chakra-ui/react and don't use @headlessui/react.
 Just use Shacdn UI components with tailwind!
 
@@ -12,10 +12,10 @@ Never use axios for data fetching just use the browser/nodejs native fetch.
 
 Guidelines:
 - Focus on MVP - Describe the Minimum Viable Product, which are the essential set of features needed to launch the app. Identify and prioritize the top 2-3 critical features.
-- Detail the High-Level Overview - Begin with a broad overview of the app’s purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
+- Detail the High-Level Overview - Begin with a broad overview of the app's purpose and core functionality, then detail specific features. Break down tasks into two levels of depth (Features → Tasks → Subtasks).
 - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
 - Skip code examples and commentary. Do not include any external API calls either.
-- Make sure the implementation can fit into one big React component
+- Plan for a multi-file structure with a main App.tsx file and supporting components/utilities
 - You CANNOT use any other libraries or frameworks besides those specified above (such as React router)
 If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
 `;
@@ -91,11 +91,11 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   import { Input } from "/components/ui/input"
   import { Label } from "/components/ui/label"
 
-  # Formatting Instructions
+   # Formatting Instructions
 
-  NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
+   NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
 
-  Explain your work. The first codefence should be the main React component. It should also use "tsx" as the language, and be followed by a sensible filename for the code (please use kebab-case for file names). Use this format: \`\`\`tsx{filename=calculator.tsx}.
+   Explain your work. Generate a complete React application with multiple files. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed. Each file should be in its own code fence with the path specified. Use this format: \`\`\`tsx{path=src/App.tsx} for each file. Ensure the main App.tsx file can run standalone but imports other files as needed.
 
   # Examples
 

@@ -11,11 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  extractFirstCodeBlock,
-  splitByFirstCodeFence,
-  generateIntelligentFilename,
-} from "@/lib/utils";
+import { extractAllCodeBlocks, generateIntelligentFilename } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
@@ -57,27 +53,35 @@ export default function CodeViewer({
     newVersion: number,
   ) => void;
 }) {
-  const app = message ? extractFirstCodeBlock(message.content) : undefined;
-  const streamAppParts = splitByFirstCodeFence(streamText);
-  const streamApp = streamAppParts.find(
-    (p) =>
-      p.type === "first-code-fence-generating" || p.type === "first-code-fence",
-  );
-  const streamAppIsGenerating = streamAppParts.some(
-    (p) => p.type === "first-code-fence-generating",
-  );
+  const allFiles = message ? extractAllCodeBlocks(message.content) : [];
+  const streamAllFiles = extractAllCodeBlocks(streamText);
 
-  const code = streamApp ? streamApp.content : app?.code || "";
-  const language = streamApp ? streamApp.language : app?.language || "";
-  const rawFilename = streamApp
-    ? streamApp.filename.name
-    : app?.filename?.name || "";
+  const files = streamAllFiles.length > 0 ? streamAllFiles : allFiles;
+  const isGenerating =
+    streamText.includes("```") && !streamText.includes("\n```");
+
+  // Find the main App.tsx file or the first tsx file
+  const mainFile =
+    files.find((f) => f.path === "App.tsx") ||
+    files.find((f) => f.path.endsWith(".tsx")) ||
+    files[0];
+
+  console.log("CodeViewer: processing files", {
+    messageFiles: allFiles.length,
+    streamFiles: streamAllFiles.length,
+    finalFiles: files.length,
+    isStreaming: streamText.length > 0,
+    mainFile: mainFile?.path,
+  });
+  const code = mainFile ? mainFile.code : "";
+  const language = mainFile ? mainFile.language : "";
+  const rawFilename = mainFile ? mainFile.path : "";
 
   // Generate intelligent filename if none provided or if it's empty
   const title = rawFilename || generateIntelligentFilename(code, language).name;
 
   const assistantMessages = chat.messages.filter(
-    (m) => m.role === "assistant" && extractFirstCodeBlock(m.content),
+    (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
   );
   const allAssistantMessages = assistantMessages.some(
     (m) => m.id === message?.id,
@@ -86,14 +90,15 @@ export default function CodeViewer({
     : message
       ? [...assistantMessages, message]
       : assistantMessages;
-  const currentVersion = streamApp
-    ? allAssistantMessages.length - 1
-    : message
-      ? allAssistantMessages.map((m) => m.id).indexOf(message.id)
-      : 1;
+  const currentVersion =
+    streamAllFiles.length > 0
+      ? allAssistantMessages.length - 1
+      : message
+        ? allAssistantMessages.map((m) => m.id).indexOf(message.id)
+        : 1;
 
   const [refresh, setRefresh] = useState(0);
-  const disabledControls = !!streamText || !code;
+  const disabledControls = !!streamText || files.length === 0;
 
   const timeAgo = (date: Date) => {
     const now = new Date();
@@ -107,13 +112,13 @@ export default function CodeViewer({
   };
 
   const handleCopyCode = async () => {
-    if (!code) return;
+    if (!mainFile) return;
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(mainFile.code);
 
       toast({
         title: "Code copied!",
-        description: "Code copied to clipboard",
+        description: `${mainFile.path} copied to clipboard`,
         variant: "default",
       });
     } catch (err) {
@@ -204,22 +209,26 @@ export default function CodeViewer({
           <StickToBottom
             className="relative grow overflow-hidden *:!h-[inherit]"
             resize="smooth"
-            initial={streamAppIsGenerating ? "smooth" : false}
+            initial={isGenerating ? "smooth" : false}
           >
             <StickToBottom.Content>
               <SyntaxHighlighter
-                files={[{ name: "code", content: code, language }]}
+                files={files.map((f) => ({
+                  path: f.path,
+                  content: f.code,
+                  language: f.language,
+                }))}
               />
             </StickToBottom.Content>
           </StickToBottom>
         ) : (
           <>
-            {language && (
+            {files.length > 0 && (
               <div className="flex h-full items-center justify-center">
                 <CodeRunner
                   onRequestFix={onRequestFix}
                   language={language}
-                  code={code}
+                  files={files.map((f) => ({ path: f.path, content: f.code }))}
                   key={refresh}
                 />
               </div>
@@ -234,7 +243,7 @@ export default function CodeViewer({
             message={
               disabledControls
                 ? undefined
-                : message && !streamApp
+                : message && streamAllFiles.length === 0
                   ? message
                   : undefined
             }
