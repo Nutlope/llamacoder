@@ -196,7 +196,7 @@ export default function CodeViewer({
       <div className="flex grow flex-col overflow-y-auto bg-white">
         {activeTab === "code" ? (
           <StickToBottom
-            className="relative grow overflow-hidden"
+            className="relative grow overflow-hidden *:!h-[inherit]"
             resize="smooth"
             initial={streamAppIsGenerating ? "smooth" : false}
           >
