@@ -97,6 +97,10 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
    Explain your work. Generate a complete React application with multiple files. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed. Each file should be in its own code fence with the path specified. Use this format: \`\`\`tsx{path=src/App.tsx} for each file. Ensure the main App.tsx file can run standalone but imports other files as needed.
 
+   # Incremental Updates
+
+   For follow-up requests (tweaks, changes, fixes), if the user provides the current codebase in their message, analyze what needs to change and ONLY output the modified files in the same code fence format. Do not regenerate the entire codebase - just the files that have been changed or added. This saves tokens and improves performance.
+
   # Examples
 
   Here's a good example:

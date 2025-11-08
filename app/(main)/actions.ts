@@ -194,16 +194,46 @@ export async function createMessage(
   const prisma = getPrisma();
   const chat = await prisma.chat.findUnique({
     where: { id: chatId },
-    include: { messages: true },
+    include: { messages: { orderBy: { position: "asc" } } },
   });
   if (!chat) notFound();
 
   const maxPosition = Math.max(...chat.messages.map((m) => m.position));
 
+  let files: any = null;
+  if (role === "assistant") {
+    // For assistant messages, merge files with previous state
+    const previousAssistantMessages = chat.messages
+      .filter((m) => m.role === "assistant" && m.files)
+      .sort((a, b) => b.position - a.position); // Most recent first
+
+    const previousFiles =
+      previousAssistantMessages.length > 0
+        ? (previousAssistantMessages[0].files as any)
+        : {};
+
+    // Parse new files from the response
+    const { extractAllCodeBlocks } = await import("@/lib/utils");
+    const newFiles = extractAllCodeBlocks(text);
+
+    // Merge: new files override previous ones
+    const mergedFiles = { ...previousFiles };
+    for (const file of newFiles) {
+      mergedFiles[file.path] = {
+        code: file.code,
+        language: file.language,
+        path: file.path,
+      };
+    }
+
+    files = mergedFiles;
+  }
+
   const newMessage = await prisma.message.create({
     data: {
       role,
       content: text,
+      files,
       position: maxPosition + 1,
       chatId,
     },

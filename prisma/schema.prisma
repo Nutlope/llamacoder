@@ -34,6 +34,7 @@ model Message {
   id        String   @id @default(nanoid(16))
   role      String
   content   String
+  files     Json?    // Complete file state for assistant messages
   chatId    String
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
   position  Int

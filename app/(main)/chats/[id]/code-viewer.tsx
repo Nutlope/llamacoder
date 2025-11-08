@@ -33,6 +33,32 @@ const SyntaxHighlighter = dynamic(
   },
 );
 
+// Helper function to get files from message or stream
+function getFiles(message?: Message, streamText?: string) {
+  // If we have a message with files, use those
+  if (message?.files) {
+    const files = message.files as any;
+    return Object.values(files).map((file: any) => ({
+      code: file.code,
+      language: file.language,
+      path: file.path,
+      fullMatch: "", // Not needed for stored files
+    }));
+  }
+
+  // Fallback to parsing content (for backward compatibility)
+  if (message) {
+    return extractAllCodeBlocks(message.content);
+  }
+
+  // For streaming, parse the stream text
+  if (streamText) {
+    return extractAllCodeBlocks(streamText);
+  }
+
+  return [];
+}
+
 export default function CodeViewer({
   chat,
   streamText,
@@ -58,10 +84,7 @@ export default function CodeViewer({
     newVersion: number,
   ) => void;
 }) {
-  const allFiles = message ? extractAllCodeBlocks(message.content) : [];
-  const streamAllFiles = extractAllCodeBlocks(streamText);
-
-  const files = streamAllFiles.length > 0 ? streamAllFiles : allFiles;
+  const files = getFiles(message, streamText);
   const isGenerating =
     streamText.includes("```") && !streamText.includes("\n```");
 
@@ -123,12 +146,12 @@ export default function CodeViewer({
     : message
       ? [...assistantMessages, message]
       : assistantMessages;
-  const currentVersion =
-    streamAllFiles.length > 0
-      ? allAssistantMessages.length - 1
-      : message
-        ? allAssistantMessages.map((m) => m.id).indexOf(message.id)
-        : 1;
+  const hasStreamingFiles = extractAllCodeBlocks(streamText).length > 0;
+  const currentVersion = hasStreamingFiles
+    ? allAssistantMessages.length
+    : message
+      ? allAssistantMessages.map((m) => m.id).indexOf(message.id) + 1
+      : 1;
 
   const [refresh, setRefresh] = useState(0);
   const disabledControls = !!streamText || files.length === 0;
@@ -295,7 +318,7 @@ export default function CodeViewer({
             message={
               disabledControls
                 ? undefined
-                : message && streamAllFiles.length === 0
+                : message && !hasStreamingFiles
                   ? message
                   : undefined
             }
