@@ -242,15 +242,15 @@ export default function CodeViewer({
     (m) => m.id === message?.id,
   )
     ? assistantMessages
-    : message
+    : message && extractAllCodeBlocks(message.content).length > 0
       ? [...assistantMessages, message]
       : assistantMessages;
   const currentVersion =
     streamAllFiles.length > 0
-      ? allAssistantMessages.length - 1
-      : message
+      ? allAssistantMessages.length
+      : message && allAssistantMessages.some((m) => m.id === message.id)
         ? allAssistantMessages.map((m) => m.id).indexOf(message.id)
-        : 1;
+        : allAssistantMessages.length - 1;
 
   const [refresh, setRefresh] = useState(0);
   const disabledControls = !!streamText || files.length === 0;
