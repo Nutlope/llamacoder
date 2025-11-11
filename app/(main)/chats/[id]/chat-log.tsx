@@ -2,11 +2,12 @@
 
 import type { Chat, Message } from "./page";
 import {
-  splitByFirstCodeFence,
+  parseReplySegments,
   generateIntelligentFilename,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
   toTitleCase,
+  getExtensionForLanguage,
 } from "@/lib/utils";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
@@ -59,7 +60,9 @@ export default function ChatLog({
                 }
                 message={message}
                 previousMessage={(() => {
-                  const idx = assistantMessages.map((m) => m.id).indexOf(message.id);
+                  const idx = assistantMessages
+                    .map((m) => m.id)
+                    .indexOf(message.id);
                   return idx > 0 ? assistantMessages[idx - 1] : undefined;
                 })()}
                 isActive={!streamText && activeMessage?.id === message.id}
@@ -108,7 +111,9 @@ function AssistantMessage({
   previousMessage?: Message;
 }) {
   const allFiles = extractAllCodeBlocks(content);
-  const hasMultipleFiles = allFiles.length > 1;
+  const segments = parseReplySegments(content);
+  const fileSegments = segments.filter((s) => s.type === "file");
+  const hasMultipleFiles = allFiles.length > 1 || fileSegments.length > 1;
 
   // Diff current files against previous assistant message files to show only changed/new
   const previousFiles = previousMessage
@@ -117,12 +122,10 @@ function AssistantMessage({
   const changedFiles = (() => {
     if (previousFiles.length === 0) return allFiles;
     const prevMap = new Map(previousFiles.map((f) => [f.path, f.code]));
-    return allFiles.filter((f) => !prevMap.has(f.path) || prevMap.get(f.path) !== f.code);
+    return allFiles.filter(
+      (f) => !prevMap.has(f.path) || prevMap.get(f.path) !== f.code,
+    );
   })();
-
-  // For backward compatibility, also check for single file via splitByFirstCodeFence
-  const parts = splitByFirstCodeFence(content);
-  const hasSingleFile = parts.some((part) => part.type.includes("code-fence"));
 
   // Generate app title for multiple files
   const generateAppTitle = (files: typeof allFiles) => {
@@ -154,61 +157,46 @@ function AssistantMessage({
     return "App";
   };
 
-  if (hasMultipleFiles) {
-    // Show summary for multiple files
-    const appTitle = generateAppTitle(allFiles);
+  console.log("segments:", segments);
+
+  const appTitle = generateAppTitle(
+    allFiles.length > 0
+      ? allFiles
+      : (fileSegments.map((f) => ({
+          code: f.code,
+          language: f.language,
+          path: f.path,
+          fullMatch: "",
+        })) as any),
+  );
+
+  const displayFileCount =
+    changedFiles.length > 0 ? changedFiles.length : fileSegments.length;
+
+  if (displayFileCount > 0) {
+    // Handle single-file replies with interleaved text and one file
     return (
       <div>
+        {segments.map((seg, i) => {
+          if (seg.type === "text") {
+            return (
+              <div key={i}>
+                <Markdown className="prose break-words">{seg.content}</Markdown>
+              </div>
+            );
+          }
+
+          return <div key={i}>Editing {seg.path}</div>;
+        })}
         <AppVersionButton
           version={version}
-          fileCount={changedFiles.length}
+          fileCount={displayFileCount}
           appTitle={appTitle}
           generating={false}
           disabled={!message}
           onClick={message ? () => onMessageClick(message) : undefined}
           isActive={isActive}
         />
-      </div>
-    );
-  } else if (hasSingleFile) {
-    // Handle single file (existing logic)
-    const enhancedParts = parts.map((part) => {
-      if (
-        part.type.includes("code-fence") &&
-        (!part.filename.name || part.filename.name.trim() === "")
-      ) {
-        const intelligentFilename = generateIntelligentFilename(
-          part.content,
-          part.language,
-        );
-        return {
-          ...part,
-          filename: intelligentFilename,
-        };
-      }
-      return part;
-    });
-
-    return (
-      <div>
-        {enhancedParts.map((part, i) => (
-          <div key={i}>
-            {part.type === "text" ? (
-              <Markdown className="prose break-words">{part.content}</Markdown>
-            ) : (
-              <AppVersionButton
-                version={version}
-                filename={part.filename}
-                generating={part.type === "first-code-fence-generating"}
-                disabled={
-                  !message || part.type === "first-code-fence-generating"
-                }
-                onClick={message ? () => onMessageClick(message) : undefined}
-                isActive={isActive}
-              />
-            )}
-          </div>
-        ))}
       </div>
     );
   } else {

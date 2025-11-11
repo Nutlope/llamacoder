@@ -79,31 +79,63 @@ export default function SyntaxHighlighter({
           {file?.path}
         </div>
         <div className="flex-1">
-          <Editor
-            value={file?.content || ""}
-            language={monacoLanguage}
-            theme="github-light-default"
-            options={{
-              readOnly: true,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              wordWrap: "on",
-            }}
-            onMount={(editor) => {
-              editorRef.current = editor;
-              if (isStreaming) {
-                const model = editor.getModel?.();
-                const lineCount = model?.getLineCount?.() || 1;
-                editor.revealLine?.(lineCount);
-                const scrollHeight = editor.getScrollHeight?.();
-                if (typeof scrollHeight === "number") {
-                  editor.setScrollTop?.(scrollHeight);
+          <div className="relative h-full">
+            <Editor
+              value={file?.content || ""}
+              language={monacoLanguage}
+              theme="github-light-default"
+              options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                wordWrap: "on",
+              }}
+              onMount={(editor) => {
+                editorRef.current = editor;
+                if (isStreaming) {
+                  const model = editor.getModel?.();
+                  const lineCount = model?.getLineCount?.() || 1;
+                  editor.revealLine?.(lineCount);
+                  const scrollHeight = editor.getScrollHeight?.();
+                  if (typeof scrollHeight === "number") {
+                    editor.setScrollTop?.(scrollHeight);
+                  }
                 }
-              }
-            }}
-            height="82vh"
-          />
+              }}
+              height="82vh"
+            />
+            {isStreaming && (
+              <div
+                className="absolute inset-0 z-10 cursor-not-allowed bg-transparent"
+                onWheel={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onMouseMove={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onMouseUp={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onScroll={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                style={{ pointerEvents: "all" }}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

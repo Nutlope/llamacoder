@@ -3,13 +3,6 @@ import * as shadcnComponents from "@/lib/shadcn";
 export function getSandpackConfig(
   files: Array<{ path: string; content: string }>,
 ) {
-  console.log(
-    "getSandpackConfig: received",
-    files.length,
-    "files:",
-    files.map((f) => f.path),
-  );
-
   const sandpackFiles: Record<string, string> = { ...shadcnFiles };
 
   // Add tsconfig

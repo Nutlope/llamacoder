@@ -2,7 +2,7 @@
 
 import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
-import { splitByFirstCodeFence, extractFirstCodeBlock } from "@/lib/utils";
+import { parseReplySegments, extractFirstCodeBlock } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { memo, startTransition, use, useEffect, useRef, useState } from "react";
@@ -61,9 +61,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
 
           if (
             !didPushToCode &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence-generating",
-            )
+            parseReplySegments(content).some((seg) => seg.type === "file")
           ) {
             didPushToCode = true;
             setIsShowingCodeViewer(true);
@@ -72,8 +70,8 @@ export default function PageClient({ chat }: { chat: Chat }) {
 
           if (
             !didPushToPreview &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence",
+            parseReplySegments(content).some(
+              (seg) => seg.type === "file" && !seg.isPartial,
             )
           ) {
             didPushToPreview = true;

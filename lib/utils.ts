@@ -205,6 +205,94 @@ export function splitByFirstCodeFence(markdown: string) {
   return result;
 }
 
+// New: Parse an assistant reply into ordered text and file segments.
+// Supports multiple files per reply and interleaved text. Streaming-safe: returns
+// a partial file segment if the closing fence hasn't arrived yet.
+export type ReplySegment =
+  | { type: "text"; content: string }
+  | {
+      type: "file";
+      code: string;
+      language: string;
+      path: string;
+      isPartial: boolean;
+    };
+
+export function parseReplySegments(markdown: string): ReplySegment[] {
+  const segments: ReplySegment[] = [];
+  const lines = markdown.split("\n");
+  const fenceRegex = /^```([^\n]*)$/; // opening or closing fence line
+
+  let textBuffer: string[] = [];
+  let codeBuffer: string[] = [];
+  let openTag: string | null = null; // e.g. tsx{path=src/App.tsx}
+
+  const flushText = () => {
+    if (textBuffer.length > 0) {
+      segments.push({ type: "text", content: textBuffer.join("\n") });
+      textBuffer = [];
+    }
+  };
+
+  const parseTag = (tag: string) => {
+    const raw = tag || "";
+    const langMatch = raw.match(/^([A-Za-z0-9]+)/);
+    const language = langMatch ? langMatch[1] : "text";
+    const pathMatch = raw.match(/\{\s*path\s*=\s*([^}]+)\s*\}/);
+    const filenameMatch = raw.match(/\{\s*filename\s*=\s*([^}]+)\s*\}/);
+    const path = pathMatch
+      ? pathMatch[1]
+      : filenameMatch
+        ? filenameMatch[1]
+        : `file.${getExtensionForLanguage(language)}`;
+    return { language, path };
+  };
+
+  for (const line of lines) {
+    const match = line.match(fenceRegex);
+    if (match && !openTag) {
+      // Opening fence
+      openTag = match[1] || "";
+      flushText();
+      codeBuffer = [];
+    } else if (match && openTag) {
+      // Closing fence
+      const { language, path } = parseTag(openTag);
+      segments.push({
+        type: "file",
+        code: codeBuffer.join("\n"),
+        language,
+        path,
+        isPartial: false,
+      });
+      openTag = null;
+      codeBuffer = [];
+    } else if (openTag) {
+      codeBuffer.push(line);
+    } else {
+      textBuffer.push(line);
+    }
+  }
+
+  // If a code fence remains open, emit a partial file segment
+  if (openTag) {
+    const { language, path } = parseTag(openTag);
+    segments.push({
+      type: "file",
+      code: codeBuffer.join("\n"),
+      language,
+      path,
+      isPartial: true,
+    });
+  } else {
+    flushText();
+  }
+
+  return segments.filter(
+    (r) => r.type !== "text" || (r.type === "text" && r.content.length > 0),
+  );
+}
+
 // Enhanced filename generation for when models don't provide filenames
 export function generateIntelligentFilename(
   content: string,
@@ -233,7 +321,7 @@ export function generateIntelligentFilename(
   return { name: `component`, extension: getExtensionForLanguage(language) };
 }
 
-function getExtensionForLanguage(language: string): string {
+export function getExtensionForLanguage(language: string): string {
   const extensions: Record<string, string> = {
     javascript: "js",
     js: "js",

@@ -62,16 +62,18 @@ export default function CodeViewer({
   const streamAllFiles = extractAllCodeBlocks(streamText);
 
   // Helper: extract the latest (possibly partial) code fence from the stream text
-  function extractLatestStreamBlock(input: string):
-    | { code: string; language: string; path: string }
-    | undefined {
+  function extractLatestStreamBlock(
+    input: string,
+  ): { code: string; language: string; path: string } | undefined {
     if (!input) return undefined;
     const lines = input.split("\n");
     const codeFenceRegex = /^```([^\n]*)$/;
 
     let openTag: string | null = null;
     let codeBuffer: string[] = [];
-    let latestComplete: { code: string; language: string; path: string } | undefined;
+    let latestComplete:
+      | { code: string; language: string; path: string }
+      | undefined;
 
     const parseTag = (tag: string) => {
       const raw = tag || "";
@@ -136,10 +138,23 @@ export default function CodeViewer({
 
   // Utility to merge base files with overlay files (overlay wins on conflicts)
   function mergeFiles(
-    base: Array<{ code: string; language: string; path: string; fullMatch: string }>,
-    overlay: Array<{ code: string; language: string; path: string; fullMatch: string }>,
+    base: Array<{
+      code: string;
+      language: string;
+      path: string;
+      fullMatch: string;
+    }>,
+    overlay: Array<{
+      code: string;
+      language: string;
+      path: string;
+      fullMatch: string;
+    }>,
   ) {
-    const map = new Map<string, { code: string; language: string; path: string; fullMatch: string }>();
+    const map = new Map<
+      string,
+      { code: string; language: string; path: string; fullMatch: string }
+    >();
     base.forEach((f) => map.set(f.path, f));
     overlay.forEach((f) => map.set(f.path, f));
     return Array.from(map.values());
@@ -251,6 +266,16 @@ export default function CodeViewer({
     return `${diffDays}d ago`;
   };
 
+  // Helper to get the main file for a message
+  const getMainFileForMessage = (message: Message) => {
+    const messageFiles = extractAllCodeBlocks(message.content);
+    return (
+      messageFiles.find((f) => f.path === "App.tsx") ||
+      messageFiles.find((f) => f.path.endsWith(".tsx")) ||
+      messageFiles[0]
+    );
+  };
+
   const handleDownloadFiles = async () => {
     if (files.length === 0) return;
 
@@ -349,14 +374,16 @@ export default function CodeViewer({
           <button
             onClick={() => onTabChange("code")}
             data-active={activeTab === "code" ? true : undefined}
-            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
+            disabled={disabledControls}
+            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 data-[active]:bg-blue-500 data-[active]:text-white"
           >
             Code
           </button>
           <button
             onClick={() => onTabChange("preview")}
             data-active={activeTab === "preview" ? true : undefined}
-            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
+            disabled={disabledControls}
+            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 data-[active]:bg-blue-500 data-[active]:text-white"
           >
             Preview
           </button>
@@ -368,7 +395,7 @@ export default function CodeViewer({
           <StickToBottom
             className="relative grow overflow-hidden *:!h-[inherit]"
             resize="smooth"
-            initial={isGenerating ? "smooth" : false}
+            initial={false}
           >
             <StickToBottom.Content>
               <SyntaxHighlighter
@@ -377,7 +404,11 @@ export default function CodeViewer({
                   content: f.code,
                   language: f.language,
                 }))}
-                activePath={streamText ? (latestStreamBlock?.path || files.at(-1)?.path) : undefined}
+                activePath={
+                  streamText
+                    ? latestStreamBlock?.path || files.at(-1)?.path
+                    : undefined
+                }
                 disableSelection={!!streamText}
                 isStreaming={!!streamText}
               />
