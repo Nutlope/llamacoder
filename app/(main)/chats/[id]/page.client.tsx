@@ -93,6 +93,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
               setStreamText("");
               setStreamPromise(undefined);
               setActiveMessage(message);
+              // When streaming finishes, switch to preview mode and keep the viewer open
+              setIsShowingCodeViewer(true);
+              setActiveTab("preview");
               router.refresh();
             });
           });

@@ -1,15 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { getMonacoLanguage } from "@/lib/utils";
 
 export default function SyntaxHighlighter({
   files,
+  activePath,
+  disableSelection,
 }: {
   files: Array<{ path: string; content: string; language: string }>;
+  activePath?: string;
+  disableSelection?: boolean;
 }) {
   const [activeFile, setActiveFile] = useState(0);
+
+  // Keep the active file synced when an external activePath is provided
+  useEffect(() => {
+    if (!activePath) return;
+    const idx = files.findIndex((f) => f.path === activePath);
+    if (idx !== -1 && idx !== activeFile) {
+      setActiveFile(idx);
+    }
+  }, [activePath, files, activeFile]);
 
   const file = files[activeFile];
   const monacoLanguage = useMemo(
@@ -36,6 +49,7 @@ export default function SyntaxHighlighter({
               tree={fileTree}
               activeFile={files[activeFile]?.path}
               onFileSelect={(path) => {
+                if (disableSelection) return;
                 const index = files.findIndex((f) => f.path === path);
                 if (index !== -1) setActiveFile(index);
               }}

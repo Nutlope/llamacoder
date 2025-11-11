@@ -61,15 +61,90 @@ export default function CodeViewer({
   const allFiles = message ? extractAllCodeBlocks(message.content) : [];
   const streamAllFiles = extractAllCodeBlocks(streamText);
 
-  const files = streamAllFiles.length > 0 ? streamAllFiles : allFiles;
+  // Helper: extract the latest (possibly partial) code fence from the stream text
+  function extractLatestStreamBlock(input: string):
+    | { code: string; language: string; path: string }
+    | undefined {
+    if (!input) return undefined;
+    const lines = input.split("\n");
+    const codeFenceRegex = /^```([^\n]*)$/;
+
+    let openTag: string | null = null;
+    let codeBuffer: string[] = [];
+    let latestComplete: { code: string; language: string; path: string } | undefined;
+
+    const parseTag = (tag: string) => {
+      const raw = tag || "";
+      const langMatch = raw.match(/^([A-Za-z0-9]+)/);
+      const language = langMatch ? langMatch[1] : "text";
+      const pathMatch = raw.match(/\{\s*path\s*=\s*([^}]+)\s*\}/);
+      const path = pathMatch
+        ? pathMatch[1]
+        : `file.${language === "typescript" || language === "tsx" ? "tsx" : language}`;
+      return { language, path };
+    };
+
+    for (const line of lines) {
+      const match = line.match(codeFenceRegex);
+      if (match && !openTag) {
+        // Opening a fence
+        openTag = match[1] || "";
+        codeBuffer = [];
+      } else if (match && openTag) {
+        // Closing the fence
+        const { language, path } = parseTag(openTag);
+        latestComplete = { code: codeBuffer.join("\n"), language, path };
+        openTag = null;
+        codeBuffer = [];
+      } else if (openTag) {
+        codeBuffer.push(line);
+      }
+    }
+
+    // If an open fence remains at end, return it as partial; else return latest complete
+    if (openTag) {
+      const { language, path } = parseTag(openTag);
+      return { code: codeBuffer.join("\n"), language, path };
+    }
+    return latestComplete;
+  }
+
+  const latestStreamBlock = extractLatestStreamBlock(streamText);
+
+  // Merge stream files with latest partial if necessary
+  let mergedStreamFiles = [...streamAllFiles];
+  if (latestStreamBlock) {
+    const existingIdx = mergedStreamFiles.findIndex(
+      (f) => f.path === latestStreamBlock.path,
+    );
+    if (existingIdx !== -1) {
+      mergedStreamFiles[existingIdx] = {
+        code: latestStreamBlock.code,
+        language: latestStreamBlock.language,
+        path: latestStreamBlock.path,
+        fullMatch: "",
+      };
+    } else {
+      mergedStreamFiles.push({
+        code: latestStreamBlock.code,
+        language: latestStreamBlock.language,
+        path: latestStreamBlock.path,
+        fullMatch: "",
+      });
+    }
+  }
+
+  const files = mergedStreamFiles.length > 0 ? mergedStreamFiles : allFiles;
   const isGenerating =
     streamText.includes("```") && !streamText.includes("\n```");
 
-  // Find the main App.tsx file or the first tsx file
+  // Prefer the latest streamed file while streaming; otherwise, App.tsx or first tsx
   const mainFile =
-    files.find((f) => f.path === "App.tsx") ||
-    files.find((f) => f.path.endsWith(".tsx")) ||
-    files[0];
+    latestStreamBlock && streamText
+      ? files.find((f) => f.path === latestStreamBlock.path) || files.at(-1)
+      : files.find((f) => f.path === "App.tsx") ||
+        files.find((f) => f.path.endsWith(".tsx")) ||
+        files[0];
   const code = mainFile ? mainFile.code : "";
   const language = mainFile ? mainFile.language : "";
   const rawFilename = mainFile ? mainFile.path : "";
@@ -270,6 +345,8 @@ export default function CodeViewer({
                   content: f.code,
                   language: f.language,
                 }))}
+                activePath={streamText ? (latestStreamBlock?.path || files.at(-1)?.path) : undefined}
+                disableSelection={!!streamText}
               />
             </StickToBottom.Content>
           </StickToBottom>
