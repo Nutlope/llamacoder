@@ -113,19 +113,6 @@ function AssistantMessage({
   const allFiles = extractAllCodeBlocks(content);
   const segments = parseReplySegments(content);
   const fileSegments = segments.filter((s) => s.type === "file");
-  const hasMultipleFiles = allFiles.length > 1 || fileSegments.length > 1;
-
-  // Diff current files against previous assistant message files to show only changed/new
-  const previousFiles = previousMessage
-    ? extractAllCodeBlocks(previousMessage.content)
-    : [];
-  const changedFiles = (() => {
-    if (previousFiles.length === 0) return allFiles;
-    const prevMap = new Map(previousFiles.map((f) => [f.path, f.code]));
-    return allFiles.filter(
-      (f) => !prevMap.has(f.path) || prevMap.get(f.path) !== f.code,
-    );
-  })();
 
   // Generate app title for multiple files
   const generateAppTitle = (files: typeof allFiles) => {
@@ -168,8 +155,7 @@ function AssistantMessage({
         })) as any),
   );
 
-  const displayFileCount =
-    changedFiles.length > 0 ? changedFiles.length : fileSegments.length;
+  const displayFileCount = fileSegments.length;
 
   if (displayFileCount > 0) {
     // Handle single-file replies with interleaved text and one file
