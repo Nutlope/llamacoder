@@ -95,7 +95,9 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
    NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
 
-   Explain your work. Generate a complete React application with multiple files. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed. Each file should be in its own code fence with the path specified. Use this format: \`\`\`tsx{path=src/App.tsx} for each file. Ensure the main App.tsx file can run standalone but imports other files as needed.
+   IMPORTANT: You MUST generate a complete React application with MULTIPLE files. Do NOT generate single-file applications. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed. Each file should be in its own code fence with the path specified. Use this format: \`\`\`tsx{path=src/App.tsx} for each file. Ensure the main App.tsx file can run standalone but imports other files as needed.
+
+   CRITICAL: Always create at least 3-5 separate files for any non-trivial application. Split functionality into logical components, utilities, and types.
 
    # Incremental Updates
 

@@ -315,3 +315,52 @@ export function toTitleCase(rawName: string): string {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 }
+
+export interface VersionInfo {
+  currentVersion: number; // 1-based version number
+  selectedIndex: number; // 0-based index for array access
+  allVersions: number; // total number of versions
+  isStreaming: boolean;
+}
+
+/**
+ * Centralized version calculation for consistent versioning across components
+ */
+export function calculateVersionInfo(
+  chatMessages: Array<{ id: string; role: string; content: string }>,
+  activeMessage: { id: string } | undefined,
+  streamText: string,
+): VersionInfo {
+  const assistantMessages = chatMessages.filter(
+    (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
+  );
+
+  const hasStreamingFiles = extractAllCodeBlocks(streamText).length > 0;
+  const isStreaming = !!streamText;
+
+  let currentVersion: number;
+  let selectedIndex: number;
+
+  if (hasStreamingFiles) {
+    // During streaming, show the next version number
+    currentVersion = assistantMessages.length + 1;
+    selectedIndex = assistantMessages.length; // This will be out of bounds, indicating streaming state
+  } else if (activeMessage) {
+    // When viewing a specific message, find its version
+    selectedIndex = assistantMessages.findIndex(
+      (m) => m.id === activeMessage.id,
+    );
+    currentVersion = selectedIndex + 1;
+  } else {
+    // Default to first version
+    currentVersion = 1;
+    selectedIndex = 0;
+  }
+
+  return {
+    currentVersion,
+    selectedIndex,
+    allVersions: assistantMessages.length,
+    isStreaming,
+  };
+}
