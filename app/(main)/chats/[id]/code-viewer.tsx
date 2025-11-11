@@ -211,29 +211,36 @@ export default function CodeViewer({
             <CloseIcon className="size-5" />
           </button>
           <span>{appTitle}</span>
-          <Select
-            value={(currentVersion - 1).toString()}
-            onValueChange={(value) =>
-              onMessageChange(allAssistantMessages[parseInt(value)])
-            }
-            disabled={disabledControls}
-          >
-            <SelectTrigger className="h-[38px] w-16 text-sm font-semibold">
-              <SelectValue>{`v${currentVersion}`}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {allAssistantMessages.map((msg, i) => (
-                <SelectItem key={i} value={i.toString()}>
-                  <div className="flex flex-col">
-                    <span className="font-semibold">v{i + 1}</span>
-                    <span className="text-xs text-gray-500">
-                      {timeAgo(msg.createdAt)}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {streamText ? (
+            // During streaming, just show version number
+            <span className="flex h-[38px] items-center px-2 text-sm font-semibold">
+              v{currentVersion}
+            </span>
+          ) : (
+            <Select
+              value={(currentVersion - 1).toString()}
+              onValueChange={(value) =>
+                onMessageChange(allAssistantMessages[parseInt(value)])
+              }
+              disabled={disabledControls}
+            >
+              <SelectTrigger className="h-[38px] w-16 text-sm font-semibold">
+                <SelectValue>{`v${currentVersion}`}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {allAssistantMessages.map((msg, i) => (
+                  <SelectItem key={i} value={i.toString()}>
+                    <div className="flex flex-col">
+                      <span className="font-semibold">v{i + 1}</span>
+                      <span className="text-xs text-gray-500">
+                        {timeAgo(msg.createdAt)}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {currentVersion < versionData.allVersions && message && (
             <button
               onClick={() =>
@@ -263,7 +270,17 @@ export default function CodeViewer({
         </div>
       </div>
 
-      <div className="flex grow flex-col overflow-y-auto bg-white">
+      <div className="relative flex grow flex-col overflow-y-auto bg-white">
+        {streamText && activeTab === "code" && files.length > 0 && (
+          <div className="absolute right-4 top-4 z-10">
+            <div className="rounded-lg border bg-white px-3 py-2 shadow-lg">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+                <span className="text-sm font-medium">AI writing...</span>
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === "code" ? (
           <StickToBottom
             className="relative grow overflow-hidden *:!h-[inherit]"
@@ -277,6 +294,7 @@ export default function CodeViewer({
                   content: f.code,
                   language: f.language,
                 }))}
+                activeFileIndex={streamText ? files.length - 1 : undefined}
               />
             </StickToBottom.Content>
           </StickToBottom>

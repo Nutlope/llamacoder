@@ -62,12 +62,23 @@ export default function ChatLog({
           </Fragment>
         ))}
 
-        {streamText && (
+        {streamText && !streamText.includes("```") && (
           <AssistantMessage
             content={streamText}
             version={versionData.getVersionForMessage("streaming")}
             isActive={true}
           />
+        )}
+        {streamText && streamText.includes("```") && (
+          <div className="my-4">
+            <AppVersionButton
+              version={versionData.getVersionForMessage("streaming")}
+              generating={true}
+              disabled={true}
+              onClick={() => {}}
+              isActive={true}
+            />
+          </div>
         )}
       </StickToBottom.Content>
     </StickToBottom>
@@ -103,6 +114,9 @@ function AssistantMessage({
   // For backward compatibility, also check for single file via splitByFirstCodeFence
   const parts = splitByFirstCodeFence(content);
   const hasSingleFile = parts.some((part) => part.type.includes("code-fence"));
+
+  // During streaming, if content starts with code fence markers, treat as file even if incomplete
+  const isStreamingFile = !message && content.trim().startsWith("```");
 
   // Generate app title for multiple files
   const generateAppTitle = (files: typeof allFiles) => {
@@ -150,24 +164,45 @@ function AssistantMessage({
         />
       </div>
     );
-  } else if (hasSingleFile) {
-    // Handle single file (existing logic)
-    const enhancedParts = parts.map((part) => {
-      if (
-        part.type.includes("code-fence") &&
-        (!part.filename.name || part.filename.name.trim() === "")
-      ) {
-        const intelligentFilename = generateIntelligentFilename(
-          part.content,
-          part.language,
-        );
-        return {
-          ...part,
-          filename: intelligentFilename,
-        };
-      }
-      return part;
-    });
+  } else if (hasSingleFile || isStreamingFile) {
+    // Handle single file (existing logic) or streaming file
+    let enhancedParts = parts;
+
+    if (isStreamingFile) {
+      // For streaming files, create a synthetic part
+      const codeFenceMatch = content.match(/^```(\w*)/);
+      const language = codeFenceMatch ? codeFenceMatch[1] : "";
+      const codeContent = content
+        .replace(/^```[^\n]*\n/, "")
+        .replace(/\n```$/, "");
+
+      enhancedParts = [
+        {
+          type: "first-code-fence-generating" as const,
+          content: codeContent,
+          filename: generateIntelligentFilename(codeContent, language),
+          language,
+        },
+      ];
+    } else {
+      // Existing logic for completed files
+      enhancedParts = parts.map((part) => {
+        if (
+          part.type.includes("code-fence") &&
+          (!part.filename.name || part.filename.name.trim() === "")
+        ) {
+          const intelligentFilename = generateIntelligentFilename(
+            part.content,
+            part.language,
+          );
+          return {
+            ...part,
+            filename: intelligentFilename,
+          };
+        }
+        return part;
+      });
+    }
 
     return (
       <div>

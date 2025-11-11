@@ -6,12 +6,16 @@ import { getMonacoLanguage } from "@/lib/utils";
 
 export default function SyntaxHighlighter({
   files,
+  activeFileIndex,
 }: {
   files: Array<{ path: string; content: string; language: string }>;
+  activeFileIndex?: number;
 }) {
   const [activeFile, setActiveFile] = useState(0);
+  const currentActiveFile =
+    activeFileIndex !== undefined ? activeFileIndex : activeFile;
 
-  const file = files[activeFile];
+  const file = files[currentActiveFile];
   const monacoLanguage = useMemo(
     () => (file ? getMonacoLanguage(file.language) : "plaintext"),
     [file?.language],
@@ -34,10 +38,14 @@ export default function SyntaxHighlighter({
           <div className="overflow-y-auto">
             <FileTree
               tree={fileTree}
-              activeFile={files[activeFile]?.path}
+              activeFile={files[currentActiveFile]?.path}
               onFileSelect={(path) => {
                 const index = files.findIndex((f) => f.path === path);
-                if (index !== -1) setActiveFile(index);
+                if (index !== -1) {
+                  if (activeFileIndex === undefined) {
+                    setActiveFile(index);
+                  }
+                }
               }}
             />
           </div>

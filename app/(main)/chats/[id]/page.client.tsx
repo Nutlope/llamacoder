@@ -31,7 +31,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
   >(context.streamPromise);
   const [streamText, setStreamText] = useState("");
   const [isShowingCodeViewer, setIsShowingCodeViewer] = useState(
-    chat.messages.some((m) => m.role === "assistant"),
+    chat.messages.some((m) => m.role === "assistant") || !!streamText,
   );
   const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
   const router = useRouter();
@@ -91,6 +91,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
               setStreamText("");
               setStreamPromise(undefined);
               setActiveMessage(message);
+              setActiveTab("preview"); // Switch to preview when streaming completes
               router.refresh();
             });
           });

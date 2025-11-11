@@ -335,13 +335,13 @@ export function calculateVersionInfo(
     (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
   );
 
-  const hasStreamingFiles = extractAllCodeBlocks(streamText).length > 0;
+  const hasStreamingCodeFences = streamText.includes("```");
   const isStreaming = !!streamText;
 
   let currentVersion: number;
   let selectedIndex: number;
 
-  if (hasStreamingFiles) {
+  if (hasStreamingCodeFences) {
     // During streaming, show the next version number
     currentVersion = assistantMessages.length + 1;
     selectedIndex = assistantMessages.length; // This will be out of bounds, indicating streaming state
