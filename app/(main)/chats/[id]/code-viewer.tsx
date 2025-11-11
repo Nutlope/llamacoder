@@ -15,8 +15,8 @@ import {
   extractAllCodeBlocks,
   generateIntelligentFilename,
   toTitleCase,
-  type VersionInfo,
 } from "@/lib/utils";
+import { useMessageVersions } from "@/hooks/use-message-versions";
 import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
@@ -64,7 +64,6 @@ export default function CodeViewer({
   chat,
   streamText,
   message,
-  versionInfo,
   onMessageChange,
   activeTab,
   onTabChange,
@@ -75,7 +74,6 @@ export default function CodeViewer({
   chat: Chat;
   streamText: string;
   message?: Message;
-  versionInfo: VersionInfo;
   onMessageChange: (v: Message) => void;
   activeTab: string;
   onTabChange: (v: "code" | "preview") => void;
@@ -87,6 +85,7 @@ export default function CodeViewer({
     newVersion: number,
   ) => void;
 }) {
+  const versionData = useMessageVersions(chat.messages, message, streamText);
   const files = getFiles(message, streamText);
   const isGenerating =
     streamText.includes("```") && !streamText.includes("\n```");
@@ -139,17 +138,8 @@ export default function CodeViewer({
   // Generate intelligent filename if none provided or if it's empty
   // const title = rawFilename || generateIntelligentFilename(code, language).name;
 
-  const assistantMessages = chat.messages.filter(
-    (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
-  );
-  const allAssistantMessages = assistantMessages.some(
-    (m) => m.id === message?.id,
-  )
-    ? assistantMessages
-    : message
-      ? [...assistantMessages, message]
-      : assistantMessages;
-  const currentVersion = versionInfo.currentVersion;
+  const allAssistantMessages = versionData.getAllAssistantMessages(message);
+  const currentVersion = versionData.currentVersion;
 
   const [refresh, setRefresh] = useState(0);
   const disabledControls = !!streamText || files.length === 0;
@@ -229,7 +219,7 @@ export default function CodeViewer({
             disabled={disabledControls}
           >
             <SelectTrigger className="h-[38px] w-16 text-sm font-semibold">
-              <SelectValue>{`v${currentVersion + 1}`}</SelectValue>
+              <SelectValue>{`v${currentVersion}`}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {allAssistantMessages.map((msg, i) => (
@@ -244,10 +234,10 @@ export default function CodeViewer({
               ))}
             </SelectContent>
           </Select>
-          {currentVersion < versionInfo.allVersions && message && (
+          {currentVersion < versionData.allVersions && message && (
             <button
               onClick={() =>
-                onRestore(message, currentVersion, versionInfo.allVersions + 1)
+                onRestore(message, currentVersion, versionData.allVersions + 1)
               }
               className="inline-flex h-[38px] items-center justify-center rounded bg-blue-500 px-2 text-xs font-medium text-white hover:bg-blue-600"
             >
@@ -312,7 +302,7 @@ export default function CodeViewer({
             message={
               disabledControls
                 ? undefined
-                : message && !versionInfo.isStreaming
+                : message && !versionData.isStreaming
                   ? message
                   : undefined
             }

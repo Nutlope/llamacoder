@@ -4,11 +4,10 @@ import type { Chat, Message } from "./page";
 import {
   splitByFirstCodeFence,
   generateIntelligentFilename,
-  extractFirstCodeBlock,
   extractAllCodeBlocks,
   toTitleCase,
-  type VersionInfo,
 } from "@/lib/utils";
+import { useMessageVersions } from "@/hooks/use-message-versions";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
 import { StickToBottom } from "use-stick-to-bottom";
@@ -18,29 +17,18 @@ export default function ChatLog({
   chat,
   activeMessage,
   streamText,
-  versionInfo,
   onMessageClick,
 }: {
   chat: Chat;
   activeMessage?: Message;
   streamText: string;
-  versionInfo: VersionInfo;
   onMessageClick: (v: Message) => void;
 }) {
-  const assistantMessages = chat.messages.filter(
-    (m) =>
-      m.role === "assistant" &&
-      (extractFirstCodeBlock(m.content) ||
-        extractAllCodeBlocks(m.content).length > 0),
+  const versionData = useMessageVersions(
+    chat.messages,
+    activeMessage,
+    streamText,
   );
-
-  const getMessageVersion = (message: Message): number => {
-    if (versionInfo.isStreaming && message.id === "streaming") {
-      return versionInfo.currentVersion;
-    }
-    const index = assistantMessages.findIndex((m) => m.id === message.id);
-    return index + 1;
-  };
 
   return (
     <StickToBottom
@@ -65,7 +53,7 @@ export default function ChatLog({
             ) : (
               <AssistantMessage
                 content={message.content}
-                version={getMessageVersion(message)}
+                version={versionData.getVersionForMessage(message.id)}
                 message={message}
                 isActive={!streamText && activeMessage?.id === message.id}
                 onMessageClick={onMessageClick}
@@ -77,7 +65,7 @@ export default function ChatLog({
         {streamText && (
           <AssistantMessage
             content={streamText}
-            version={versionInfo.currentVersion}
+            version={versionData.getVersionForMessage("streaming")}
             isActive={true}
           />
         )}

@@ -58,7 +58,7 @@ export function AppVersionButton({
                 {appTitle ? ` - ${appTitle}` : ""}
               </div>
               <div className="text-xs leading-none text-gray-500">
-                {fileCount} file{fileCount !== 1 ? "s" : ""} included
+                {fileCount} file{fileCount !== 1 ? "s" : ""} changed
               </div>
             </>
           ) : filename ? (
