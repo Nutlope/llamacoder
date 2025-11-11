@@ -15,6 +15,7 @@ import {
   extractAllCodeBlocks,
   generateIntelligentFilename,
   toTitleCase,
+  type VersionInfo,
 } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
@@ -63,6 +64,7 @@ export default function CodeViewer({
   chat,
   streamText,
   message,
+  versionInfo,
   onMessageChange,
   activeTab,
   onTabChange,
@@ -73,6 +75,7 @@ export default function CodeViewer({
   chat: Chat;
   streamText: string;
   message?: Message;
+  versionInfo: VersionInfo;
   onMessageChange: (v: Message) => void;
   activeTab: string;
   onTabChange: (v: "code" | "preview") => void;
@@ -93,9 +96,9 @@ export default function CodeViewer({
     files.find((f) => f.path === "App.tsx") ||
     files.find((f) => f.path.endsWith(".tsx")) ||
     files[0];
-  const code = mainFile ? mainFile.code : "";
+  // const code = mainFile ? mainFile.code : "";
   const language = mainFile ? mainFile.language : "";
-  const rawFilename = mainFile ? mainFile.path : "";
+  // const rawFilename = mainFile ? mainFile.path : "";
 
   // Generate app title for display
   const generateAppTitle = (fileList: typeof files) => {
@@ -134,7 +137,7 @@ export default function CodeViewer({
   const appTitle = generateAppTitle(files);
 
   // Generate intelligent filename if none provided or if it's empty
-  const title = rawFilename || generateIntelligentFilename(code, language).name;
+  // const title = rawFilename || generateIntelligentFilename(code, language).name;
 
   const assistantMessages = chat.messages.filter(
     (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
@@ -146,12 +149,7 @@ export default function CodeViewer({
     : message
       ? [...assistantMessages, message]
       : assistantMessages;
-  const hasStreamingFiles = extractAllCodeBlocks(streamText).length > 0;
-  const currentVersion = hasStreamingFiles
-    ? allAssistantMessages.length
-    : message
-      ? allAssistantMessages.map((m) => m.id).indexOf(message.id) + 1
-      : 1;
+  const currentVersion = versionInfo.currentVersion;
 
   const [refresh, setRefresh] = useState(0);
   const disabledControls = !!streamText || files.length === 0;
@@ -246,14 +244,10 @@ export default function CodeViewer({
               ))}
             </SelectContent>
           </Select>
-          {currentVersion < allAssistantMessages.length - 1 && message && (
+          {currentVersion < versionInfo.allVersions && message && (
             <button
               onClick={() =>
-                onRestore(
-                  message,
-                  currentVersion + 1,
-                  allAssistantMessages.length + 1,
-                )
+                onRestore(message, currentVersion, versionInfo.allVersions + 1)
               }
               className="inline-flex h-[38px] items-center justify-center rounded bg-blue-500 px-2 text-xs font-medium text-white hover:bg-blue-600"
             >
@@ -318,7 +312,7 @@ export default function CodeViewer({
             message={
               disabledControls
                 ? undefined
-                : message && !hasStreamingFiles
+                : message && !versionInfo.isStreaming
                   ? message
                   : undefined
             }

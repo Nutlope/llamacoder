@@ -7,6 +7,7 @@ import {
   extractFirstCodeBlock,
   extractAllCodeBlocks,
   toTitleCase,
+  type VersionInfo,
 } from "@/lib/utils";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
@@ -17,11 +18,13 @@ export default function ChatLog({
   chat,
   activeMessage,
   streamText,
+  versionInfo,
   onMessageClick,
 }: {
   chat: Chat;
   activeMessage?: Message;
   streamText: string;
+  versionInfo: VersionInfo;
   onMessageClick: (v: Message) => void;
 }) {
   const assistantMessages = chat.messages.filter(
@@ -30,6 +33,14 @@ export default function ChatLog({
       (extractFirstCodeBlock(m.content) ||
         extractAllCodeBlocks(m.content).length > 0),
   );
+
+  const getMessageVersion = (message: Message): number => {
+    if (versionInfo.isStreaming && message.id === "streaming") {
+      return versionInfo.currentVersion;
+    }
+    const index = assistantMessages.findIndex((m) => m.id === message.id);
+    return index + 1;
+  };
 
   return (
     <StickToBottom
@@ -54,9 +65,7 @@ export default function ChatLog({
             ) : (
               <AssistantMessage
                 content={message.content}
-                version={
-                  assistantMessages.map((m) => m.id).indexOf(message.id) + 1
-                }
+                version={getMessageVersion(message)}
                 message={message}
                 isActive={!streamText && activeMessage?.id === message.id}
                 onMessageClick={onMessageClick}
@@ -68,7 +77,7 @@ export default function ChatLog({
         {streamText && (
           <AssistantMessage
             content={streamText}
-            version={assistantMessages.length + 1}
+            version={versionInfo.currentVersion}
             isActive={true}
           />
         )}

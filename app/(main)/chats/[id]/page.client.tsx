@@ -2,8 +2,12 @@
 
 import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
-import { splitByFirstCodeFence, extractFirstCodeBlock } from "@/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
+import {
+  splitByFirstCodeFence,
+  extractFirstCodeBlock,
+  calculateVersionInfo,
+} from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { memo, startTransition, use, useEffect, useRef, useState } from "react";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
@@ -26,7 +30,6 @@ HeaderChat.displayName = "HeaderChat";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
-  const searchParams = useSearchParams();
   const [streamPromise, setStreamPromise] = useState<
     Promise<ReadableStream> | undefined
   >(context.streamPromise);
@@ -101,6 +104,12 @@ export default function PageClient({ chat }: { chat: Chat }) {
     f();
   }, [chat.id, router, streamPromise, context]);
 
+  const versionInfo = calculateVersionInfo(
+    chat.messages,
+    activeMessage,
+    streamText,
+  );
+
   return (
     <div className="h-dvh">
       <div className="flex h-full">
@@ -113,6 +122,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
             chat={chat}
             streamText={streamText}
             activeMessage={activeMessage}
+            versionInfo={versionInfo}
             onMessageClick={(message) => {
               if (message !== activeMessage) {
                 setActiveMessage(message);
@@ -143,6 +153,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
               streamText={streamText}
               chat={chat}
               message={activeMessage}
+              versionInfo={versionInfo}
               onMessageChange={setActiveMessage}
               activeTab={activeTab}
               onTabChange={setActiveTab}
