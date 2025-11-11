@@ -33,6 +33,13 @@ export default function ChatLog({
       initial="smooth"
     >
       <StickToBottom.Content className="mx-auto flex w-full max-w-prose flex-col gap-8 px-6 py-8">
+        <div
+          className="pointer-events-none absolute inset-0 z-10"
+          style={{
+            background:
+              "linear-gradient(to bottom, #F4F4F5 0%, rgba(244,244,245,0) 20px, rgba(244,244,245,0) calc(100% - 20px), #F4F4F5 100%)",
+          }}
+        />
         <UserMessage content={chat.prompt} />
 
         {chat.messages.slice(2).map((message) => (
