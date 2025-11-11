@@ -134,7 +134,42 @@ export default function CodeViewer({
     }
   }
 
-  const files = mergedStreamFiles.length > 0 ? mergedStreamFiles : allFiles;
+  // Utility to merge base files with overlay files (overlay wins on conflicts)
+  function mergeFiles(
+    base: Array<{ code: string; language: string; path: string; fullMatch: string }>,
+    overlay: Array<{ code: string; language: string; path: string; fullMatch: string }>,
+  ) {
+    const map = new Map<string, { code: string; language: string; path: string; fullMatch: string }>();
+    base.forEach((f) => map.set(f.path, f));
+    overlay.forEach((f) => map.set(f.path, f));
+    return Array.from(map.values());
+  }
+
+  // Determine base files from previous assistant message
+  const assistantMessages = chat.messages.filter(
+    (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
+  );
+  const lastAssistant = assistantMessages.at(-1);
+  const previousFiles = lastAssistant
+    ? extractAllCodeBlocks(lastAssistant.content)
+    : [];
+
+  // Effective files:
+  // - While streaming: previous files overlaid with streamed/current partials
+  // - After streaming: previous version files overlaid with current message files
+  const files = streamText
+    ? mergeFiles(previousFiles, mergedStreamFiles)
+    : message
+      ? mergeFiles(
+          // previous of current message
+          (() => {
+            const idx = assistantMessages.map((m) => m.id).indexOf(message.id);
+            const prevMsg = idx > 0 ? assistantMessages[idx - 1] : undefined;
+            return prevMsg ? extractAllCodeBlocks(prevMsg.content) : [];
+          })(),
+          allFiles,
+        )
+      : allFiles;
   const isGenerating =
     streamText.includes("```") && !streamText.includes("\n```");
 
@@ -188,9 +223,6 @@ export default function CodeViewer({
   // Generate intelligent filename if none provided or if it's empty
   const title = rawFilename || generateIntelligentFilename(code, language).name;
 
-  const assistantMessages = chat.messages.filter(
-    (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
-  );
   const allAssistantMessages = assistantMessages.some(
     (m) => m.id === message?.id,
   )
@@ -347,6 +379,7 @@ export default function CodeViewer({
                 }))}
                 activePath={streamText ? (latestStreamBlock?.path || files.at(-1)?.path) : undefined}
                 disableSelection={!!streamText}
+                isStreaming={!!streamText}
               />
             </StickToBottom.Content>
           </StickToBottom>

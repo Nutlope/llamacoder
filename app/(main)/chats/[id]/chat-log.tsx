@@ -58,6 +58,10 @@ export default function ChatLog({
                   assistantMessages.map((m) => m.id).indexOf(message.id) + 1
                 }
                 message={message}
+                previousMessage={(() => {
+                  const idx = assistantMessages.map((m) => m.id).indexOf(message.id);
+                  return idx > 0 ? assistantMessages[idx - 1] : undefined;
+                })()}
                 isActive={!streamText && activeMessage?.id === message.id}
                 onMessageClick={onMessageClick}
               />
@@ -70,6 +74,7 @@ export default function ChatLog({
             content={streamText}
             version={assistantMessages.length + 1}
             isActive={true}
+            previousMessage={assistantMessages.at(-1)}
           />
         )}
       </StickToBottom.Content>
@@ -93,15 +98,27 @@ function AssistantMessage({
   message,
   isActive,
   onMessageClick = () => {},
+  previousMessage,
 }: {
   content: string;
   version: number;
   message?: Message;
   isActive?: boolean;
   onMessageClick?: (v: Message) => void;
+  previousMessage?: Message;
 }) {
   const allFiles = extractAllCodeBlocks(content);
   const hasMultipleFiles = allFiles.length > 1;
+
+  // Diff current files against previous assistant message files to show only changed/new
+  const previousFiles = previousMessage
+    ? extractAllCodeBlocks(previousMessage.content)
+    : [];
+  const changedFiles = (() => {
+    if (previousFiles.length === 0) return allFiles;
+    const prevMap = new Map(previousFiles.map((f) => [f.path, f.code]));
+    return allFiles.filter((f) => !prevMap.has(f.path) || prevMap.get(f.path) !== f.code);
+  })();
 
   // For backward compatibility, also check for single file via splitByFirstCodeFence
   const parts = splitByFirstCodeFence(content);
@@ -144,7 +161,7 @@ function AssistantMessage({
       <div>
         <AppVersionButton
           version={version}
-          fileCount={allFiles.length}
+          fileCount={changedFiles.length}
           appTitle={appTitle}
           generating={false}
           disabled={!message}

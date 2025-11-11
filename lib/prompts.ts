@@ -57,6 +57,15 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
     - ONLY USE THE ICONS LISTED ABOVE IF AN ICON IS NEEDED. Please DO NOT use the lucide-react library if it's not needed.
   - You also have access to framer-motion for animations and date-fns for date formatting
 
+  # Multi-File & Incremental Changes Policy
+
+  - Always structure solutions as multi-file React apps, even for small tasks.
+  - The main entry must be \`src/App.tsx\`; place components in \`src/components/\`, utilities in \`src/utils/\`, and types in \`src/types/\`.
+  - Never collapse the code into a single file in later iterations. Preserve the multi-file architecture.
+  - For follow-up edits or improvements, ONLY output the files that changed. Do not re-output unchanged files.
+  - Maintain stable file paths across iterations; if a file isn’t mentioned, it is assumed unchanged.
+  - When adding new functionality, create new files where appropriate instead of enlarging existing ones unnecessarily.
+
   # Shadcn UI Instructions
 
   Here are some prestyled UI components available for use from shadcn. Try to always default to using this library of components. Here are the UI components that are available, along with how to import them, and how to use them:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { getMonacoLanguage } from "@/lib/utils";
 
@@ -8,12 +8,15 @@ export default function SyntaxHighlighter({
   files,
   activePath,
   disableSelection,
+  isStreaming,
 }: {
   files: Array<{ path: string; content: string; language: string }>;
   activePath?: string;
   disableSelection?: boolean;
+  isStreaming?: boolean;
 }) {
   const [activeFile, setActiveFile] = useState(0);
+  const editorRef = useRef<any>(null);
 
   // Keep the active file synced when an external activePath is provided
   useEffect(() => {
@@ -29,6 +32,20 @@ export default function SyntaxHighlighter({
     () => (file ? getMonacoLanguage(file.language) : "plaintext"),
     [file?.language],
   );
+
+  // Auto-scroll the editor to bottom when streaming updates arrive
+  useEffect(() => {
+    if (!isStreaming || !editorRef.current) return;
+    const editor = editorRef.current;
+    const model = editor.getModel?.();
+    const lineCount = model?.getLineCount?.() || 1;
+    // Reveal last line and ensure scroll position at bottom
+    editor.revealLine?.(lineCount);
+    const scrollHeight = editor.getScrollHeight?.();
+    if (typeof scrollHeight === "number") {
+      editor.setScrollTop?.(scrollHeight);
+    }
+  }, [file?.content, activeFile, isStreaming]);
 
   if (files.length === 0) {
     return <div className="p-4 text-gray-500">No files to display</div>;
@@ -72,6 +89,18 @@ export default function SyntaxHighlighter({
               scrollBeyondLastLine: false,
               automaticLayout: true,
               wordWrap: "on",
+            }}
+            onMount={(editor) => {
+              editorRef.current = editor;
+              if (isStreaming) {
+                const model = editor.getModel?.();
+                const lineCount = model?.getLineCount?.() || 1;
+                editor.revealLine?.(lineCount);
+                const scrollHeight = editor.getScrollHeight?.();
+                if (typeof scrollHeight === "number") {
+                  editor.setScrollTop?.(scrollHeight);
+                }
+              }
             }}
             height="82vh"
           />
