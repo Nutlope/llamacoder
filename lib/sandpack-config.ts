@@ -44,16 +44,8 @@ export function getSandpackConfig(
       normalizedPath = normalizedPath.slice(4);
     }
 
-    console.log(`Sandpack file: ${file.path} -> ${normalizedPath}`);
     sandpackFiles[normalizedPath] = file.content;
   }
-
-  console.log(
-    "getSandpackConfig: final sandpack files:",
-    Object.keys(sandpackFiles).filter(
-      (key) => !key.startsWith("/components/") && !key.startsWith("/lib/"),
-    ),
-  );
 
   // Ensure App.tsx is the entry point, or if not present, create one that imports the first file
   if (!sandpackFiles["App.tsx"] && files.length > 0) {
