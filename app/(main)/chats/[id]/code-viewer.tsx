@@ -58,13 +58,9 @@ export default function CodeViewer({
     newVersion: number,
   ) => void;
 }) {
-  // Use files from JSON field if available, otherwise extract from content
-  const allFiles = message
-    ? (message.files as any[]) || extractAllCodeBlocks(message.content)
-    : [];
   const streamAllFiles = extractAllCodeBlocks(streamText);
 
-  // Helper: extract the latest (possibly partial) code fence from the stream text
+  // Extract the latest (possibly partial) code fence from the stream text
   function extractLatestStreamBlock(
     input: string,
   ): { code: string; language: string; path: string } | undefined {
@@ -77,17 +73,6 @@ export default function CodeViewer({
     let latestComplete:
       | { code: string; language: string; path: string }
       | undefined;
-
-    const parseTag = (tag: string) => {
-      const raw = tag || "";
-      const langMatch = raw.match(/^([A-Za-z0-9]+)/);
-      const language = langMatch ? langMatch[1] : "text";
-      const pathMatch = raw.match(/\{\s*path\s*=\s*([^}]+)\s*\}/);
-      const path = pathMatch
-        ? pathMatch[1]
-        : `file.${language === "typescript" || language === "tsx" ? "tsx" : language}`;
-      return { language, path };
-    };
 
     for (const line of lines) {
       const match = line.match(codeFenceRegex);
@@ -112,6 +97,17 @@ export default function CodeViewer({
       return { code: codeBuffer.join("\n"), language, path };
     }
     return latestComplete;
+  }
+
+  function parseTag(tag: string) {
+    const raw = tag || "";
+    const langMatch = raw.match(/^([A-Za-z0-9]+)/);
+    const language = langMatch ? langMatch[1] : "text";
+    const pathMatch = raw.match(/{\s*path\s*=\s*([^}]+)\s*\}/);
+    const path = pathMatch
+      ? pathMatch[1]
+      : `file.${language === "typescript" || language === "tsx" ? "tsx" : language}`;
+    return { language, path };
   }
 
   const latestStreamBlock = extractLatestStreamBlock(streamText);
@@ -165,7 +161,7 @@ export default function CodeViewer({
 
   // Helper to get files from a message (JSON field or extract from content)
   const getFilesFromMessage = (msg: Message) => {
-    return (msg.files as any[]) || extractAllCodeBlocks(msg.content);
+    return (msg.files as any[]) || [];
   };
 
   // Since each message now contains cumulative files, simplify the logic
@@ -185,8 +181,6 @@ export default function CodeViewer({
     : message
       ? getFilesFromMessage(message)
       : [];
-  const isGenerating =
-    streamText.includes("```") && !streamText.includes("\n```");
 
   // Prefer the latest streamed file while streaming; otherwise, App.tsx or first tsx
   const mainFile =
@@ -235,14 +229,11 @@ export default function CodeViewer({
 
   const appTitle = generateAppTitle(files);
 
-  // Generate intelligent filename if none provided or if it's empty
-  const title = rawFilename || generateIntelligentFilename(code, language).name;
-
   const allAssistantMessages = assistantMessages.some(
     (m) => m.id === message?.id,
   )
     ? assistantMessages
-    : message && extractAllCodeBlocks(message.content).length > 0
+    : message && getFilesFromMessage(message).length > 0
       ? [...assistantMessages, message]
       : assistantMessages;
   const currentVersion =
@@ -264,16 +255,6 @@ export default function CodeViewer({
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d ago`;
-  };
-
-  // Helper to get the main file for a message
-  const getMainFileForMessage = (message: Message) => {
-    const messageFiles = getFilesFromMessage(message);
-    return (
-      messageFiles.find((f) => f.path === "App.tsx") ||
-      messageFiles.find((f) => f.path.endsWith(".tsx")) ||
-      messageFiles[0]
-    );
   };
 
   const handleDownloadFiles = async () => {

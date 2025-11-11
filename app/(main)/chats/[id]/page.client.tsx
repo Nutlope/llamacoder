@@ -105,30 +105,11 @@ export default function PageClient({ chat }: { chat: Chat }) {
             currentFiles.forEach((file) => fileMap.set(file.path, file));
             const allFiles = Array.from(fileMap.values());
 
-            // Reconstruct message content with all cumulative files
-            let cumulativeContent = finalText;
-            if (allFiles.length > 0) {
-              // Remove any existing code blocks from the text (keep the explanation)
-              const textParts = finalText.split(/```[\s\S]*?```/);
-              const explanation = textParts[0].trim();
-
-              // Reconstruct with all files
-              cumulativeContent =
-                explanation +
-                (explanation ? "\n\n" : "") +
-                allFiles
-                  .map(
-                    (file) =>
-                      `\`\`\`${file.language}{path=${file.path}}\n${file.code}\n\`\`\``,
-                  )
-                  .join("\n\n");
-            }
-
             const message = await createMessage(
               chat.id,
-              cumulativeContent,
+              finalText, // Store original AI response content (only changed files)
               "assistant",
-              allFiles,
+              allFiles, // Store cumulative files
             );
 
             startTransition(() => {
