@@ -212,7 +212,7 @@ export default function CodeViewer({
           </button>
           <span>{appTitle}</span>
           <Select
-            value={currentVersion.toString()}
+            value={(currentVersion - 1).toString()}
             onValueChange={(value) =>
               onMessageChange(allAssistantMessages[parseInt(value)])
             }
