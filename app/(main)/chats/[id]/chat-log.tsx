@@ -174,7 +174,7 @@ function AssistantMessage({
   if (displayFileCount > 0) {
     // Handle single-file replies with interleaved text and one file
     return (
-      <div>
+      <div className="">
         {segments.map((seg, i) => {
           if (seg.type === "text") {
             return (
@@ -187,7 +187,7 @@ function AssistantMessage({
           return (
             <div
               key={i}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm"
+              className="m-0.5 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm"
             >
               <svg
                 width="14"

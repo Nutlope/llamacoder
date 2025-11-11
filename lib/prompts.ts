@@ -42,8 +42,9 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
     - Before generating a React project, think through the right requirements, structure, styling, images, and formatting
     - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
     - Make sure the React app is interactive and functional by creating state when needed and having no required props
-    - If you use any imports from React like useState or useEffect, make sure to import them directly
-    - Do not include any external API calls
+     - If you use any imports from React like useState or useEffect, make sure to import them directly
+     - ALWAYS use relative imports instead of absolute imports. For example, use '../hooks/useTimeZone' instead of '@/hooks/useTimeZone'
+     - Do not include any external API calls
     - Use TypeScript as the language for the React component
     - Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. \`h-[600px]\`).
     - Use Tailwind margin and padding classes to make sure components are spaced out nicely and follow good design principles
@@ -95,10 +96,10 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   Here's an example of an INCORRECT import:
   import { Button, Input, Label } from "/components/ui/button"
 
-  Here's an example of a CORRECT import:
-  import { Button } from "/components/ui/button"
-  import { Input } from "/components/ui/input"
-  import { Label } from "/components/ui/label"
+  Here's an example of a CORRECT import (using relative paths):
+  import { Button } from "../components/ui/button"
+  import { Input } from "../components/ui/input"
+  import { Label } from "../components/ui/label"
 
    # Formatting Instructions
 

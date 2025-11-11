@@ -58,7 +58,10 @@ export default function CodeViewer({
     newVersion: number,
   ) => void;
 }) {
-  const allFiles = message ? extractAllCodeBlocks(message.content) : [];
+  // Use files from JSON field if available, otherwise extract from content
+  const allFiles = message
+    ? (message.files as any[]) || extractAllCodeBlocks(message.content)
+    : [];
   const streamAllFiles = extractAllCodeBlocks(streamText);
 
   // Helper: extract the latest (possibly partial) code fence from the stream text
@@ -160,31 +163,28 @@ export default function CodeViewer({
     return Array.from(map.values());
   }
 
-  // Determine base files from previous assistant message
+  // Helper to get files from a message (JSON field or extract from content)
+  const getFilesFromMessage = (msg: Message) => {
+    return (msg.files as any[]) || extractAllCodeBlocks(msg.content);
+  };
+
+  // Since each message now contains cumulative files, simplify the logic
   const assistantMessages = chat.messages.filter(
-    (m) => m.role === "assistant" && extractAllCodeBlocks(m.content).length > 0,
+    (m) => m.role === "assistant" && getFilesFromMessage(m).length > 0,
   );
-  const lastAssistant = assistantMessages.at(-1);
-  const previousFiles = lastAssistant
-    ? extractAllCodeBlocks(lastAssistant.content)
-    : [];
 
   // Effective files:
-  // - While streaming: previous files overlaid with streamed/current partials
-  // - After streaming: previous version files overlaid with current message files
+  // - While streaming: use the last message's cumulative files overlaid with streamed partials
+  // - When displaying a message: use that message's cumulative files directly
   const files = streamText
-    ? mergeFiles(previousFiles, mergedStreamFiles)
+    ? (() => {
+        const lastMessage = assistantMessages.at(-1);
+        const baseFiles = lastMessage ? getFilesFromMessage(lastMessage) : [];
+        return mergeFiles(baseFiles, mergedStreamFiles);
+      })()
     : message
-      ? mergeFiles(
-          // previous of current message
-          (() => {
-            const idx = assistantMessages.map((m) => m.id).indexOf(message.id);
-            const prevMsg = idx > 0 ? assistantMessages[idx - 1] : undefined;
-            return prevMsg ? extractAllCodeBlocks(prevMsg.content) : [];
-          })(),
-          allFiles,
-        )
-      : allFiles;
+      ? getFilesFromMessage(message)
+      : [];
   const isGenerating =
     streamText.includes("```") && !streamText.includes("\n```");
 
@@ -268,7 +268,7 @@ export default function CodeViewer({
 
   // Helper to get the main file for a message
   const getMainFileForMessage = (message: Message) => {
-    const messageFiles = extractAllCodeBlocks(message.content);
+    const messageFiles = getFilesFromMessage(message);
     return (
       messageFiles.find((f) => f.path === "App.tsx") ||
       messageFiles.find((f) => f.path.endsWith(".tsx")) ||

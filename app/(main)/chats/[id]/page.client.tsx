@@ -2,7 +2,11 @@
 
 import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
-import { parseReplySegments, extractFirstCodeBlock } from "@/lib/utils";
+import {
+  parseReplySegments,
+  extractFirstCodeBlock,
+  extractAllCodeBlocks,
+} from "@/lib/utils";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { memo, startTransition, use, useEffect, useRef, useState } from "react";
@@ -80,10 +84,51 @@ export default function PageClient({ chat }: { chat: Chat }) {
         })
         .on("finalContent", async (finalText) => {
           startTransition(async () => {
+            // Get all previous assistant messages with files
+            const previousAssistantMessages = chat.messages.filter(
+              (m) =>
+                m.role === "assistant" &&
+                extractAllCodeBlocks(m.content).length > 0,
+            );
+
+            // Extract all files from previous messages
+            const previousFiles = previousAssistantMessages.flatMap((msg) =>
+              extractAllCodeBlocks(msg.content),
+            );
+
+            // Extract files from current AI response
+            const currentFiles = extractAllCodeBlocks(finalText);
+
+            // Merge files (current overrides previous for same paths)
+            const fileMap = new Map();
+            previousFiles.forEach((file) => fileMap.set(file.path, file));
+            currentFiles.forEach((file) => fileMap.set(file.path, file));
+            const allFiles = Array.from(fileMap.values());
+
+            // Reconstruct message content with all cumulative files
+            let cumulativeContent = finalText;
+            if (allFiles.length > 0) {
+              // Remove any existing code blocks from the text (keep the explanation)
+              const textParts = finalText.split(/```[\s\S]*?```/);
+              const explanation = textParts[0].trim();
+
+              // Reconstruct with all files
+              cumulativeContent =
+                explanation +
+                (explanation ? "\n\n" : "") +
+                allFiles
+                  .map(
+                    (file) =>
+                      `\`\`\`${file.language}{path=${file.path}}\n${file.code}\n\`\`\``,
+                  )
+                  .join("\n\n");
+            }
+
             const message = await createMessage(
               chat.id,
-              finalText,
+              cumulativeContent,
               "assistant",
+              allFiles,
             );
 
             startTransition(() => {
@@ -188,13 +233,33 @@ export default function PageClient({ chat }: { chat: Chat }) {
               ) => {
                 startTransition(async () => {
                   if (!message) return;
-                  const app = extractFirstCodeBlock(message.content);
-                  if (!app) return;
-                  const newContent = `Version ${newVersion} was created by restoring version ${oldVersion}. Here's the code:\n\n\`\`\`${app.language}\n${app.code}\n\`\`\``;
+
+                  // Helper to get files from a message (JSON field or extract from content)
+                  const getFilesFromMessage = (msg: Message) => {
+                    return (
+                      (msg.files as any[]) || extractAllCodeBlocks(msg.content)
+                    );
+                  };
+
+                  const restoredFiles = getFilesFromMessage(message);
+                  if (restoredFiles.length === 0) return;
+
+                  const explanation = `Version ${newVersion} was created by restoring version ${oldVersion}.`;
+                  const newContent =
+                    explanation +
+                    "\n\n" +
+                    restoredFiles
+                      .map(
+                        (file) =>
+                          `\`\`\`${file.language}{path=${file.path}}\n${file.code}\n\`\`\``,
+                      )
+                      .join("\n\n");
+
                   const newMessage = await createMessage(
                     chat.id,
                     newContent,
                     "assistant",
+                    restoredFiles,
                   );
                   setActiveMessage(newMessage);
                   router.refresh();
