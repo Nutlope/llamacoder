@@ -83,8 +83,7 @@ export default function ChatBox({
               </div>
               <textarea
                 ref={textareaRef}
-                placeholder="Follow up"
-                autoFocus={!disabled}
+                placeholder="Ask a follow up..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 required
