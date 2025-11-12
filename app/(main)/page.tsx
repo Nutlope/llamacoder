@@ -176,7 +176,7 @@ export default function Home() {
                         <img
                           alt="screenshot"
                           src={screenshotUrl}
-                          className="group relative mb-2 h-16 w-[68px] rounded"
+                          className="group relative mb-2 h-16 w-[68px] rounded object-cover"
                         />
                       </div>
                       <button

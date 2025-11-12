@@ -167,7 +167,10 @@ export default function SyntaxHighlighter({
                         <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.15s]"></div>
                         <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
                       </div>
-                      <span>AI is writing your code...</span>
+                      <span>
+                        AI is writing your{" "}
+                        {activePath ? activePath.split("/").pop() : "code"}...
+                      </span>
                     </div>
                   </div>
                 </div>
