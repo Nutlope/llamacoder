@@ -58,7 +58,7 @@ export default function SyntaxHighlighter({
     <div className="flex h-full">
       {files.length > 1 && (
         <div
-          className={`w-64 border-r border-gray-200 bg-gray-50 ${isStreaming ? "pointer-events-none opacity-60" : ""}`}
+          className={`w-fit max-w-48 border-r border-gray-200 bg-gray-50 md:w-64 ${isStreaming ? "pointer-events-none opacity-60" : ""}`}
         >
           <div className="border-b border-gray-200 p-2 text-sm font-medium text-gray-700">
             Files ({files.length})
