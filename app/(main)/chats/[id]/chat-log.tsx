@@ -44,6 +44,7 @@ export default function ChatLog({
           style={{
             background:
               "linear-gradient(to bottom, #F4F4F5 0%, rgba(244,244,245,0) 20px, rgba(244,244,245,0) calc(100% - 20px), #F4F4F5 100%)",
+            transform: "translateY(-1px)",
           }}
         />
         <UserMessage content={chat.prompt} />
