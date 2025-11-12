@@ -100,7 +100,7 @@ export default function Home() {
 
         <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
           <a
-            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow hover:shadow-sm"
+            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow"
             href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
             target="_blank"
           >
