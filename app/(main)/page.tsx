@@ -34,7 +34,9 @@ export default function Home() {
   const router = useRouter();
 
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState(MODELS[0].value);
+  const [model, setModel] = useState(
+    MODELS.find((m) => !m.hidden)?.value || MODELS[0].value,
+  );
   const [quality, setQuality] = useState("high");
   const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
     undefined,
@@ -249,7 +251,7 @@ export default function Home() {
                       <Select.Portal>
                         <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
                           <Select.Viewport className="space-y-1 p-2">
-                            {MODELS.map((m) => (
+                            {MODELS.filter((m) => !m.hidden).map((m) => (
                               <Select.Item
                                 key={m.value}
                                 value={m.value}
