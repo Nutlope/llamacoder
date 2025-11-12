@@ -1,11 +1,11 @@
 export const MODELS = [
   {
-    label: "Qwen 3 Coder",
-    value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+    label: "GLM 4.6",
+    value: "zai-org/GLM-4.6",
   },
   {
-    label: "GLM 4.5 Air",
-    value: "zai-org/GLM-4.5-Air-FP8",
+    label: "Qwen 3 Coder",
+    value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
   },
   {
     label: "Llama 3.3 70B",
