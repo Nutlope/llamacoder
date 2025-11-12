@@ -105,7 +105,15 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
    NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
 
-   Explain your work. Generate a complete React application with multiple files. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed. Each file should be in its own code fence with the path specified. Use this format: \`\`\`tsx{path=src/App.tsx} for each file. Ensure the main App.tsx file can run standalone but imports other files as needed.
+   Explain your work. Generate a complete React application with multiple files. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed.
+
+   Code fence output rules:
+   - Each file MUST be in its own fenced block using the exact format: \`\`\`<language>{path=<relative-path>}
+   - ALWAYS provide {path=...}; do NOT use {filename=...}.
+   - Use full relative paths from the project root, e.g. {path=src/App.tsx}, {path=src/components/Header.tsx}, {path=src/utils/format.ts}.
+   - For React components, use the tsx language tag and .tsx extension.
+   - Maintain stable paths across iterations; only output changed files and keep their paths identical.
+   - Ensure the main App.tsx file can run standalone but imports other files as needed.
 
   # Examples
 

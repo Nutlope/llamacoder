@@ -61,11 +61,13 @@ export function extractAllCodeBlocks(input: string): Array<{
     const langMatch = fenceTag.match(/^([A-Za-z0-9]+)/);
     const language = langMatch ? langMatch[1] : "text";
 
-    // Parse path from {path=...}
-    const pathMatch = fenceTag.match(/{\s*path\s*=\s*([^}]+)\s*}/);
+    const pathMatch = fenceTag.match(/\{\s*path\s*=\s*([^}]+)\s*\}/);
+    const filenameMatch = fenceTag.match(/\{\s*filename\s*=\s*([^}]+)\s*\}/);
     const path = pathMatch
       ? pathMatch[1]
-      : `file${files.length + 1}.${getExtensionForLanguage(language)}`;
+      : filenameMatch
+        ? filenameMatch[1]
+        : `file${files.length + 1}.${getExtensionForLanguage(language)}`;
 
     files.push({ code, language, path, fullMatch });
   }
