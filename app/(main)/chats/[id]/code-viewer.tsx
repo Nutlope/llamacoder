@@ -415,7 +415,7 @@ export default function CodeViewer({
         )}
       </div>
 
-      <div className="flex items-center justify-start border-t border-gray-300 px-4 py-4">
+      <div className="flex items-center justify-between border-t border-gray-300 px-4 py-4">
         <div className="inline-flex items-center gap-2.5 text-sm">
           <Share
             message={
@@ -444,6 +444,7 @@ export default function CodeViewer({
             Download
           </button>
         </div>
+        <div className="text-xs text-gray-500 md:hidden">{chat.model}</div>
       </div>
     </>
   );
