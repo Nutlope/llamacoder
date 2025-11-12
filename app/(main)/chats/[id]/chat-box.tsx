@@ -43,7 +43,7 @@ export default function ChatBox({
   }, [disabled]);
 
   return (
-    <div className="mx-auto mb-5 flex w-full max-w-prose shrink-0 px-8">
+    <div className="mx-auto mb-5 flex w-full max-w-prose shrink-0 px-4">
       <form
         className="relative flex w-full"
         action={async () => {
