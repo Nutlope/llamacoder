@@ -2,19 +2,31 @@ import Image from "next/image";
 import { memo } from "react";
 
 import GithubIcon from "@/components/icons/github-icon";
-import logo from "@/public/logo.png";
 import Link from "next/link";
 
 function Header() {
   return (
     <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-6">
-      <Link href="/">
-        <Image
-          src={logo}
+      <Link href="/" className="flex flex-row items-center gap-3">
+        <img
+          src="/fullLogo.png"
           alt=""
-          quality={100}
-          className="mx-auto h-9 object-contain"
-          priority
+          className="mx-auto h-7 object-contain"
+        />
+        <svg
+          width="1"
+          height="20"
+          viewBox="0 0 1 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M0.25 0V19.5" stroke="#C2C2C2" strokeWidth="0.5" />
+        </svg>
+
+        <img
+          src="/together.png"
+          alt=""
+          className="mx-auto h-[24px] object-contain"
         />
       </Link>
 
