@@ -161,7 +161,8 @@ export default function CodeViewer({
 
   // Helper to get files from a message (JSON field or extract from content)
   const getFilesFromMessage = (msg: Message) => {
-    return (msg.files as any[]) || [];
+    // extractAllCodeBlocks is needed for legacy 1 file apps
+    return (msg.files as any[]) || extractAllCodeBlocks(msg.content);
   };
 
   // Since each message now contains cumulative files, simplify the logic
