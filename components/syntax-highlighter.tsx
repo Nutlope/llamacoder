@@ -159,7 +159,7 @@ export default function SyntaxHighlighter({
                   tabIndex={-1}
                   style={{ pointerEvents: "all" }}
                 />
-                <div className="absolute bottom-4 left-0 right-0 z-20 bg-gradient-to-t from-white via-white/80 to-transparent pb-4 pt-8">
+                <div className="absolute bottom-4 left-0 right-0 z-20 pb-4 pt-8">
                   <div className="flex items-center justify-center">
                     <div className="flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm">
                       <div className="flex space-x-1">
