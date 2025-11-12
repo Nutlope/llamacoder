@@ -3,11 +3,9 @@
 import type { Chat, Message } from "./page";
 import {
   parseReplySegments,
-  generateIntelligentFilename,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
   toTitleCase,
-  getExtensionForLanguage,
 } from "@/lib/utils";
 import { Fragment } from "react";
 import Markdown from "react-markdown";
