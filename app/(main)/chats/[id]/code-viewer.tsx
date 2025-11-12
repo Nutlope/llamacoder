@@ -321,7 +321,7 @@ export default function CodeViewer({
             }
             disabled={disabledControls}
           >
-            <SelectTrigger className="h-[38px] w-16 text-sm font-semibold">
+            <SelectTrigger className="h-[38px] w-16 text-sm font-semibold !outline-none !ring-0 !ring-transparent">
               <SelectValue>{`v${currentVersion + 1}`}</SelectValue>
             </SelectTrigger>
             <SelectContent>
