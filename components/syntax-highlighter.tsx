@@ -57,7 +57,9 @@ export default function SyntaxHighlighter({
   return (
     <div className="flex h-full">
       {files.length > 1 && (
-        <div className="w-64 border-r border-gray-200 bg-gray-50">
+        <div
+          className={`w-64 border-r border-gray-200 bg-gray-50 ${isStreaming ? "pointer-events-none opacity-60" : ""}`}
+        >
           <div className="border-b border-gray-200 p-2 text-sm font-medium text-gray-700">
             Files ({files.length})
           </div>
@@ -90,6 +92,9 @@ export default function SyntaxHighlighter({
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
                 wordWrap: "on",
+                scrollbar: isStreaming
+                  ? { vertical: "hidden", horizontal: "hidden" }
+                  : { vertical: "auto", horizontal: "auto" },
               }}
               onMount={(editor) => {
                 editorRef.current = editor;
@@ -106,34 +111,67 @@ export default function SyntaxHighlighter({
               height="82vh"
             />
             {isStreaming && (
-              <div
-                className="absolute inset-0 z-10 cursor-not-allowed bg-transparent"
-                onWheel={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onTouchMove={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onMouseMove={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onMouseUp={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onScroll={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                style={{ pointerEvents: "all" }}
-              />
+              <>
+                <div
+                  className="absolute inset-0 z-10 cursor-not-allowed bg-transparent"
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onTouchMove={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onMouseMove={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onMouseUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onScroll={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onKeyDown={(e) => {
+                    // Prevent arrow keys, page up/down, home/end from scrolling
+                    if (
+                      [
+                        "ArrowUp",
+                        "ArrowDown",
+                        "ArrowLeft",
+                        "ArrowRight",
+                        "PageUp",
+                        "PageDown",
+                        "Home",
+                        "End",
+                      ].includes(e.key)
+                    ) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  tabIndex={-1}
+                  style={{ pointerEvents: "all" }}
+                />
+                <div className="absolute bottom-4 left-0 right-0 z-20 bg-gradient-to-t from-white via-white/80 to-transparent pb-4 pt-8">
+                  <div className="flex items-center justify-center">
+                    <div className="flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm">
+                      <div className="flex space-x-1">
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.3s]"></div>
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.15s]"></div>
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
+                      </div>
+                      <span>AI is writing your code...</span>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
