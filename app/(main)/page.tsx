@@ -367,8 +367,21 @@ export default function Home() {
                   <button
                     key={v.title}
                     type="button"
-                    onClick={() => setPrompt(v.description)}
-                    className="rounded bg-[#E5E9EF] px-2.5 py-1.5 text-xs tracking-[0%] hover:bg-[#cccfd5]"
+                    onClick={() => {
+                      setPrompt(v.description);
+                      // Refocus the textarea after setting the prompt
+                      setTimeout(() => {
+                        textareaRef.current?.focus();
+                        // Position cursor at the end
+                        if (textareaRef.current) {
+                          textareaRef.current.selectionStart =
+                            textareaRef.current.value.length;
+                          textareaRef.current.selectionEnd =
+                            textareaRef.current.value.length;
+                        }
+                      }, 0);
+                    }}
+                    className="rounded bg-[#E5E9EF] px-2.5 py-1.5 text-xs tracking-[0%] transition-colors hover:bg-[#cccfd5]"
                   >
                     {v.title}
                   </button>
