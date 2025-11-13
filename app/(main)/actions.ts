@@ -117,7 +117,8 @@ export async function createChat(
   let userMessage: string;
   if (quality === "high") {
     let initialRes = await together.chat.completions.create({
-      model: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+      model: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+      // model: "moonshotai/Kimi-K2-Thinking",
       messages: [
         {
           role: "system",
@@ -133,6 +134,8 @@ export async function createChat(
       temperature: 0.4,
       max_tokens: 3000,
     });
+
+    console.log("PLAN:", initialRes.choices[0].message?.content);
 
     userMessage = initialRes.choices[0].message?.content ?? prompt;
   } else if (fullScreenshotDescription) {
