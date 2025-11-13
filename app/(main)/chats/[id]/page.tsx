@@ -47,10 +47,40 @@ export default async function Page({
 
 const getChatById = cache(async (id: string) => {
   const prisma = getPrisma();
-  return await prisma.chat.findFirst({
+  const chat = await prisma.chat.findFirst({
     where: { id },
-    include: { messages: { orderBy: { position: "asc" } } },
   });
+
+  if (!chat) return null;
+
+  // Always fetch system message (position 0) and initial user message (position 1)
+  const initialMessages = await prisma.message.findMany({
+    where: {
+      chatId: id,
+      position: { in: [0, 1] },
+    },
+    orderBy: { position: "asc" },
+  });
+
+  // Fetch the last 100 messages from position 2 onwards
+  const recentMessages = await prisma.message.findMany({
+    where: {
+      chatId: id,
+      position: { gte: 2 },
+    },
+    orderBy: { position: "desc" },
+    take: 100,
+  });
+
+  // Combine and sort all messages
+  const allMessages = [...initialMessages, ...recentMessages].sort(
+    (a, b) => a.position - b.position,
+  );
+
+  return {
+    ...chat,
+    messages: allMessages,
+  };
 });
 
 export type Chat = NonNullable<Awaited<ReturnType<typeof getChatById>>>;
