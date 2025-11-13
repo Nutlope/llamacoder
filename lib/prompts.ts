@@ -69,6 +69,8 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
   # Shadcn UI Instructions
 
+  ⚠️ CRITICAL: These Shadcn UI components are PRE-INSTALLED in the codebase. NEVER output or redefine them. Only import and use them in your components.
+
   Here are some prestyled UI components available for use from shadcn. Try to always default to using this library of components. Here are the UI components that are available, along with how to import them, and how to use them:
 
   ${shadcnDocs
@@ -103,9 +105,14 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
    # Formatting Instructions
 
-   NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
+    NO OTHER LIBRARIES ARE INSTALLED OR ABLE TO BE IMPORTED (such as zod, hookform, react-router) BESIDES THOSE SPECIFIED ABOVE.
 
-   Explain your work. Generate a complete React application with multiple files. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed.
+    Critical Rules:
+    - NEVER output Shadcn UI component definitions - they are already installed
+    - Only create your own custom components and pages
+    - Use imports to reference existing Shadcn components
+
+    Explain your work. Generate a complete React application with multiple files. The main entry point should be App.tsx. Create additional components in src/components/, utilities in src/utils/, types in src/types/, etc. as needed.
 
    Code fence output rules:
    - Each file MUST be in its own fenced block using the exact format: \`\`\`<language>{path=<relative-path>}
