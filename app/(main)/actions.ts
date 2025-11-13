@@ -93,7 +93,7 @@ export async function createChat(
   if (screenshotUrl) {
     const screenshotResponse = await together.chat.completions.create({
       model: "Qwen/Qwen2.5-VL-72B-Instruct",
-      temperature: 0.2,
+      temperature: 0.4,
       max_tokens: 1000,
       messages: [
         {
@@ -130,7 +130,7 @@ export async function createChat(
             : prompt,
         },
       ],
-      temperature: 0.2,
+      temperature: 0.4,
       max_tokens: 3000,
     });
 

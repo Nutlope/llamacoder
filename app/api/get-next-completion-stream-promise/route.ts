@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     model,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
-    temperature: 0.2,
+    temperature: 0.4,
     max_tokens: 9000,
   });
 
