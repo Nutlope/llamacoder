@@ -222,6 +222,39 @@ export default function Home() {
                       className="peer absolute inset-0 w-full resize-none bg-transparent px-4 py-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
+                      onPaste={(e) => {
+                        // Clean up pasted text
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData("text");
+
+                        // Normalize line endings and clean up whitespace
+                        const cleanedText = pastedText
+                          .replace(/\r\n/g, "\n") // Convert Windows line endings
+                          .replace(/\r/g, "\n") // Convert old Mac line endings
+                          .replace(/\n{3,}/g, "\n\n") // Max 2 consecutive newlines
+                          .trim(); // Remove leading/trailing whitespace
+
+                        // Insert the cleaned text at cursor position
+                        const textarea = e.target as HTMLTextAreaElement;
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const newValue =
+                          prompt.slice(0, start) +
+                          cleanedText +
+                          prompt.slice(end);
+
+                        setPrompt(newValue);
+
+                        // Set cursor position after the pasted text
+                        setTimeout(() => {
+                          if (textareaRef.current) {
+                            textareaRef.current.selectionStart =
+                              start + cleanedText.length;
+                            textareaRef.current.selectionEnd =
+                              start + cleanedText.length;
+                          }
+                        }, 0);
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
