@@ -38,12 +38,12 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
   ## Core Requirements
 
-  **Project Structure:**
-  - Always create multi-file React apps, even for simple tasks
-  - Main entry: \`src/App.tsx\`
-  - Components: \`src/components/\`
-  - Utilities: \`src/utils/\`
-  - Types: \`src/types/\`
+   **Project Structure:**
+   - Always create multi-file React apps, even for simple tasks
+   - Main entry: \`src/App.tsx\`
+   - Components: \`src/components/\`
+   - Utilities: \`src/utils/\`
+   - Types: \`src/types/\`
 
   **Code Quality:**
   - Use TypeScript exclusively
@@ -79,10 +79,10 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   - **Animations:** Framer Motion
   - **Date Formatting:** date-fns (NOT date-fns-tz)
 
-  **Import Rules:**
-  - Use relative paths: \`import { Button } from "../components/ui/button"\`
-  - Import React hooks directly: \`import { useState, useEffect } from "react"\`
-  - No other libraries available (no zod, react-router, etc.)
+   **Import Rules:**
+   - Use relative paths: \`import { Button } from "../components/ui/button"\`
+   - Import React hooks directly: \`import { useState, useEffect } from "react"\`
+   - No other libraries available (no zod, react-router, etc.)
 
   ## Design Aesthetics
 
@@ -124,11 +124,14 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
   Generate complete React applications with multiple files. Explain your work briefly.
 
-  **File Format:**
-  - Each file in separate fenced block: \`\`\`tsx{path=src/App.tsx}
-  - Full relative paths from project root
-  - Only output changed files in iterations
-  - Maintain stable file paths
+   **File Format:**
+   - Each file in separate fenced block with path:
+     \`\`\`tsx{path=src/App.tsx}
+     // file content here
+     \`\`\`
+   - Full relative paths from project root
+   - Only output changed files in iterations
+   - Maintain stable file paths
 
   **Critical Rules:**
   - NEVER output Shadcn UI component definitions - they are already installed

@@ -22,7 +22,7 @@ import {
   useMemo,
   memo,
 } from "react";
-import { createChat } from "./actions";
+
 import { Context } from "./providers";
 import Header from "@/components/header";
 import { useS3Upload } from "next-s3-upload";
@@ -129,12 +129,24 @@ export default function Home() {
                 assert.ok(typeof model === "string");
                 assert.ok(quality === "high" || quality === "low");
 
-                const { chatId, lastMessageId } = await createChat(
-                  prompt,
-                  model,
-                  quality,
-                  screenshotUrl,
-                );
+                const response = await fetch("/api/create-chat", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    prompt,
+                    model,
+                    quality,
+                    screenshotUrl,
+                  }),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Failed to create chat");
+                }
+
+                const { chatId, lastMessageId } = await response.json();
 
                 const streamPromise = fetch(
                   "/api/get-next-completion-stream-promise",

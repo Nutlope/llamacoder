@@ -14,6 +14,7 @@ import {
 import {
   extractAllCodeBlocks,
   generateIntelligentFilename,
+  getExtensionForLanguage,
   toTitleCase,
 } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -103,13 +104,15 @@ export default function CodeViewer({
     const raw = tag || "";
     const langMatch = raw.match(/^([A-Za-z0-9]+)/);
     const language = langMatch ? langMatch[1] : "text";
-    const pathMatch = raw.match(/\{\s*path\s*=\s*([^}]+)\s*\}/);
-    const filenameMatch = raw.match(/\{\s*filename\s*=\s*([^}]+)\s*\}/);
+    const pathMatch = raw.match(/(?:\{\s*)?path\s*=\s*([^}\s]+)(?:\s*\})?/);
+    const filenameMatch = raw.match(
+      /(?:\{\s*)?filename\s*=\s*([^}\s]+)(?:\s*\})?/,
+    );
     const path = pathMatch
       ? pathMatch[1]
       : filenameMatch
         ? filenameMatch[1]
-        : `file.${language === "typescript" || language === "tsx" ? "tsx" : language}`;
+        : `file.${getExtensionForLanguage(language)}`;
     return { language, path };
   }
 

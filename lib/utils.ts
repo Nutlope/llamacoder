@@ -1,6 +1,23 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Helper function to parse fence tag for language and path
+function parseFenceTag(tag: string): { language: string; path: string } {
+  const raw = tag || "";
+  const langMatch = raw.match(/^([A-Za-z0-9]+)/);
+  const language = langMatch ? langMatch[1] : "text";
+  const pathMatch = raw.match(/(?:\{\s*)?path\s*=\s*([^}\s]+)(?:\s*\})?/);
+  const filenameMatch = raw.match(
+    /(?:\{\s*)?filename\s*=\s*([^}\s]+)(?:\s*\})?/,
+  );
+  const path = pathMatch
+    ? pathMatch[1]
+    : filenameMatch
+      ? filenameMatch[1]
+      : `file.${getExtensionForLanguage(language)}`;
+  return { language, path };
+}
+
 export function extractFirstCodeBlock(input: string) {
   // 1) We use a more general pattern for the code fence:
   //    - ^```([^\n]*) captures everything after the triple backticks up to the newline.
@@ -57,17 +74,8 @@ export function extractAllCodeBlocks(input: string): Array<{
     const code = match[2]; // The actual code block content
     const fullMatch = match[0]; // Entire matched string including backticks
 
-    // Parse language
-    const langMatch = fenceTag.match(/^([A-Za-z0-9]+)/);
-    const language = langMatch ? langMatch[1] : "text";
-
-    const pathMatch = fenceTag.match(/\{\s*path\s*=\s*([^}]+)\s*\}/);
-    const filenameMatch = fenceTag.match(/\{\s*filename\s*=\s*([^}]+)\s*\}/);
-    const path = pathMatch
-      ? pathMatch[1]
-      : filenameMatch
-        ? filenameMatch[1]
-        : `file${files.length + 1}.${getExtensionForLanguage(language)}`;
+    // Parse language and path
+    const { language, path } = parseFenceTag(fenceTag);
 
     files.push({ code, language, path, fullMatch });
   }
@@ -117,19 +125,7 @@ export function parseReplySegments(markdown: string): ReplySegment[] {
     }
   };
 
-  const parseTag = (tag: string) => {
-    const raw = tag || "";
-    const langMatch = raw.match(/^([A-Za-z0-9]+)/);
-    const language = langMatch ? langMatch[1] : "text";
-    const pathMatch = raw.match(/\{\s*path\s*=\s*([^}]+)\s*\}/);
-    const filenameMatch = raw.match(/\{\s*filename\s*=\s*([^}]+)\s*\}/);
-    const path = pathMatch
-      ? pathMatch[1]
-      : filenameMatch
-        ? filenameMatch[1]
-        : `file.${getExtensionForLanguage(language)}`;
-    return { language, path };
-  };
+  const parseTag = parseFenceTag;
 
   for (const line of lines) {
     const match = line.match(fenceRegex);

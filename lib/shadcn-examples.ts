@@ -50,7 +50,7 @@ The user wants me to build a Next.js calculator application with:
 - Responsive design for desktop and mobile
 - Keyboard shortcuts for enhanced usability
 
-\`\`\`tsx{path=App.tsx}
+ \`\`\`tsx{path=components/Calculator.tsx}
 ${calculator.content}
 \`\`\`
     `),
@@ -68,9 +68,9 @@ The user wants me to create a quiz app about American history with the following
 
 This is a straightforward request for a single cohesive component - a quiz app. I don't need to use TodoManager since it's one unified feature. I should first understand the codebase structure, then build the quiz app as requested.
 Since they want it all in a single file, I'll create a comprehensive quiz component with multiple American history questions, score tracking, and detailed explanations
-\`\`\`
-${quiz.content}
-\`\`\`
+ \`\`\`tsx{path=components/Quiz.tsx}
+ ${quiz.content}
+ \`\`\`
       `),
   },
   "pomodoro timer": {
@@ -78,9 +78,9 @@ ${quiz.content}
     response: dedent(`
       I'll create a Pomodoro timer with adjustable focus and break times, along with a sound notification when the timer completes. Since no reference image/app was provided in your prompt, I'll create a clean and functional design.
 
-\`\`\`
-${pomodoro.content}
-\`\`\`
+ \`\`\`tsx{path=components/PomodoroTimer.tsx}
+ ${pomodoro.content}
+ \`\`\`
     `),
   },
 };
