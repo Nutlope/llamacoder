@@ -12,8 +12,13 @@ export const MODELS = [
     value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
   },
   {
+    label: "DeepSeek V3.1",
+    value: "deepseek-ai/DeepSeek-V3.1",
+  },
+  {
     label: "DeepSeek V3",
     value: "deepseek-ai/DeepSeek-V3",
+    hidden: true,
   },
   {
     label: "Qwen 3 235B",
