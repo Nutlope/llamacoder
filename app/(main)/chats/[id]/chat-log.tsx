@@ -47,6 +47,12 @@ export default function ChatLog({
         />
         <UserMessage content={chat.prompt} />
 
+        {chat.totalMessages > chat.messages.length && (
+          <div className="py-2 text-center text-sm text-gray-500">
+            Only last messages loaded. Full history not available.
+          </div>
+        )}
+
         {chat.messages.slice(2).map((message) => (
           <Fragment key={message.id}>
             {message.role === "user" ? (
@@ -55,7 +61,9 @@ export default function ChatLog({
               <AssistantMessage
                 content={message.content}
                 version={
-                  assistantMessages.map((m) => m.id).indexOf(message.id) + 1
+                  (chat.assistantMessagesCountBefore || 0) +
+                  assistantMessages.map((m) => m.id).indexOf(message.id) +
+                  1
                 }
                 message={message}
                 previousMessage={(() => {
@@ -74,7 +82,11 @@ export default function ChatLog({
         {streamText && (
           <AssistantMessage
             content={streamText}
-            version={assistantMessages.length + 1}
+            version={
+              (chat.assistantMessagesCountBefore || 0) +
+              assistantMessages.length +
+              1
+            }
             isActive={true}
             previousMessage={assistantMessages.at(-1)}
           />

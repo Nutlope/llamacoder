@@ -53,6 +53,11 @@ const getChatById = cache(async (id: string) => {
 
   if (!chat) return null;
 
+  // Get total message count
+  const totalMessages = await prisma.message.count({
+    where: { chatId: id },
+  });
+
   // Always fetch system message (position 0) and initial user message (position 1)
   const initialMessages = await prisma.message.findMany({
     where: {
@@ -77,9 +82,29 @@ const getChatById = cache(async (id: string) => {
     (a, b) => a.position - b.position,
   );
 
+  // Calculate assistant messages count before the loaded range for correct versioning
+  const assistantMessagesInLoaded = allMessages.filter(
+    (m) => m.role === "assistant",
+  );
+  let assistantMessagesCountBefore = 0;
+  if (assistantMessagesInLoaded.length > 0) {
+    const minPosition = Math.min(
+      ...assistantMessagesInLoaded.map((m) => m.position),
+    );
+    assistantMessagesCountBefore = await prisma.message.count({
+      where: {
+        chatId: id,
+        role: "assistant",
+        position: { lt: minPosition },
+      },
+    });
+  }
+
   return {
     ...chat,
     messages: allMessages,
+    totalMessages,
+    assistantMessagesCountBefore,
   };
 });
 

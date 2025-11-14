@@ -240,15 +240,21 @@ export default function CodeViewer({
     : message && getFilesFromMessage(message).length > 0
       ? [...assistantMessages, message]
       : assistantMessages;
-  const currentVersion =
+  const reversedAllAssistantMessages = allAssistantMessages.slice().reverse();
+  const currentVersionIndex =
     streamAllFiles.length > 0
       ? allAssistantMessages.length
       : message && allAssistantMessages.some((m) => m.id === message.id)
         ? allAssistantMessages.map((m) => m.id).indexOf(message.id)
         : allAssistantMessages.length - 1;
+  const currentVersion =
+    (chat.assistantMessagesCountBefore || 0) + currentVersionIndex;
 
   const [refresh, setRefresh] = useState(0);
   const disabledControls = !!streamText || files.length === 0;
+  const selectValue = disabledControls
+    ? undefined
+    : (allAssistantMessages.length - 1 - currentVersionIndex).toString();
 
   const timeAgo = (date: Date) => {
     const now = new Date();
@@ -318,9 +324,9 @@ export default function CodeViewer({
           </button>
           <span className="hidden md:block">{appTitle}</span>
           <Select
-            value={currentVersion.toString()}
+            value={selectValue}
             onValueChange={(value) =>
-              onMessageChange(allAssistantMessages[parseInt(value)])
+              onMessageChange(reversedAllAssistantMessages[parseInt(value)])
             }
             disabled={disabledControls}
           >
@@ -328,10 +334,15 @@ export default function CodeViewer({
               <SelectValue>{`v${currentVersion + 1}`}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {allAssistantMessages.map((msg, i) => (
+              {reversedAllAssistantMessages.map((msg, i) => (
                 <SelectItem key={i} value={i.toString()}>
                   <div className="flex flex-col">
-                    <span className="font-semibold">v{i + 1}</span>
+                    <span className="font-semibold">
+                      v
+                      {(chat.assistantMessagesCountBefore || 0) +
+                        (allAssistantMessages.length - 1 - i) +
+                        1}
+                    </span>
                     <span className="text-xs text-gray-500">
                       {timeAgo(msg.createdAt)}
                     </span>
@@ -340,13 +351,15 @@ export default function CodeViewer({
               ))}
             </SelectContent>
           </Select>
-          {currentVersion < allAssistantMessages.length - 1 && message && (
+          {currentVersionIndex < allAssistantMessages.length - 1 && message && (
             <button
               onClick={() =>
                 onRestore(
                   message,
                   currentVersion + 1,
-                  allAssistantMessages.length + 1,
+                  (chat.assistantMessagesCountBefore || 0) +
+                    allAssistantMessages.length +
+                    1,
                 )
               }
               className="inline-flex h-[38px] items-center justify-center rounded bg-blue-500 px-2 text-xs font-medium text-white hover:bg-blue-600"
