@@ -4,25 +4,24 @@ export const MODELS = [
     value: "zai-org/GLM-4.6",
   },
   {
-    label: "GPT-OSS 120B",
-    value: "openai/gpt-oss-120B",
+    label: "Kimi K2.1",
+    value: "moonshotai/Kimi-K2-Instruct-0905",
   },
   {
     label: "Qwen 3 Coder",
     value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
   },
   {
-    label: "Kimi K2.1",
-    value: "moonshotai/Kimi-K2-Instruct-0905",
+    label: "DeepSeek V3",
+    value: "deepseek-ai/DeepSeek-V3",
+  },
+  {
+    label: "Qwen 3 235B",
+    value: "Qwen/Qwen3-235B-A22B-Instruct-2507-tput",
   },
   {
     label: "Llama 3.3 70B",
     value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    hidden: true,
-  },
-  {
-    label: "DeepSeek V3",
-    value: "deepseek-ai/DeepSeek-V3",
     hidden: true,
   },
 ];

@@ -326,34 +326,36 @@ export default function CodeViewer({
             <CloseIcon className="size-5" />
           </button>
           <span className="hidden md:block">{appTitle}</span>
-          <Select
-            value={selectValue}
-            onValueChange={(value) =>
-              onMessageChange(reversedAllAssistantMessages[parseInt(value)])
-            }
-            disabled={disabledControls}
-          >
-            <SelectTrigger className="h-[38px] w-16 text-sm font-semibold !outline-none !ring-0 !ring-transparent">
-              <SelectValue>{`v${currentVersion + 1}`}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {reversedAllAssistantMessages.map((msg, i) => (
-                <SelectItem key={i} value={i.toString()}>
-                  <div className="flex flex-col">
-                    <span className="font-semibold">
-                      v
-                      {(chat.assistantMessagesCountBefore || 0) +
-                        (allAssistantMessages.length - 1 - i) +
-                        1}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {timeAgo(msg.createdAt)}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!disabledControls && (
+            <Select
+              value={selectValue}
+              onValueChange={(value) =>
+                onMessageChange(reversedAllAssistantMessages[parseInt(value)])
+              }
+              disabled={disabledControls}
+            >
+              <SelectTrigger className="h-[38px] w-16 text-sm font-semibold !outline-none !ring-0 !ring-transparent">
+                <SelectValue>{`v${currentVersion + 1}`}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {reversedAllAssistantMessages.map((msg, i) => (
+                  <SelectItem key={i} value={i.toString()}>
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
+                        v
+                        {(chat.assistantMessagesCountBefore || 0) +
+                          (allAssistantMessages.length - 1 - i) +
+                          1}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {timeAgo(msg.createdAt)}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {currentVersionIndex < allAssistantMessages.length - 1 && message && (
             <button
               onClick={() =>
