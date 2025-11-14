@@ -28,6 +28,8 @@ model Chat {
   shadcn            Boolean
   messages          Message[]
   createdAt         DateTime  @default(now())
+
+  @@index([createdAt])
 }
 
 model Message {
@@ -41,4 +43,5 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([chatId])
+  @@index([chatId, createdAt])
 }
