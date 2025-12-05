@@ -76,8 +76,6 @@ export async function POST(req: Request) {
 
   const together = new Together(options);
 
-  console.log("messages sent to AI", messages);
-
   const res = await together.chat.completions.create({
     model,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
