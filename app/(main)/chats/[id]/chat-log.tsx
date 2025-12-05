@@ -74,6 +74,7 @@ export default function ChatLog({
                 })()}
                 isActive={!streamText && activeMessage?.id === message.id}
                 onMessageClick={onMessageClick}
+                isStreaming={!!streamText}
               />
             )}
           </Fragment>
@@ -113,6 +114,7 @@ function AssistantMessage({
   isActive,
   onMessageClick = () => {},
   previousMessage,
+  isStreaming = false,
 }: {
   content: string;
   version: number;
@@ -120,6 +122,7 @@ function AssistantMessage({
   isActive?: boolean;
   onMessageClick?: (v: Message) => void;
   previousMessage?: Message;
+  isStreaming?: boolean;
 }) {
   const allFiles = extractAllCodeBlocks(content);
   const segments = parseReplySegments(content);
@@ -204,14 +207,14 @@ function AssistantMessage({
           );
         })}
         <AppVersionButton
-          version={version}
-          fileCount={displayFileCount}
-          appTitle={appTitle}
-          generating={false}
-          disabled={!message}
-          onClick={message ? () => onMessageClick(message) : undefined}
-          isActive={isActive}
-        />
+           version={version}
+           fileCount={displayFileCount}
+           appTitle={appTitle}
+           generating={false}
+           disabled={!message || isStreaming}
+           onClick={message ? () => onMessageClick(message) : undefined}
+           isActive={isActive}
+         />
       </div>
     );
   } else {
