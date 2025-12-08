@@ -1,20 +1,27 @@
 "use client";
 
-import ChevronLeftIcon from "@/components/icons/chevron-left";
-import ChevronRightIcon from "@/components/icons/chevron-right";
 import CloseIcon from "@/components/icons/close-icon";
 import RefreshIcon from "@/components/icons/refresh";
-import CopyIcon from "@/components/icons/copy-icon";
+import { DownloadIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
-  extractFirstCodeBlock,
-  splitByFirstCodeFence,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  extractAllCodeBlocks,
   generateIntelligentFilename,
+  getExtensionForLanguage,
+  toTitleCase,
 } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
 import { Share } from "./share";
 import { StickToBottom } from "use-stick-to-bottom";
+import JSZip from "jszip";
 import dynamic from "next/dynamic";
 
 const CodeRunner = dynamic(() => import("@/components/code-runner"), {
@@ -36,6 +43,7 @@ export default function CodeViewer({
   onTabChange,
   onClose,
   onRequestFix,
+  onRestore,
 }: {
   chat: Chat;
   streamText: string;
@@ -45,60 +53,255 @@ export default function CodeViewer({
   onTabChange: (v: "code" | "preview") => void;
   onClose: () => void;
   onRequestFix: (e: string) => void;
+  onRestore: (
+    message: Message | undefined,
+    oldVersion: number,
+    newVersion: number,
+  ) => void;
 }) {
-  const app = message ? extractFirstCodeBlock(message.content) : undefined;
-  const streamAppParts = splitByFirstCodeFence(streamText);
-  const streamApp = streamAppParts.find(
-    (p) =>
-      p.type === "first-code-fence-generating" || p.type === "first-code-fence",
+  const streamAllFiles = extractAllCodeBlocks(streamText);
+
+  // Extract the latest (possibly partial) code fence from the stream text
+  function extractLatestStreamBlock(
+    input: string,
+  ): { code: string; language: string; path: string } | undefined {
+    if (!input) return undefined;
+    const lines = input.split("\n");
+    const codeFenceRegex = /^```([^\n]*)$/;
+
+    let openTag: string | null = null;
+    let codeBuffer: string[] = [];
+    let latestComplete:
+      | { code: string; language: string; path: string }
+      | undefined;
+
+    for (const line of lines) {
+      const match = line.match(codeFenceRegex);
+      if (match && !openTag) {
+        // Opening a fence
+        openTag = match[1] || "";
+        codeBuffer = [];
+      } else if (match && openTag) {
+        // Closing the fence
+        const { language, path } = parseTag(openTag);
+        latestComplete = { code: codeBuffer.join("\n"), language, path };
+        openTag = null;
+        codeBuffer = [];
+      } else if (openTag) {
+        codeBuffer.push(line);
+      }
+    }
+
+    // If an open fence remains at end, return it as partial; else return latest complete
+    if (openTag) {
+      const { language, path } = parseTag(openTag);
+      return { code: codeBuffer.join("\n"), language, path };
+    }
+    return latestComplete;
+  }
+
+  function parseTag(tag: string) {
+    const raw = tag || "";
+    const langMatch = raw.match(/^([A-Za-z0-9]+)/);
+    const language = langMatch ? langMatch[1] : "text";
+    const pathMatch = raw.match(/(?:\{\s*)?path\s*=\s*([^}\s]+)(?:\s*\})?/);
+    const filenameMatch = raw.match(
+      /(?:\{\s*)?filename\s*=\s*([^}\s]+)(?:\s*\})?/,
+    );
+    const path = pathMatch
+      ? pathMatch[1]
+      : filenameMatch
+        ? filenameMatch[1]
+        : `file.${getExtensionForLanguage(language)}`;
+    return { language, path };
+  }
+
+  const latestStreamBlock = extractLatestStreamBlock(streamText);
+
+  // Merge stream files with latest partial if necessary
+  let mergedStreamFiles = [...streamAllFiles];
+  if (latestStreamBlock) {
+    const existingIdx = mergedStreamFiles.findIndex(
+      (f) => f.path === latestStreamBlock.path,
+    );
+    if (existingIdx !== -1) {
+      mergedStreamFiles[existingIdx] = {
+        code: latestStreamBlock.code,
+        language: latestStreamBlock.language,
+        path: latestStreamBlock.path,
+        fullMatch: "",
+      };
+    } else {
+      mergedStreamFiles.push({
+        code: latestStreamBlock.code,
+        language: latestStreamBlock.language,
+        path: latestStreamBlock.path,
+        fullMatch: "",
+      });
+    }
+  }
+
+  // Utility to merge base files with overlay files (overlay wins on conflicts)
+  function mergeFiles(
+    base: Array<{
+      code: string;
+      language: string;
+      path: string;
+      fullMatch: string;
+    }>,
+    overlay: Array<{
+      code: string;
+      language: string;
+      path: string;
+      fullMatch: string;
+    }>,
+  ) {
+    const map = new Map<
+      string,
+      { code: string; language: string; path: string; fullMatch: string }
+    >();
+    base.forEach((f) => map.set(f.path, f));
+    overlay.forEach((f) => map.set(f.path, f));
+    return Array.from(map.values());
+  }
+
+  // Helper to get files from a message (JSON field or extract from content)
+  const getFilesFromMessage = (msg: Message) => {
+    // extractAllCodeBlocks is needed for legacy 1 file apps
+    return (msg.files as any[]) || extractAllCodeBlocks(msg.content);
+  };
+
+  // Since each message now contains cumulative files, simplify the logic
+  const assistantMessages = chat.messages.filter(
+    (m) => m.role === "assistant" && getFilesFromMessage(m).length > 0,
   );
-  const streamAppIsGenerating = streamAppParts.some(
-    (p) => p.type === "first-code-fence-generating",
-  );
 
-  const code = streamApp ? streamApp.content : app?.code || "";
-  const language = streamApp ? streamApp.language : app?.language || "";
-  const rawFilename = streamApp
-    ? streamApp.filename.name
-    : app?.filename?.name || "";
-
-  // Generate intelligent filename if none provided or if it's empty
-  const title = rawFilename || generateIntelligentFilename(code, language).name;
-  const layout = ["python", "ts", "js", "javascript", "typescript"].includes(
-    language,
-  )
-    ? "two-up"
-    : "tabbed";
-
-  const assistantMessages = chat.messages.filter((m) => m.role === "assistant");
-  const currentVersion = streamApp
-    ? assistantMessages.length
+  // Effective files:
+  // - While streaming: use the last message's cumulative files overlaid with streamed partials
+  // - When displaying a message: use that message's cumulative files directly
+  const files = streamText
+    ? (() => {
+        const lastMessage = assistantMessages.at(-1);
+        const baseFiles = lastMessage ? getFilesFromMessage(lastMessage) : [];
+        return mergeFiles(baseFiles, mergedStreamFiles);
+      })()
     : message
-      ? assistantMessages.map((m) => m.id).indexOf(message.id)
-      : 1;
-  const previousMessage =
-    currentVersion !== 0 ? assistantMessages.at(currentVersion - 1) : undefined;
-  const nextMessage =
-    currentVersion < assistantMessages.length
-      ? assistantMessages.at(currentVersion + 1)
-      : undefined;
+      ? getFilesFromMessage(message)
+      : [];
+
+  // Prefer the latest streamed file while streaming; otherwise, App.tsx or first tsx
+  const mainFile =
+    latestStreamBlock && streamText
+      ? files.find((f) => f.path === latestStreamBlock.path) || files.at(-1)
+      : files.find((f) => f.path === "App.tsx") ||
+        files.find((f) => f.path.endsWith(".tsx")) ||
+        files[0];
+  const code = mainFile ? mainFile.code : "";
+  const language = mainFile ? mainFile.language : "";
+  const rawFilename = mainFile ? mainFile.path : "";
+
+  // Generate app title for display
+  const generateAppTitle = (fileList: typeof files) => {
+    if (fileList.length === 1) {
+      return generateIntelligentFilename(fileList[0].code, fileList[0].language)
+        .name;
+    }
+
+    // For multiple files, look for App.tsx or main component
+    const appFile = fileList.find(
+      (f) => f.path === "App.tsx" || f.path.endsWith("App.tsx"),
+    );
+    if (appFile) {
+      const appMatch = appFile.code.match(
+        /function\s+(\w+App|\w+Component|\w+)/,
+      );
+      if (appMatch) {
+        return toTitleCase(appMatch[1].replace(/(App|Component)$/, ""));
+      }
+    }
+
+    // Fallback: use the first file's name
+    const firstFile = fileList[0];
+    if (firstFile) {
+      const name =
+        firstFile.path
+          .split("/")
+          .pop()
+          ?.replace(/\.\w+$/, "") || "App";
+      return toTitleCase(name.replace(/(App|Component)$/, ""));
+    }
+
+    return "App";
+  };
+
+  const appTitle = generateAppTitle(files);
+
+  const allAssistantMessages = assistantMessages.some(
+    (m) => m.id === message?.id,
+  )
+    ? assistantMessages
+    : message && getFilesFromMessage(message).length > 0
+      ? [...assistantMessages, message]
+      : assistantMessages;
+  const reversedAllAssistantMessages = allAssistantMessages.slice().reverse();
+  const currentVersionIndex =
+    streamAllFiles.length > 0
+      ? allAssistantMessages.length
+      : message && allAssistantMessages.some((m) => m.id === message.id)
+        ? allAssistantMessages.map((m) => m.id).indexOf(message.id)
+        : allAssistantMessages.length - 1;
+  const currentVersion =
+    (chat.assistantMessagesCountBefore || 0) + currentVersionIndex;
 
   const [refresh, setRefresh] = useState(0);
-  const disabledControls = !!streamText || !code;
+  const disabledControls = !!streamText || files.length === 0;
+  const selectValue = disabledControls
+    ? undefined
+    : (allAssistantMessages.length - 1 - currentVersionIndex).toString();
 
-  const handleCopyCode = async () => {
-    if (!code) return;
-    try {
-      await navigator.clipboard.writeText(code);
+  const timeAgo = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+  };
 
-      toast({
-        title: "Code copied!",
-        description: "Code copied to clipboard",
-        variant: "default",
-      });
-    } catch (err) {
-      console.error("Failed to copy code: ", err);
-    }
+  const handleDownloadFiles = async () => {
+    if (files.length === 0) return;
+
+    const zip = new JSZip();
+
+    // Add each file to the zip
+    files.forEach((file) => {
+      zip.file(file.path, file.code);
+    });
+
+    // Generate the zip file
+    const content = await zip.generateAsync({ type: "blob" });
+
+    // Generate app title for filename
+    const appTitle = generateAppTitle(files);
+    const filename = `${appTitle.replace(/[^a-zA-Z0-9]/g, "-")}-llamacoder.zip`;
+
+    // Create a download link and trigger the download
+    const url = URL.createObjectURL(content);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Files downloaded!",
+      description: `${files.length} files downloaded as ${filename}`,
+      variant: "default",
+    });
   };
 
   useEffect(() => {
@@ -117,82 +320,118 @@ export default function CodeViewer({
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-300 px-4">
         <div className="inline-flex items-center gap-4">
           <button
-            className="text-gray-400 hover:text-gray-700"
+            className="hidden text-gray-400 hover:text-gray-700 md:block"
             onClick={onClose}
           >
             <CloseIcon className="size-5" />
           </button>
-          <span>
-            {title} v{currentVersion + 1}
-          </span>
-        </div>
-        {layout === "tabbed" && (
-          <div className="rounded-lg border-2 border-gray-300 p-1">
+          <span className="hidden md:block">{appTitle}</span>
+          {!disabledControls && (
+            <Select
+              value={selectValue}
+              onValueChange={(value) =>
+                onMessageChange(reversedAllAssistantMessages[parseInt(value)])
+              }
+              disabled={disabledControls}
+            >
+              <SelectTrigger className="h-[38px] w-16 text-sm font-semibold !outline-none !ring-0 !ring-transparent">
+                <SelectValue>{`v${currentVersion + 1}`}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {reversedAllAssistantMessages.map((msg, i) => (
+                  <SelectItem key={i} value={i.toString()}>
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
+                        v
+                        {(chat.assistantMessagesCountBefore || 0) +
+                          (allAssistantMessages.length - 1 - i) +
+                          1}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {timeAgo(msg.createdAt)}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {currentVersionIndex < allAssistantMessages.length - 1 && message && (
             <button
-              onClick={() => onTabChange("code")}
-              data-active={activeTab === "code" ? true : undefined}
-              className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
+              onClick={() =>
+                onRestore(
+                  message,
+                  currentVersion + 1,
+                  (chat.assistantMessagesCountBefore || 0) +
+                    allAssistantMessages.length +
+                    1,
+                )
+              }
+              className="inline-flex h-[38px] items-center justify-center rounded bg-blue-500 px-2 text-xs font-medium text-white hover:bg-blue-600"
             >
-              Code
+              Restore
             </button>
-            <button
-              onClick={() => onTabChange("preview")}
-              data-active={activeTab === "preview" ? true : undefined}
-              className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium data-[active]:bg-blue-500 data-[active]:text-white"
-            >
-              Preview
-            </button>
-          </div>
-        )}
-      </div>
-
-      {layout === "tabbed" ? (
-        <div className="flex grow flex-col overflow-y-auto bg-white">
-          {activeTab === "code" ? (
-            <StickToBottom
-              className="relative grow overflow-hidden"
-              resize="smooth"
-              initial={streamAppIsGenerating ? "smooth" : false}
-            >
-              <StickToBottom.Content>
-                <SyntaxHighlighter code={code} language={language} />
-              </StickToBottom.Content>
-            </StickToBottom>
-          ) : (
-            <>
-              {language && (
-                <div className="flex h-full items-center justify-center">
-                  <CodeRunner
-                    onRequestFix={onRequestFix}
-                    language={language}
-                    code={code}
-                    key={refresh}
-                  />
-                </div>
-              )}
-            </>
           )}
         </div>
-      ) : (
-        <div className="flex grow flex-col bg-white">
-          <div className="h-1/2 overflow-y-auto">
-            <SyntaxHighlighter code={code} language={language} />
-          </div>
-          <div className="flex h-1/2 flex-col">
-            <div className="border-t border-gray-300 px-4 py-4">Output</div>
-            <div className="flex grow items-center justify-center border-t">
-              {!streamAppIsGenerating && (
+        <div className="rounded-lg border-2 border-gray-300 p-1">
+          <button
+            onClick={() => onTabChange("code")}
+            data-active={activeTab === "code" ? true : undefined}
+            disabled={disabledControls}
+            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 data-[active]:bg-blue-500 data-[active]:text-white"
+          >
+            Code
+          </button>
+          <button
+            onClick={() => onTabChange("preview")}
+            data-active={activeTab === "preview" ? true : undefined}
+            disabled={disabledControls}
+            className="inline-flex h-7 w-16 items-center justify-center rounded text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 data-[active]:bg-blue-500 data-[active]:text-white"
+          >
+            Preview
+          </button>
+        </div>
+      </div>
+
+      <div className="flex grow flex-col overflow-y-auto bg-white">
+        {activeTab === "code" ? (
+          <StickToBottom
+            className="relative grow overflow-hidden *:!h-[inherit]"
+            resize="smooth"
+            initial={false}
+          >
+            <StickToBottom.Content>
+              <SyntaxHighlighter
+                files={files.map((f) => ({
+                  path: f.path,
+                  content: f.code,
+                  language: f.language,
+                }))}
+                activePath={
+                  streamText
+                    ? latestStreamBlock?.path || files.at(-1)?.path
+                    : undefined
+                }
+                disableSelection={!!streamText}
+                isStreaming={!!streamText}
+              />
+            </StickToBottom.Content>
+          </StickToBottom>
+        ) : (
+          <>
+            {files.length > 0 && (
+              <div className="flex h-full items-center justify-center">
                 <CodeRunner
                   onRequestFix={onRequestFix}
                   language={language}
-                  code={code}
+                  files={files.map((f) => ({ path: f.path, content: f.code }))}
                   key={refresh}
                 />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="flex items-center justify-between border-t border-gray-300 px-4 py-4">
         <div className="inline-flex items-center gap-2.5 text-sm">
@@ -200,7 +439,7 @@ export default function CodeViewer({
             message={
               disabledControls
                 ? undefined
-                : message && !streamApp
+                : message && streamAllFiles.length === 0
                   ? message
                   : undefined
             }
@@ -215,49 +454,15 @@ export default function CodeViewer({
           </button>
           <button
             className="hidden items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition hover:bg-white disabled:opacity-50 md:inline-flex"
-            onClick={handleCopyCode}
+            onClick={handleDownloadFiles}
             disabled={disabledControls}
-            title="Copy code"
+            title="Download files"
           >
-            <CopyIcon className="size-3" />
-            Copy
+            <DownloadIcon className="size-3" />
+            Download
           </button>
         </div>
-        <div className="flex items-center justify-end gap-3">
-          {previousMessage ? (
-            <button
-              className="text-gray-900"
-              onClick={() => onMessageChange(previousMessage)}
-            >
-              <ChevronLeftIcon className="size-4" />
-            </button>
-          ) : (
-            <button className="text-gray-900 opacity-25" disabled>
-              <ChevronLeftIcon className="size-4" />
-            </button>
-          )}
-
-          <p className="text-sm">
-            Version <span className="tabular-nums">{currentVersion + 1}</span>{" "}
-            <span className="text-gray-400">of</span>{" "}
-            <span className="tabular-nums">
-              {Math.max(currentVersion + 1, assistantMessages.length)}
-            </span>
-          </p>
-
-          {nextMessage ? (
-            <button
-              className="text-gray-900"
-              onClick={() => onMessageChange(nextMessage)}
-            >
-              <ChevronRightIcon className="size-4" />
-            </button>
-          ) : (
-            <button className="text-gray-900 opacity-25" disabled>
-              <ChevronRightIcon className="size-4" />
-            </button>
-          )}
-        </div>
+        <div className="text-xs text-gray-500 md:hidden">{chat.model}</div>
       </div>
     </>
   );

@@ -1,6 +1,23 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Helper function to parse fence tag for language and path
+function parseFenceTag(tag: string): { language: string; path: string } {
+  const raw = tag || "";
+  const langMatch = raw.match(/^([A-Za-z0-9]+)/);
+  const language = langMatch ? langMatch[1] : "text";
+  const pathMatch = raw.match(/(?:\{\s*)?path\s*=\s*([^}\s]+)(?:\s*\})?/);
+  const filenameMatch = raw.match(
+    /(?:\{\s*)?filename\s*=\s*([^}\s]+)(?:\s*\})?/,
+  );
+  const path = pathMatch
+    ? pathMatch[1]
+    : filenameMatch
+      ? filenameMatch[1]
+      : `file.${getExtensionForLanguage(language)}`;
+  return { language, path };
+}
+
 export function extractFirstCodeBlock(input: string) {
   // 1) We use a more general pattern for the code fence:
   //    - ^```([^\n]*) captures everything after the triple backticks up to the newline.
@@ -37,6 +54,35 @@ export function extractFirstCodeBlock(input: string) {
   return null; // No code block found
 }
 
+export function extractAllCodeBlocks(input: string): Array<{
+  code: string;
+  language: string;
+  path: string;
+  fullMatch: string;
+}> {
+  const codeBlockRegex = /```([^\n]*)\n([\s\S]*?)\n```/g;
+  const files: Array<{
+    code: string;
+    language: string;
+    path: string;
+    fullMatch: string;
+  }> = [];
+
+  let match;
+  while ((match = codeBlockRegex.exec(input)) !== null) {
+    const fenceTag = match[1] || ""; // e.g. "tsx{path=src/App.tsx}"
+    const code = match[2]; // The actual code block content
+    const fullMatch = match[0]; // Entire matched string including backticks
+
+    // Parse language and path
+    const { language, path } = parseFenceTag(fenceTag);
+
+    files.push({ code, language, path, fullMatch });
+  }
+
+  return files;
+}
+
 function parseFileName(fileName: string): { name: string; extension: string } {
   // Split the string at the last dot
   const lastDotIndex = fileName.lastIndexOf(".");
@@ -50,123 +96,80 @@ function parseFileName(fileName: string): { name: string; extension: string } {
   };
 }
 
-export function splitByFirstCodeFence(markdown: string) {
-  const result: {
-    type: "text" | "first-code-fence" | "first-code-fence-generating";
-    content: string;
-    filename: { name: string; extension: string };
-    language: string;
-  }[] = [];
+// New: Parse an assistant reply into ordered text and file segments.
+// Supports multiple files per reply and interleaved text. Streaming-safe: returns
+// a partial file segment if the closing fence hasn't arrived yet.
+export type ReplySegment =
+  | { type: "text"; content: string }
+  | {
+      type: "file";
+      code: string;
+      language: string;
+      path: string;
+      isPartial: boolean;
+    };
 
+export function parseReplySegments(markdown: string): ReplySegment[] {
+  const segments: ReplySegment[] = [];
   const lines = markdown.split("\n");
+  const fenceRegex = /^```([^\n]*)$/; // opening or closing fence line
 
-  let inFirstCodeFence = false; // Are we currently inside the first code fence?
-  let codeFenceFound = false; // Have we fully closed the first code fence?
   let textBuffer: string[] = [];
   let codeBuffer: string[] = [];
+  let openTag: string | null = null; // e.g. tsx{path=src/App.tsx}
 
-  // We'll store these when we open the code fence
-  let fenceTag = ""; // e.g. "tsx{filename=Calculator.tsx}"
-  let extractedFilename: string | null = null;
+  const flushText = () => {
+    if (textBuffer.length > 0) {
+      segments.push({ type: "text", content: textBuffer.join("\n") });
+      textBuffer = [];
+    }
+  };
 
-  // Regex to match an entire code fence line, e.g. ```tsx{filename=Calculator.tsx}
-  const codeFenceRegex = /^```([^\n]*)$/;
+  const parseTag = parseFenceTag;
 
   for (const line of lines) {
-    const match = line.match(codeFenceRegex);
-
-    if (!codeFenceFound) {
-      if (match && !inFirstCodeFence) {
-        // -- OPENING the first code fence --
-        inFirstCodeFence = true;
-        fenceTag = match[1] || ""; // e.g. tsx{filename=Calculator.tsx}
-
-        // Attempt to extract filename from {filename=...}
-        const fileMatch = fenceTag.match(/{\s*filename\s*=\s*([^}]+)\s*}/);
-        extractedFilename = fileMatch ? fileMatch[1] : null;
-
-        // Flush any accumulated text into the result
-        if (textBuffer.length > 0) {
-          result.push({
-            type: "text",
-            content: textBuffer.join("\n"),
-            filename: { name: "", extension: "" },
-            language: "",
-          });
-          textBuffer = [];
-        }
-        // Don't add the fence line itself to codeBuffer
-      } else if (match && inFirstCodeFence) {
-        // -- CLOSING the first code fence --
-        inFirstCodeFence = false;
-        codeFenceFound = true;
-
-        // Parse the extracted filename into { name, extension }
-        const parsedFilename = extractedFilename
-          ? parseFileName(extractedFilename)
-          : { name: "", extension: "" };
-
-        // Extract language from the portion of fenceTag before '{'
-        const bracketIndex = fenceTag.indexOf("{");
-        const language =
-          bracketIndex > -1
-            ? fenceTag.substring(0, bracketIndex).trim()
-            : fenceTag.trim();
-
-        result.push({
-          type: "first-code-fence",
-          // content: `\`\`\`${fenceTag}\n${codeBuffer.join("\n")}\n\`\`\``,
-          content: codeBuffer.join("\n"),
-          filename: parsedFilename,
-          language,
-        });
-
-        // Reset code buffer
-        codeBuffer = [];
-      } else if (inFirstCodeFence) {
-        // We are inside the first code fence
-        codeBuffer.push(line);
-      } else {
-        // Outside any code fence
-        textBuffer.push(line);
-      }
+    const match = line.match(fenceRegex);
+    if (match && !openTag) {
+      // Opening fence
+      openTag = match[1] || "";
+      flushText();
+      codeBuffer = [];
+    } else if (match && openTag) {
+      // Closing fence
+      const { language, path } = parseTag(openTag);
+      segments.push({
+        type: "file",
+        code: codeBuffer.join("\n"),
+        language,
+        path,
+        isPartial: false,
+      });
+      openTag = null;
+      codeBuffer = [];
+    } else if (openTag) {
+      codeBuffer.push(line);
     } else {
-      // The first code fence has already been processed; treat all remaining lines as text
       textBuffer.push(line);
     }
   }
 
-  // If the first code fence was never closed
-  if (inFirstCodeFence) {
-    const parsedFilename = extractedFilename
-      ? parseFileName(extractedFilename)
-      : { name: "", extension: "" };
-
-    // Extract language from the portion of fenceTag before '{'
-    const bracketIndex = fenceTag.indexOf("{");
-    const language =
-      bracketIndex > -1
-        ? fenceTag.substring(0, bracketIndex).trim()
-        : fenceTag.trim();
-
-    result.push({
-      type: "first-code-fence-generating",
-      // content: `\`\`\`${fenceTag}\n${codeBuffer.join("\n")}`,
-      content: codeBuffer.join("\n"),
-      filename: parsedFilename,
+  // If a code fence remains open, emit a partial file segment
+  if (openTag) {
+    const { language, path } = parseTag(openTag);
+    segments.push({
+      type: "file",
+      code: codeBuffer.join("\n"),
       language,
+      path,
+      isPartial: true,
     });
-  } else if (textBuffer.length > 0) {
-    // Flush any remaining text
-    result.push({
-      type: "text",
-      content: textBuffer.join("\n"),
-      filename: { name: "", extension: "" },
-      language: "",
-    });
+  } else {
+    flushText();
   }
 
-  return result;
+  return segments.filter(
+    (r) => r.type !== "text" || (r.type === "text" && r.content.length > 0),
+  );
 }
 
 // Enhanced filename generation for when models don't provide filenames
@@ -197,7 +200,7 @@ export function generateIntelligentFilename(
   return { name: `component`, extension: getExtensionForLanguage(language) };
 }
 
-function getExtensionForLanguage(language: string): string {
+export function getExtensionForLanguage(language: string): string {
   const extensions: Record<string, string> = {
     javascript: "js",
     js: "js",
@@ -222,6 +225,60 @@ function getExtensionForLanguage(language: string): string {
   return extensions[language.toLowerCase()] || "txt";
 }
 
+export function getLanguageOfFile(filePath: string): string {
+  const extension = filePath.split(".").pop()?.toLowerCase();
+  const languages: Record<string, string> = {
+    js: "javascript",
+    ts: "typescript",
+    tsx: "typescript",
+    jsx: "javascript",
+    py: "python",
+    html: "html",
+    css: "css",
+    json: "json",
+    md: "markdown",
+    sql: "sql",
+    sh: "shell",
+    yaml: "yaml",
+    yml: "yaml",
+  };
+  return languages[extension || ""] || "plaintext";
+}
+
+export function getMonacoLanguage(language: string): string {
+  const map: Record<string, string> = {
+    js: "javascript",
+    javascript: "javascript",
+    ts: "typescript",
+    typescript: "typescript",
+    tsx: "typescript",
+    jsx: "javascript",
+    py: "python",
+    python: "python",
+    html: "html",
+    css: "css",
+    json: "json",
+    md: "markdown",
+    markdown: "markdown",
+    sql: "sql",
+    sh: "shell",
+    bash: "shell",
+    yaml: "yaml",
+    yml: "yaml",
+  };
+  return map[language.toLowerCase()] || "plaintext";
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export function toTitleCase(rawName: string): string {
+  // Split on one or more hyphens or underscores
+  const parts = rawName.split(/[-_]+/);
+
+  // Capitalize each part and join them back with spaces
+  return parts
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
 }

@@ -13,8 +13,16 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useState, useRef, useTransition, useEffect } from "react";
-import { createChat } from "./actions";
+import {
+  use,
+  useState,
+  useRef,
+  useTransition,
+  useEffect,
+  useMemo,
+  memo,
+} from "react";
+
 import { Context } from "./providers";
 import Header from "@/components/header";
 import { useS3Upload } from "next-s3-upload";
@@ -26,13 +34,14 @@ export default function Home() {
   const router = useRouter();
 
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState(MODELS[0].value);
+  const [model, setModel] = useState(
+    MODELS.find((m) => !m.hidden)?.value || MODELS[0].value,
+  );
   const [quality, setQuality] = useState("high");
   const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
     undefined,
   );
   const [screenshotLoading, setScreenshotLoading] = useState(false);
-  const selectedModel = MODELS.find((m) => m.value === model);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,6 +54,19 @@ export default function Home() {
   }, []);
 
   const { uploadToS3 } = useS3Upload();
+
+  const selectedModel = useMemo(
+    () => MODELS.find((m) => m.value === model),
+    [model],
+  );
+
+  const qualityOptions = useMemo(
+    () => [
+      { value: "low", label: "Low quality [faster]" },
+      { value: "high", label: "High quality [slower]" },
+    ],
+    [],
+  );
   const handleScreenshotUpload = async (event: any) => {
     if (prompt.length === 0) setPrompt("Build this");
     setQuality("low");
@@ -55,10 +77,14 @@ export default function Home() {
     setScreenshotLoading(false);
   };
 
-  const textareaResizePrompt = prompt
-    .split("\n")
-    .map((text) => (text === "" ? "a" : text))
-    .join("\n");
+  const textareaResizePrompt = useMemo(
+    () =>
+      prompt
+        .split("\n")
+        .map((text) => (text === "" ? "a" : text))
+        .join("\n"),
+    [prompt],
+  );
 
   return (
     <div className="relative flex grow flex-col">
@@ -76,7 +102,7 @@ export default function Home() {
 
         <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
           <a
-            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow hover:shadow-sm"
+            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow"
             href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
             target="_blank"
           >
@@ -103,12 +129,24 @@ export default function Home() {
                 assert.ok(typeof model === "string");
                 assert.ok(quality === "high" || quality === "low");
 
-                const { chatId, lastMessageId } = await createChat(
-                  prompt,
-                  model,
-                  quality,
-                  screenshotUrl,
-                );
+                const response = await fetch("/api/create-chat", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    prompt,
+                    model,
+                    quality,
+                    screenshotUrl,
+                  }),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Failed to create chat");
+                }
+
+                const { chatId, lastMessageId } = await response.json();
 
                 const streamPromise = fetch(
                   "/api/get-next-completion-stream-promise",
@@ -150,7 +188,7 @@ export default function Home() {
                         <img
                           alt="screenshot"
                           src={screenshotUrl}
-                          className="group relative mb-2 h-16 w-[68px] rounded"
+                          className="group relative mb-2 h-16 w-[68px] rounded object-cover"
                         />
                       </div>
                       <button
@@ -196,6 +234,39 @@ export default function Home() {
                       className="peer absolute inset-0 w-full resize-none bg-transparent px-4 py-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
+                      onPaste={(e) => {
+                        // Clean up pasted text
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData("text");
+
+                        // Normalize line endings and clean up whitespace
+                        const cleanedText = pastedText
+                          .replace(/\r\n/g, "\n") // Convert Windows line endings
+                          .replace(/\r/g, "\n") // Convert old Mac line endings
+                          .replace(/\n{3,}/g, "\n\n") // Max 2 consecutive newlines
+                          .trim(); // Remove leading/trailing whitespace
+
+                        // Insert the cleaned text at cursor position
+                        const textarea = e.target as HTMLTextAreaElement;
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const newValue =
+                          prompt.slice(0, start) +
+                          cleanedText +
+                          prompt.slice(end);
+
+                        setPrompt(newValue);
+
+                        // Set cursor position after the pasted text
+                        setTimeout(() => {
+                          if (textareaRef.current) {
+                            textareaRef.current.selectionStart =
+                              start + cleanedText.length;
+                            textareaRef.current.selectionEnd =
+                              start + cleanedText.length;
+                          }
+                        }, 0);
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
@@ -225,7 +296,7 @@ export default function Home() {
                       <Select.Portal>
                         <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
                           <Select.Viewport className="space-y-1 p-2">
-                            {MODELS.map((m) => (
+                            {MODELS.filter((m) => !m.hidden).map((m) => (
                               <Select.Item
                                 key={m.value}
                                 value={m.value}
@@ -271,13 +342,7 @@ export default function Home() {
                       <Select.Portal>
                         <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
                           <Select.Viewport className="space-y-1 p-2">
-                            {[
-                              { value: "low", label: "Low quality [faster]" },
-                              {
-                                value: "high",
-                                label: "High quality [slower]",
-                              },
-                            ].map((q) => (
+                            {qualityOptions.map((q) => (
                               <Select.Item
                                 key={q.value}
                                 value={q.value}
@@ -347,8 +412,21 @@ export default function Home() {
                   <button
                     key={v.title}
                     type="button"
-                    onClick={() => setPrompt(v.description)}
-                    className="rounded bg-[#E5E9EF] px-2.5 py-1.5 text-xs tracking-[0%] hover:bg-[#cccfd5]"
+                    onClick={() => {
+                      setPrompt(v.description);
+                      // Refocus the textarea after setting the prompt
+                      setTimeout(() => {
+                        textareaRef.current?.focus();
+                        // Position cursor at the end
+                        if (textareaRef.current) {
+                          textareaRef.current.selectionStart =
+                            textareaRef.current.value.length;
+                          textareaRef.current.selectionEnd =
+                            textareaRef.current.value.length;
+                        }
+                      }, 0);
+                    }}
+                    className="rounded bg-[#E5E9EF] px-2.5 py-1.5 text-xs tracking-[0%] transition-colors hover:bg-[#cccfd5]"
                   >
                     {v.title}
                   </button>
@@ -358,57 +436,68 @@ export default function Home() {
           </form>
         </div>
 
-        <footer className="flex w-full flex-col items-center justify-between space-y-3 px-5 pb-3 pt-5 text-center sm:flex-row sm:pt-2">
-          <div>
-            <div className="font-medium">
-              Built with{" "}
-              <a
-                href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
-                className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
-              >
-                Llama
-              </a>{" "}
-              and{" "}
-              <a
-                href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
-                className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
-              >
-                Together AI
-              </a>
-              .
-            </div>
-          </div>
-          <div className="flex space-x-4 pb-4 sm:pb-0">
-            <Link
-              href="https://twitter.com/nutlope"
-              className="group"
-              aria-label=""
-            >
-              <svg
-                aria-hidden="true"
-                className="h-6 w-6 fill-gray-500 group-hover:fill-gray-700"
-              >
-                <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0 0 22 5.92a8.19 8.19 0 0 1-2.357.646 4.118 4.118 0 0 0 1.804-2.27 8.224 8.224 0 0 1-2.605.996 4.107 4.107 0 0 0-6.993 3.743 11.65 11.65 0 0 1-8.457-4.287 4.106 4.106 0 0 0 1.27 5.477A4.073 4.073 0 0 1 2.8 9.713v.052a4.105 4.105 0 0 0 3.292 4.022 4.093 4.093 0 0 1-1.853.07 4.108 4.108 0 0 0 3.834 2.85A8.233 8.233 0 0 1 2 18.407a11.615 11.615 0 0 0 6.29 1.84" />
-              </svg>
-            </Link>
-            <Link
-              href="https://github.com/Nutlope/llamacoder"
-              className="group"
-              aria-label=""
-            >
-              <svg
-                aria-hidden="true"
-                className="h-6 w-6 fill-slate-500 group-hover:fill-slate-700"
-              >
-                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
-              </svg>
-            </Link>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </div>
   );
 }
+
+const Footer = memo(() => {
+  return (
+    <footer className="flex w-full flex-col items-center justify-between space-y-3 px-5 pb-3 pt-5 text-center sm:flex-row sm:pt-2">
+      <div>
+        <div className="font-medium">
+          Built with{" "}
+          <a
+            href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
+            className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
+          >
+            Llama
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
+            className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
+          >
+            Together AI
+          </a>
+          .
+        </div>
+      </div>
+      <div className="flex items-center gap-4 pb-4 sm:pb-0">
+        <Link href="https://x.com/nutlope" className="group" aria-label="">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 fill-slate-500 group-hover:fill-slate-700"
+          >
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M10.7465 16L6.8829 10.2473L2.04622 16H0L5.97508 8.89534L0 0H5.25355L8.8949 5.42183L13.4573 0H15.5036L9.80578 6.77562L16 16H10.7465ZM13.0252 14.3782H11.6475L2.92988 1.62182H4.30767L7.79916 6.72957L8.40293 7.6159L13.0252 14.3782Z"
+              fill="#71717a"
+            />
+          </svg>
+        </Link>
+        <Link
+          href="https://github.com/Nutlope/llamacoder"
+          className="group"
+          aria-label=""
+        >
+          <svg
+            aria-hidden="true"
+            className="h-6 w-6 fill-slate-500 group-hover:fill-slate-700"
+          >
+            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
+          </svg>
+        </Link>
+      </div>
+    </footer>
+  );
+});
 
 function LoadingMessage({
   isHighQuality,
@@ -435,4 +524,4 @@ function LoadingMessage({
 }
 
 export const runtime = "edge";
-export const maxDuration = 45;
+export const maxDuration = 60;

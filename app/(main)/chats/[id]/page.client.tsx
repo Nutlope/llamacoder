@@ -2,20 +2,36 @@
 
 import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
-import { splitByFirstCodeFence } from "@/lib/utils";
+import {
+  parseReplySegments,
+  extractFirstCodeBlock,
+  extractAllCodeBlocks,
+} from "@/lib/utils";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { startTransition, use, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { memo, startTransition, use, useEffect, useRef, useState } from "react";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
 import CodeViewer from "./code-viewer";
 import CodeViewerLayout from "./code-viewer-layout";
-import type { Chat } from "./page";
+import type { Chat, Message } from "./page";
 import { Context } from "../../providers";
+
+const HeaderChat = memo(({ chat }: { chat: Chat }) => (
+  <div className="flex items-center gap-4 px-4 py-4">
+    <a href="/" target="_blank">
+      <LogoSmall />
+    </a>
+    <p className="italic text-gray-500">{chat.title}</p>
+  </div>
+));
+
+HeaderChat.displayName = "HeaderChat";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
+  const searchParams = useSearchParams();
   const [streamPromise, setStreamPromise] = useState<
     Promise<ReadableStream> | undefined
   >(context.streamPromise);
@@ -27,7 +43,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
   const router = useRouter();
   const isHandlingStreamRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
-    chat.messages.filter((m) => m.role === "assistant").at(-1),
+    chat.messages
+      .filter((m) => m.role === "assistant" && extractFirstCodeBlock(m.content))
+      .at(-1),
   );
 
   useEffect(() => {
@@ -47,9 +65,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
 
           if (
             !didPushToCode &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence-generating",
-            )
+            parseReplySegments(content).some((seg) => seg.type === "file")
           ) {
             didPushToCode = true;
             setIsShowingCodeViewer(true);
@@ -58,21 +74,42 @@ export default function PageClient({ chat }: { chat: Chat }) {
 
           if (
             !didPushToPreview &&
-            splitByFirstCodeFence(content).some(
-              (part) => part.type === "first-code-fence",
+            parseReplySegments(content).some(
+              (seg) => seg.type === "file" && !seg.isPartial,
             )
           ) {
             didPushToPreview = true;
             setIsShowingCodeViewer(true);
-            setActiveTab("preview");
           }
         })
         .on("finalContent", async (finalText) => {
           startTransition(async () => {
+            // Get all previous assistant messages with files
+            const previousAssistantMessages = chat.messages.filter(
+              (m) =>
+                m.role === "assistant" &&
+                extractAllCodeBlocks(m.content).length > 0,
+            );
+
+            // Extract all files from previous messages
+            const previousFiles = previousAssistantMessages.flatMap((msg) =>
+              extractAllCodeBlocks(msg.content),
+            );
+
+            // Extract files from current AI response
+            const currentFiles = extractAllCodeBlocks(finalText);
+
+            // Merge files (current overrides previous for same paths)
+            const fileMap = new Map();
+            previousFiles.forEach((file) => fileMap.set(file.path, file));
+            currentFiles.forEach((file) => fileMap.set(file.path, file));
+            const allFiles = Array.from(fileMap.values());
+
             const message = await createMessage(
               chat.id,
-              finalText,
+              finalText, // Store original AI response content (only changed files)
               "assistant",
+              allFiles, // Store cumulative files
             );
 
             startTransition(() => {
@@ -80,6 +117,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
               setStreamText("");
               setStreamPromise(undefined);
               setActiveMessage(message);
+              // When streaming finishes, switch to preview mode and keep the viewer open
+              setIsShowingCodeViewer(true);
+              setActiveTab("preview");
               router.refresh();
             });
           });
@@ -92,13 +132,10 @@ export default function PageClient({ chat }: { chat: Chat }) {
   return (
     <div className="h-dvh">
       <div className="flex h-full">
-        <div className="mx-auto flex w-full shrink-0 flex-col overflow-hidden lg:w-1/2">
-          <div className="flex items-center gap-4 px-4 py-4">
-            <Link href="/">
-              <LogoSmall />
-            </Link>
-            <p className="italic text-gray-500">{chat.title}</p>
-          </div>
+        <div
+          className={`flex w-full shrink-0 flex-col overflow-hidden ${isShowingCodeViewer ? "lg:w-[30%]" : "lg:w-full"}`}
+        >
+          <HeaderChat chat={chat} />
 
           <ChatLog
             chat={chat}
@@ -167,6 +204,45 @@ export default function PageClient({ chat }: { chat: Chat }) {
                     return res.body;
                   });
                   setStreamPromise(streamPromise);
+                  router.refresh();
+                });
+              }}
+              onRestore={async (
+                message: Message | undefined,
+                oldVersion: number,
+                newVersion: number,
+              ) => {
+                startTransition(async () => {
+                  if (!message) return;
+
+                  // Helper to get files from a message (JSON field or extract from content)
+                  const getFilesFromMessage = (msg: Message) => {
+                    return (
+                      (msg.files as any[]) || extractAllCodeBlocks(msg.content)
+                    );
+                  };
+
+                  const restoredFiles = getFilesFromMessage(message);
+                  if (restoredFiles.length === 0) return;
+
+                  const explanation = `Version ${newVersion} was created by restoring version ${oldVersion}.`;
+                  const newContent =
+                    explanation +
+                    "\n\n" +
+                    restoredFiles
+                      .map(
+                        (file) =>
+                          `\`\`\`${file.language}{path=${file.path}}\n${file.code}\n\`\`\``,
+                      )
+                      .join("\n\n");
+
+                  const newMessage = await createMessage(
+                    chat.id,
+                    newContent,
+                    "assistant",
+                    restoredFiles,
+                  );
+                  setActiveMessage(newMessage);
                   router.refresh();
                 });
               }}
