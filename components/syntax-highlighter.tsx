@@ -55,26 +55,47 @@ export default function SyntaxHighlighter({
   const fileTree = buildFileTree(files);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col md:flex-row">
       {files.length > 1 && (
-        <div
-          className={`w-fit max-w-48 border-r border-gray-200 bg-gray-50 md:w-64 ${isStreaming ? "pointer-events-none opacity-60" : ""}`}
-        >
-          <div className="border-b border-gray-200 p-2 text-sm font-medium text-gray-700">
-            Files ({files.length})
+        <>
+          {/* Mobile: File tree above code editor */}
+          <div className="block border-b border-gray-200 bg-gray-50 md:hidden">
+            <div className="border-b border-gray-200 p-2 text-sm font-medium text-gray-700">
+              Files ({files.length})
+            </div>
+            <div className="max-h-32 overflow-y-auto">
+              <FileTree
+                tree={fileTree}
+                activeFile={files[activeFile]?.path}
+                onFileSelect={(path) => {
+                  if (disableSelection) return;
+                  const index = files.findIndex((f) => f.path === path);
+                  if (index !== -1) setActiveFile(index);
+                }}
+              />
+            </div>
           </div>
-          <div className="overflow-y-auto">
-            <FileTree
-              tree={fileTree}
-              activeFile={files[activeFile]?.path}
-              onFileSelect={(path) => {
-                if (disableSelection) return;
-                const index = files.findIndex((f) => f.path === path);
-                if (index !== -1) setActiveFile(index);
-              }}
-            />
+
+          {/* Desktop: File tree as sidebar */}
+          <div
+            className={`hidden w-fit max-w-48 border-r border-gray-200 bg-gray-50 md:block md:w-64 ${isStreaming ? "pointer-events-none opacity-60" : ""}`}
+          >
+            <div className="border-b border-gray-200 p-2 text-sm font-medium text-gray-700">
+              Files ({files.length})
+            </div>
+            <div className="overflow-y-auto">
+              <FileTree
+                tree={fileTree}
+                activeFile={files[activeFile]?.path}
+                onFileSelect={(path) => {
+                  if (disableSelection) return;
+                  const index = files.findIndex((f) => f.path === path);
+                  if (index !== -1) setActiveFile(index);
+                }}
+              />
+            </div>
           </div>
-        </div>
+        </>
       )}
       <div className="flex flex-1 flex-col">
         <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
