@@ -33,7 +33,7 @@
     "framer-motion": "^11.18.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.468.0",
-    "next": "16.0.7",
+    "next": "16.0.10",
     "next-plausible": "^3.12.5",
     "next-s3-upload": "^0.3.4",
     "react": "^19",
