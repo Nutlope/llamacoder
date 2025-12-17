@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     let fullScreenshotDescription;
     if (screenshotUrl) {
       const screenshotResponse = await together.chat.completions.create({
-        model: "Qwen/Qwen2.5-VL-72B-Instruct",
+        model: "Qwen/Qwen3-VL-32B-Instruct",
         temperature: 0.4,
         max_tokens: 1000,
         messages: [
