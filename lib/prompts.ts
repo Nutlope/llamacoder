@@ -1,7 +1,5 @@
 import dedent from "dedent";
 import shadcnDocs from "./shadcn-docs";
-import assert from "assert";
-import { examples } from "./shadcn-examples";
 
 export const softwareArchitectPrompt = dedent`
 You are an expert software architect and product lead responsible for taking an idea of an app, analyzing it, and producing an implementation plan for a single page React frontend app. You are describing a plan for a multi-file React + Tailwind CSS + TypeScript app with the ability to use Lucide React for icons and Shadcn UI for components.
