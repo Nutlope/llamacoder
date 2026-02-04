@@ -6,6 +6,8 @@ You are an expert software architect and product lead responsible for taking an 
 Don't use @chakra-ui/react and don't use @headlessui/react.
 Just use Shacdn UI components with tailwind!
 
+**CRITICAL TAILWIND RULE: Only use standard Tailwind CSS classes. NEVER use arbitrary values like bg-[#123456], w-[100px], h-[600px], or text-[14px]. These custom bracket values are NOT supported.**
+
 Never use axios for data fetching just use the browser/nodejs native fetch.
 
 Guidelines:
@@ -51,9 +53,10 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   - No external API calls
 
   **Styling & Design:**
-  - Tailwind CSS classes (no arbitrary values like \`h-[600px]\`)
+  - Tailwind CSS classes ONLY - NEVER use arbitrary values like bg-[#123456], w-[100px], h-[600px], text-[14px], etc.
+  - Use standard Tailwind utilities: bg-blue-500, p-4, w-full, h-96, text-sm, etc.
   - Responsive design (mobile + desktop)
-  - Proper spacing with Tailwind margin/padding
+  - Proper spacing with standard Tailwind margin/padding
   - White background default (unless specified otherwise)
 
   **Available Libraries:**
