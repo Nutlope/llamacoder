@@ -8,7 +8,7 @@ import {
   toTitleCase,
 } from "@/lib/utils";
 import { Fragment } from "react";
-import Markdown from "react-markdown";
+import { Streamdown } from "streamdown";
 import { StickToBottom } from "use-stick-to-bottom";
 import { AppVersionButton } from "@/components/app-version-button";
 
@@ -179,7 +179,9 @@ function AssistantMessage({
           if (seg.type === "text") {
             return (
               <div key={i}>
-                <Markdown className="prose break-words">{seg.content}</Markdown>
+                <Streamdown className="prose break-words">
+                  {seg.content}
+                </Streamdown>
               </div>
             );
           }
@@ -207,18 +209,18 @@ function AssistantMessage({
           );
         })}
         <AppVersionButton
-           version={version}
-           fileCount={displayFileCount}
-           appTitle={appTitle}
-           generating={false}
-           disabled={!message || isStreaming}
-           onClick={message ? () => onMessageClick(message) : undefined}
-           isActive={isActive}
-         />
+          version={version}
+          fileCount={displayFileCount}
+          appTitle={appTitle}
+          generating={false}
+          disabled={!message || isStreaming}
+          onClick={message ? () => onMessageClick(message) : undefined}
+          isActive={isActive}
+        />
       </div>
     );
   } else {
     // No code blocks, just show text
-    return <Markdown className="prose break-words">{content}</Markdown>;
+    return <Streamdown className="prose break-words">{content}</Streamdown>;
   }
 }
