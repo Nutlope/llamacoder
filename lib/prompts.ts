@@ -130,6 +130,10 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
      \`\`\`tsx{path=src/App.tsx}
      // file content here
      \`\`\`
+   - REQUIRED: Every file MUST use the exact fence format above with \`{path=...}\`
+   - REQUIRED: The first line INSIDE the fence must be code, never a filename
+   - NEVER output a plain \`\`\`tsx fence without \`{path=...}\`
+   - NEVER output a file list or file names outside code fences
    - Full relative paths from project root
    - Only output changed files in iterations
    - Maintain stable file paths
