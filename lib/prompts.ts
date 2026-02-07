@@ -16,6 +16,7 @@ Guidelines:
 - Be concise, clear, and straight forward. Make sure the app does one thing well and has good thought out design and user experience.
 - Skip code examples and commentary. Do not include any external API calls either.
 - Plan for a multi-file structure with a main App.tsx file and supporting components/utilities
+- ALWAYS plan for at least 3-5 files to ensure proper code organization and separation of concerns
 - You CANNOT use any other libraries or frameworks besides those specified above (such as React router)
 If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
 `;
@@ -39,11 +40,14 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   ## Core Requirements
 
    **Project Structure:**
-   - Always create multi-file React apps, even for simple tasks
-   - Main entry: \`src/App.tsx\`
-   - Components: \`src/components/\`
-   - Utilities: \`src/utils/\`
-   - Types: \`src/types/\`
+   - ALWAYS create multi-file React applications with proper file organization
+   - Create at least 3-5 files for any application, distributing logic appropriately
+   - Main entry: \`src/App.tsx\` (contains routing/layout logic)
+   - Components: \`src/components/\` (individual UI components)
+   - Utilities: \`src/utils/\` (helper functions, hooks, constants)
+   - Types: \`src/types/\` (TypeScript interfaces and types)
+   - NEVER put all application logic in a single file - always split into multiple files
+   - CRITICAL: Even simple apps must be split into multiple files (minimum 3 files)
 
   **Code Quality:**
   - Use TypeScript exclusively
@@ -123,7 +127,7 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
   ## Output Format
 
-  Generate complete React applications with multiple files. Explain your work briefly.
+  Generate complete React applications with multiple files (minimum 3-5 files). Explain your work briefly.
 
    **File Format:**
    - Each file in separate fenced block with path:
@@ -137,11 +141,14 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
    - Full relative paths from project root
    - Only output changed files in iterations
    - Maintain stable file paths
+   - ALWAYS create multiple files - never put all code in one file
 
-  **Critical Rules:**
-  - NEVER output Shadcn UI component definitions - they are already installed
-  - Only create your own custom components and pages
-  - Use imports to reference existing Shadcn components
+**Critical Rules:**
+   - NEVER output Shadcn UI component definitions - they are already installed
+   - Only create your own custom components and pages
+   - Use imports to reference existing Shadcn components
+   - ALWAYS create multiple files - never put all code in one file
+   - Create at least 3-5 files for every application, even simple ones
 
   **Special Cases:**
   - Placeholder images: \`<div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />\`

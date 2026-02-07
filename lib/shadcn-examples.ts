@@ -49,9 +49,75 @@ The user wants me to build a Next.js calculator application with:
 - Clear input functionality
 - Responsive design for desktop and mobile
 - Keyboard shortcuts for enhanced usability
+- Proper multi-file structure for maintainability
 
- \`\`\`tsx{path=components/Calculator.tsx}
+\`\`\`tsx{path=src/App.tsx}
+import Calculator from "./components/Calculator";
+import { ThemeProvider } from "./components/ThemeProvider";
+
+export default function App() {
+  return (
+    <ThemeProvider defaultTheme="dark" storageKey="calculator-theme">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Calculator />
+      </div>
+    </ThemeProvider>
+  );
+}
+\`\`\`
+
+\`\`\`tsx{path=src/components/Calculator.tsx}
 ${calculator.content}
+\`\`\`
+
+\`\`\`ts{path=src/types/calculator.ts}
+export type Operation = "+" | "-" | "×" | "÷" | null;
+
+export interface CalculatorState {
+  displayValue: string;
+  previousValue: number | null;
+  operation: Operation;
+  waitingForOperand: boolean;
+}
+
+export interface CalculatorButton {
+  value: string;
+  display: string;
+  type: "digit" | "operation" | "function" | "equals";
+  className?: string;
+}
+\`\`\`
+
+\`\`\`ts{path=src/utils/calculator.ts}
+import { CalculatorState, Operation } from "../types/calculator";
+
+export const performOperation = (
+  firstOperand: number,
+  secondOperand: number,
+  operation: Operation
+): number => {
+  switch (operation) {
+    case "+":
+      return firstOperand + secondOperand;
+    case "-":
+      return firstOperand - secondOperand;
+    case "×":
+      return firstOperand * secondOperand;
+    case "÷":
+      return firstOperand / secondOperand;
+    default:
+      return secondOperand;
+  }
+};
+
+export const formatDisplay = (value: number): string => {
+  // Format the display value to show up to 10 digits
+  const stringValue = value.toString();
+  if (stringValue.length > 10) {
+    return value.toExponential(5);
+  }
+  return stringValue;
+};
 \`\`\`
     `),
   },
@@ -64,23 +130,159 @@ The user wants me to create a quiz app about American history with the following
 - Quiz questions about American history
 - Show explanations for each question whether right or wrong
 - Keep track of score
-- All within a single file
+- Create a well-structured multi-file application
 
-This is a straightforward request for a single cohesive component - a quiz app. I don't need to use TodoManager since it's one unified feature. I should first understand the codebase structure, then build the quiz app as requested.
-Since they want it all in a single file, I'll create a comprehensive quiz component with multiple American history questions, score tracking, and detailed explanations
- \`\`\`tsx{path=components/Quiz.tsx}
- ${quiz.content}
- \`\`\`
+This is a straightforward app that should be organized into multiple files for better structure and maintainability. I'll create separate files for components, types, and utilities.
+
+\`\`\`tsx{path=src/App.tsx}
+${quiz.content.replace("export default function Quiz() {", 'import Quiz from "./components/Quiz";\n\nexport default function App() {\n  return (\n    <div className="min-h-screen bg-gray-50 py-8">\n      <div className="container mx-auto px-4">\n        <Quiz />\n      </div>\n    </div>\n  );\n')}
+\`\`\`
+
+\`\`\`tsx{path=src/components/Quiz.tsx}
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+// ... rest of the quiz component code
+\`\`\`
+
+\`\`\`ts{path=src/types/quiz.ts}
+export type Question = {
+  id: number;
+  text: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+};
+
+export type QuizState = {
+  currentQuestionIndex: number;
+  score: number;
+  answers: number[];
+  showExplanation: boolean;
+};
+\`\`\`
       `),
   },
   "pomodoro timer": {
     prompt: "make a pomodoro timer",
     response: dedent(`
-      I'll create a Pomodoro timer with adjustable focus and break times, along with a sound notification when the timer completes. Since no reference image/app was provided in your prompt, I'll create a clean and functional design.
+      I'll create a Pomodoro timer with adjustable focus and break times, along with a sound notification when the timer completes. Since no reference image/app was provided in your prompt, I'll create a clean and functional design with a proper multi-file structure.
 
- \`\`\`tsx{path=components/PomodoroTimer.tsx}
- ${pomodoro.content}
- \`\`\`
+\`\`\`tsx{path=src/App.tsx}
+import PomodoroTimer from "./components/PomodoroTimer";
+import { ThemeProvider } from "./components/ThemeProvider";
+
+export default function App() {
+  return (
+    <ThemeProvider defaultTheme="dark" storageKey="pomodoro-theme">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <PomodoroTimer />
+      </div>
+    </ThemeProvider>
+  );
+}
+\`\`\`
+
+\`\`\`tsx{path=src/components/PomodoroTimer.tsx}
+${pomodoro.content}
+\`\`\`
+
+\`\`\`tsx{path=src/components/ThemeProvider.tsx}
+"use client";
+
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+
+type Theme = "dark" | "light" | "system";
+
+type ThemeProviderProps = {
+  children: ReactNode;
+  defaultTheme?: Theme;
+  storageKey?: string;
+};
+
+type ThemeProviderState = {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+};
+
+const initialState: ThemeProviderState = {
+  theme: "system",
+  setTheme: () => null,
+};
+
+const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
+
+export function ThemeProvider({
+  children,
+  defaultTheme = "system",
+  storageKey = "vite-ui-theme",
+  ...props
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(
+    () => (typeof localStorage !== "undefined" ? localStorage.getItem(storageKey) as Theme : undefined) || defaultTheme
+  );
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    
+    root.classList.remove("light", "dark");
+    
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
+        ? "dark"
+        : "light";
+        
+      root.classList.add(systemTheme);
+      return;
+    }
+    
+    root.classList.add(theme);
+  }, [theme]);
+
+  const value = {
+    theme,
+    setTheme: (theme: Theme) => {
+      localStorage.setItem(storageKey, theme);
+      setTheme(theme);
+    },
+  };
+
+  return (
+    <ThemeProviderContext.Provider {...props} value={value}>
+      {children}
+    </ThemeProviderContext.Provider>
+  );
+}
+
+export const useTheme = () => {
+  const context = useContext(ThemeProviderContext);
+  
+  if (context === undefined)
+    throw new Error("useTheme must be used within a ThemeProvider");
+    
+  return context;
+}
+\`\`\`
+
+\`\`\`ts{path=src/types/timer.ts}
+export type TimerMode = "work" | "shortBreak" | "longBreak";
+
+export interface TimerSettings {
+  workDuration: number;
+  shortBreakDuration: number;
+  longBreakDuration: number;
+  longBreakInterval: number;
+}
+
+export interface TimerState {
+  mode: TimerMode;
+  timeLeft: number;
+  isRunning: boolean;
+  completedSessions: number;
+}
+\`\`\`
     `),
   },
 };
