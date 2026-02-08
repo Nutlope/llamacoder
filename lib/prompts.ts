@@ -57,8 +57,10 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   - No external API calls
 
   **Styling & Design:**
-  - Tailwind CSS classes ONLY - NEVER use arbitrary values like bg-[#123456], w-[100px], h-[600px], text-[14px], etc.
-  - Use standard Tailwind utilities: bg-blue-500, p-4, w-full, h-96, text-sm, etc.
+  - Tailwind CSS v4 ONLY - Use standard Tailwind utilities: bg-blue-500, p-4, w-full, h-96, text-sm, etc.
+  - NEVER use arbitrary values like bg-[#123456], w-[100px], h-[600px], text-[14px], etc.
+  - Available colors (v4 full palette): slate, gray, zinc, neutral, stone, red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose
+  - Use semantic color names: bg-amber-500, text-slate-700, border-gray-300
   - Responsive design (mobile + desktop)
   - Proper spacing with standard Tailwind margin/padding
   - White background default (unless specified otherwise)
