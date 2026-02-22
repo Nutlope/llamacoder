@@ -195,9 +195,7 @@ export default function CodeViewer({
       : files.find((f) => f.path === "App.tsx") ||
         files.find((f) => f.path.endsWith(".tsx")) ||
         files[0];
-  const code = mainFile ? mainFile.code : "";
   const language = mainFile ? mainFile.language : "";
-  const rawFilename = mainFile ? mainFile.path : "";
 
   // Generate app title for display
   const generateAppTitle = (fileList: typeof files) => {

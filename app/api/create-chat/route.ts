@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, model, quality, screenshotUrl } = await request.json();
+    const { prompt, quality, screenshotUrl } = await request.json();
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });

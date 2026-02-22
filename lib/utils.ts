@@ -282,3 +282,39 @@ export function toTitleCase(rawName: string): string {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 }
+
+const STORAGE_KEY = "llamacoder-chats";
+
+export function getSavedChats(): any[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return [];
+    const chats = JSON.parse(saved);
+    return Array.isArray(chats) ? chats : [];
+  } catch (e) {
+    console.error("Failed to load chats from localStorage", e);
+    return [];
+  }
+}
+
+export function saveChats(chats: any[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+  } catch (e) {
+    console.error("Failed to save chats to localStorage", e);
+  }
+}
+
+export function saveChat(chat: any) {
+  if (typeof window === "undefined") return;
+  const chats = getSavedChats();
+  const index = chats.findIndex((c) => c.id === chat.id);
+  if (index !== -1) {
+    chats[index] = chat;
+  } else {
+    chats.push(chat);
+  }
+  saveChats(chats);
+}

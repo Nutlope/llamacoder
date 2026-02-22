@@ -5,8 +5,8 @@ import {
   parseReplySegments,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
+  saveChat,
 } from "@/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
 import { memo, startTransition, use, useEffect, useRef, useState } from "react";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
@@ -37,7 +37,6 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
     chat.messages.some((m) => m.role === "assistant"),
   );
   const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
-  const router = useRouter();
   const isHandlingStreamRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
     chat.messages
@@ -144,12 +143,7 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
         };
 
         // Save to local storage
-        const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
-        const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
-        if (chatIndex !== -1) {
-          chats[chatIndex] = updatedChat;
-          localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
-        }
+        saveChat(updatedChat);
 
         startTransition(() => {
           setChat(updatedChat);
@@ -197,14 +191,7 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
               setStreamPromise(promise);
 
               // Save the user message to local storage immediately
-              const chats = JSON.parse(
-                localStorage.getItem("llamacoder-chats") || "[]",
-              );
-              const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
-              if (chatIndex !== -1) {
-                chats[chatIndex] = updatedChat;
-                localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
-              }
+              saveChat(updatedChat);
             }}
             isStreaming={!!streamPromise}
           />
@@ -248,12 +235,7 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
                   };
 
                   // Save to local storage
-                  const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
-                  const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
-                  if (chatIndex !== -1) {
-                    chats[chatIndex] = updatedChat;
-                    localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
-                  }
+                  saveChat(updatedChat);
                   setChat(updatedChat);
 
                   const promise = fetch(
@@ -317,12 +299,7 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
                   };
 
                   // Save to local storage
-                  const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
-                  const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
-                  if (chatIndex !== -1) {
-                    chats[chatIndex] = updatedChat;
-                    localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
-                  }
+                  saveChat(updatedChat);
 
                   setChat(updatedChat);
                   setActiveMessage(newMessage);

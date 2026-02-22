@@ -9,7 +9,6 @@ import Spinner from "@/components/spinner";
 // @ts-ignore
 import bgImg from "@/public/halo.png";
 import * as Select from "@radix-ui/react-select";
-import assert from "assert";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,12 +27,14 @@ import { Context } from "./providers";
 import Header from "@/components/header";
 import UploadIcon from "@/components/icons/upload-icon";
 import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
+import { saveChat } from "@/lib/utils";
 
 export default function Home() {
   const { setStreamPromise } = use(Context);
   const router = useRouter();
 
   const [prompt, setPrompt] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [model, setModel] = useState(
     MODELS.find((m) => !m.hidden)?.value || MODELS[0].value,
   );
@@ -119,62 +120,73 @@ export default function Home() {
           <form
             className="relative w-full max-w-2xl pt-6 lg:pt-12"
             action={async (formData) => {
+              setError(null);
               startTransition(async () => {
-                const { prompt, model, quality } = Object.fromEntries(formData);
+                try {
+                  const { prompt, model, quality } =
+                    Object.fromEntries(formData);
 
-                assert.ok(typeof prompt === "string");
-                assert.ok(typeof model === "string");
-                assert.ok(quality === "high" || quality === "low");
+                  if (typeof prompt !== "string" || prompt.trim() === "") {
+                    throw new Error("Please enter a prompt.");
+                  }
+                  if (typeof model !== "string") {
+                    throw new Error("Please select a model.");
+                  }
+                  if (quality !== "high" && quality !== "low") {
+                    throw new Error("Please select a valid quality.");
+                  }
 
-                const response = await fetch("/api/create-chat", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    prompt,
+                  const response = await fetch("/api/create-chat", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      prompt,
+                      model,
+                      quality,
+                      screenshotUrl,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(
+                      errorData.error || "Failed to create chat. Please try again.",
+                    );
+                  }
+
+                  const { chatId, messages, title } = await response.json();
+
+                  // Save to local storage
+                  const newChat = {
+                    id: chatId,
+                    title: title || prompt.slice(0, 50),
                     model,
                     quality,
-                    screenshotUrl,
-                  }),
-                });
+                    messages,
+                    createdAt: new Date().toISOString(),
+                  };
+                  saveChat(newChat);
 
-                if (!response.ok) {
-                  throw new Error("Failed to create chat");
-                }
+                  const streamPromise = fetch(
+                    "/api/get-next-completion-stream-promise",
+                    {
+                      method: "POST",
+                      body: JSON.stringify({ messages, model }),
+                    },
+                  ).then((res) => {
+                    if (!res.body) {
+                      throw new Error("No body on response");
+                    }
+                    return res.body;
+                  });
 
-                const { chatId, messages, title } = await response.json();
-
-                // Save to local storage
-                const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
-                const newChat = {
-                  id: chatId,
-                  title: title || prompt.slice(0, 50),
-                  model,
-                  quality,
-                  messages,
-                  createdAt: new Date().toISOString(),
-                };
-                chats.push(newChat);
-                localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
-
-                const streamPromise = fetch(
-                  "/api/get-next-completion-stream-promise",
-                  {
-                    method: "POST",
-                    body: JSON.stringify({ messages, model }),
-                  },
-                ).then((res) => {
-                  if (!res.body) {
-                    throw new Error("No body on response");
-                  }
-                  return res.body;
-                });
-
-                startTransition(() => {
                   setStreamPromise(streamPromise);
                   router.push(`/chats/${chatId}`);
-                });
+                } catch (e: any) {
+                  setError(e.message || "An unexpected error occurred.");
+                }
               });
             }}
           >
@@ -417,6 +429,12 @@ export default function Home() {
                   />
                 )}
               </div>
+
+              {error && (
+                <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
               <div className="mt-4 flex w-full flex-wrap justify-between gap-2.5">
                 {SUGGESTED_PROMPTS.map((v) => (
                   <button
