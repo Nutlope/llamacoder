@@ -1,0 +1,32 @@
+
+> llamacoder-new@0.1.0 dev /app
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1107ms
+○ Compiling / ...
+ GET / 200 in 6.9s
+Error creating chat: Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [400 Bad Request] API key not valid. Please pass a valid API key. [{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"API_KEY_INVALID","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key not valid. Please pass a valid API key."}]
+    at async fetchTopExample (app/api/create-chat/route.ts:25:35)
+    at async POST (app/api/create-chat/route.ts:40:41)
+  23 |
+  24 |     async function fetchTopExample() {
+> 25 |       const findSimilarExamples = await geminiModel.generateContent(
+     |                                   ^
+  26 |         `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
+  27 |
+  28 |             - landing page {
+  status: 400,
+  statusText: 'Bad Request',
+  errorDetails: [Array]
+}
+ POST /api/create-chat 500 in 922ms (compile: 613ms, render: 309ms)

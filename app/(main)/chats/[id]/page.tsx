@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import PageClient from "./page.client";
 import { notFound } from "next/navigation";
+import { getSavedChats } from "@/lib/utils";
 
 export interface Message {
   id: string;
@@ -34,7 +35,7 @@ export default function Page({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
+    const chats = getSavedChats();
     const foundChat = chats.find((c: any) => c.id === id);
     if (foundChat) {
       setChat({
