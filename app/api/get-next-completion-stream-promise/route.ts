@@ -1,8 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool } from "@neondatabase/serverless";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
-import Together from "together-ai";
 
 function optimizeMessagesForTokens(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -30,23 +27,7 @@ function optimizeMessagesForTokens(
 }
 
 export async function POST(req: Request) {
-  const neon = new Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaNeon(neon);
-  const prisma = new PrismaClient({ adapter });
-  const { messageId, model } = await req.json();
-
-  const message = await prisma.message.findUnique({
-    where: { id: messageId },
-  });
-
-  if (!message) {
-    return new Response(null, { status: 404 });
-  }
-
-  const messagesRes = await prisma.message.findMany({
-    where: { chatId: message.chatId, position: { lte: message.position } },
-    orderBy: { position: "asc" },
-  });
+  const { messages: rawMessages, model } = await req.json();
 
   let messages = z
     .array(
@@ -55,7 +36,7 @@ export async function POST(req: Request) {
         content: z.string(),
       }),
     )
-    .parse(messagesRes);
+    .parse(rawMessages);
 
   messages = optimizeMessagesForTokens(messages);
 
@@ -63,28 +44,72 @@ export async function POST(req: Request) {
     messages = [messages[0], messages[1], messages[2], ...messages.slice(-7)];
   }
 
-  let options: ConstructorParameters<typeof Together>[0] = {};
-  if (process.env.HELICONE_API_KEY) {
-    options.baseURL = "https://together.helicone.ai/v1";
-    options.defaultHeaders = {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-appname": "LlamaCoder",
-      "Helicone-Session-Id": message.chatId,
-      "Helicone-Session-Name": "LlamaCoder Chat",
-    };
-  }
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-  const together = new Together(options);
+  // Validate model or default to flash
+  const geminiModelName = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"].includes(model)
+    ? model
+    : "gemini-1.5-flash";
 
-  const res = await together.chat.completions.create({
-    model,
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    stream: true,
-    temperature: 0.4,
-    max_tokens: 9000,
+  const geminiModel = genAI.getGenerativeModel({
+    model: geminiModelName,
   });
 
-  return new Response(res.toReadableStream());
+  // Gemini expects 'model' instead of 'assistant', and system messages are handled separately or in history
+  const systemMessage = messages.find((m) => m.role === "system")?.content;
+  const history = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+  // Remove the last message from history as it's the one we're sending
+  const lastMessage = history.pop();
+
+  const chat = geminiModel.startChat({
+    history: history,
+    systemInstruction: systemMessage,
+  });
+
+  const result = await chat.sendMessageStream(lastMessage?.parts[0].text || "");
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        for await (const chunk of result.stream) {
+          const chunkText = chunk.text();
+          if (chunkText) {
+            const payload = {
+              choices: [
+                {
+                  delta: {
+                    content: chunkText,
+                  },
+                },
+              ],
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+          }
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      } catch (e) {
+        console.error("Stream error:", e);
+        controller.error(e);
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
 
 export const runtime = "edge";

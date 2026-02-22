@@ -19,7 +19,6 @@ import {
 } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import type { Chat, Message } from "./page";
-import { Share } from "./share";
 import { StickToBottom } from "use-stick-to-bottom";
 import JSZip from "jszip";
 import dynamic from "next/dynamic";
@@ -348,7 +347,7 @@ export default function CodeViewer({
                           1}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {timeAgo(msg.createdAt)}
+                        {timeAgo(new Date(msg.createdAt))}
                       </span>
                     </div>
                   </SelectItem>
@@ -435,15 +434,6 @@ export default function CodeViewer({
 
       <div className="flex items-center justify-between border-t border-gray-300 px-4 py-4">
         <div className="inline-flex items-center gap-2.5 text-sm">
-          <Share
-            message={
-              disabledControls
-                ? undefined
-                : message && streamAllFiles.length === 0
-                  ? message
-                  : undefined
-            }
-          />
           <button
             className="inline-flex items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-600 transition enabled:hover:bg-white disabled:opacity-50"
             onClick={() => setRefresh((r) => r + 1)}

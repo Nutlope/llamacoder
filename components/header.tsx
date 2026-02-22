@@ -13,21 +13,6 @@ function Header() {
           alt=""
           className="mx-auto h-7 object-contain"
         />
-        <svg
-          width="1"
-          height="20"
-          viewBox="0 0 1 20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M0.25 0V19.5" stroke="#C2C2C2" strokeWidth="0.5" />
-        </svg>
-
-        <img
-          src="/together.png"
-          alt=""
-          className="mx-auto h-[24px] object-contain"
-        />
       </Link>
 
       <div className="absolute right-3">
