@@ -8,33 +8,45 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, quality, screenshotUrl } = await request.json();
+    const { prompt, model, quality, screenshotUrl } = await request.json();
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const geminiModel = genAI.getGenerativeModel({
+      model: model || "gemini-1.5-flash",
+    });
 
     async function fetchTitle() {
-      const responseForChatTitle = await geminiModel.generateContent(
-        `You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt: "${prompt}". Please return only the title.`,
-      );
-      const title = responseForChatTitle.response.text() || prompt;
-      return title;
+      try {
+        const responseForChatTitle = await geminiModel.generateContent(
+          `You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt: "${prompt}". Please return only the title.`,
+        );
+        return responseForChatTitle.response.text() || prompt;
+      } catch (e) {
+        console.error("Error fetching title:", e);
+        return prompt;
+      }
     }
 
     async function fetchTopExample() {
-      const findSimilarExamples = await geminiModel.generateContent(
-        `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
+      try {
+        const findSimilarExamples = await geminiModel.generateContent(
+          `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
 
-            - landing page
-            - blog app
-            - quiz app
-            - pomodoro timer
+              - landing page
+              - blog app
+              - quiz app
+              - pomodoro timer
 
-            Request: ${prompt}`,
-      );
+              Request: ${prompt}`,
+        );
 
-      const mostSimilarExample = findSimilarExamples.response.text() || "none";
-      return mostSimilarExample.trim().toLowerCase();
+        const mostSimilarExample =
+          findSimilarExamples.response.text() || "none";
+        return mostSimilarExample.trim().toLowerCase();
+      } catch (e) {
+        console.error("Error fetching top example:", e);
+        return "none";
+      }
     }
 
     const [title, mostSimilarExample] = await Promise.all([
@@ -71,19 +83,24 @@ export async function POST(request: NextRequest) {
 
     let userMessage: string;
     if (quality === "high") {
-      const architectModel = genAI.getGenerativeModel({
-        model: "gemini-1.5-pro",
-      });
-      let initialRes = await architectModel.generateContent([
-        { text: softwareArchitectPrompt },
-        {
-          text: fullScreenshotDescription
-            ? fullScreenshotDescription + prompt
-            : prompt,
-        },
-      ]);
+      try {
+        const architectModel = genAI.getGenerativeModel({
+          model: "gemini-1.5-pro",
+        });
+        let initialRes = await architectModel.generateContent([
+          { text: softwareArchitectPrompt },
+          {
+            text: fullScreenshotDescription
+              ? fullScreenshotDescription + prompt
+              : prompt,
+          },
+        ]);
 
-      userMessage = initialRes.response.text() ?? prompt;
+        userMessage = initialRes.response.text() ?? prompt;
+      } catch (e) {
+        console.error("Error fetching architect plan:", e);
+        userMessage = prompt;
+      }
     } else if (fullScreenshotDescription) {
       userMessage =
         prompt +
