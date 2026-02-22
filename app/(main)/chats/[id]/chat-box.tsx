@@ -2,10 +2,8 @@
 
 import ArrowRightIcon from "@/components/icons/arrow-right";
 import Spinner from "@/components/spinner";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { createMessage } from "../../actions";
-import { type Chat } from "./page";
+import { type Chat, type Message } from "./page";
 import { MODELS } from "@/lib/constants";
 
 export default function ChatBox({
@@ -14,11 +12,10 @@ export default function ChatBox({
   isStreaming,
 }: {
   chat: Chat;
-  onNewStreamPromise: (v: Promise<ReadableStream>) => void;
+  onNewStreamPromise: (v: Promise<ReadableStream>, updatedMessages: Message[]) => void;
   isStreaming: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
   const disabled = isPending || isStreaming;
   const didFocusOnce = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -48,13 +45,22 @@ export default function ChatBox({
         className="relative flex w-full"
         action={async () => {
           startTransition(async () => {
-            const message = await createMessage(chat.id, prompt, "user");
+            const newUserMessage: Message = {
+              id: crypto.randomUUID(),
+              role: "user",
+              content: prompt,
+              position: chat.messages.length,
+              createdAt: new Date().toISOString(),
+            };
+
+            const updatedMessages = [...chat.messages, newUserMessage];
+
             const streamPromise = fetch(
               "/api/get-next-completion-stream-promise",
               {
                 method: "POST",
                 body: JSON.stringify({
-                  messageId: message.id,
+                  messages: updatedMessages,
                   model: chat.model,
                 }),
               },
@@ -65,11 +71,8 @@ export default function ChatBox({
               return res.body;
             });
 
-            onNewStreamPromise(streamPromise);
-            startTransition(() => {
-              router.refresh();
-              setPrompt("");
-            });
+            onNewStreamPromise(streamPromise, updatedMessages);
+            setPrompt("");
           });
         }}
       >

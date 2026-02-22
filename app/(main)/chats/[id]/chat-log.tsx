@@ -45,13 +45,7 @@ export default function ChatLog({
             transform: "translateY(-1px)",
           }}
         />
-        <UserMessage content={chat.prompt} />
-
-        {chat.totalMessages > chat.messages.length && (
-          <div className="py-2 text-center text-sm text-gray-500">
-            Only last messages loaded. Full history not available.
-          </div>
-        )}
+        <UserMessage content={chat.prompt || chat.messages[1]?.content || ""} />
 
         {chat.messages.slice(2).map((message) => (
           <Fragment key={message.id}>

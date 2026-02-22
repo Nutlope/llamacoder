@@ -6,6 +6,7 @@ import ArrowRightIcon from "@/components/icons/arrow-right";
 import LightningBoltIcon from "@/components/icons/lightning-bolt";
 import LoadingButton from "@/components/loading-button";
 import Spinner from "@/components/spinner";
+// @ts-ignore
 import bgImg from "@/public/halo.png";
 import * as Select from "@radix-ui/react-select";
 import assert from "assert";
@@ -25,7 +26,6 @@ import {
 
 import { Context } from "./providers";
 import Header from "@/components/header";
-import { useS3Upload } from "next-s3-upload";
 import UploadIcon from "@/components/icons/upload-icon";
 import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
 
@@ -53,8 +53,6 @@ export default function Home() {
     }
   }, []);
 
-  const { uploadToS3 } = useS3Upload();
-
   const selectedModel = useMemo(
     () => MODELS.find((m) => m.value === model),
     [model],
@@ -72,9 +70,12 @@ export default function Home() {
     setQuality("low");
     setScreenshotLoading(true);
     let file = event.target.files[0];
-    const { url } = await uploadToS3(file);
-    setScreenshotUrl(url);
-    setScreenshotLoading(false);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setScreenshotUrl(reader.result as string);
+      setScreenshotLoading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const textareaResizePrompt = useMemo(
@@ -101,17 +102,13 @@ export default function Home() {
         <Header />
 
         <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
-          <a
-            className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow"
-            href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
-            target="_blank"
-          >
+          <div className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow">
             <span className="text-center">
-              Powered by <span className="font-semibold">Together AI</span>.
+              Powered by <span className="font-semibold">Gemini AI</span>.
               Used by
               <span className="font-semibold"> 1.1M+ users. </span>
             </span>
-          </a>
+          </div>
 
           <h1 className="mt-4 text-balance text-center text-4xl leading-none text-gray-700 md:text-[64px] lg:mt-8">
             Turn your <span className="text-blue-500">idea</span>
@@ -146,13 +143,26 @@ export default function Home() {
                   throw new Error("Failed to create chat");
                 }
 
-                const { chatId, lastMessageId } = await response.json();
+                const { chatId, messages, title } = await response.json();
+
+                // Save to local storage
+                const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
+                const newChat = {
+                  id: chatId,
+                  title: title || prompt.slice(0, 50),
+                  model,
+                  quality,
+                  messages,
+                  createdAt: new Date().toISOString(),
+                };
+                chats.push(newChat);
+                localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
 
                 const streamPromise = fetch(
                   "/api/get-next-completion-stream-promise",
                   {
                     method: "POST",
-                    body: JSON.stringify({ messageId: lastMessageId, model }),
+                    body: JSON.stringify({ messages, model }),
                   },
                 ).then((res) => {
                   if (!res.body) {
@@ -448,20 +458,7 @@ const Footer = memo(() => {
       <div>
         <div className="font-medium">
           Built with{" "}
-          <a
-            href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
-            className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
-          >
-            Llama
-          </a>{" "}
-          and{" "}
-          <a
-            href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
-            className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
-          >
-            Together AI
-          </a>
-          .
+          <span className="font-semibold text-blue-600">Gemini AI</span>.
         </div>
       </div>
       <div className="flex items-center gap-4 pb-4 sm:pb-0">

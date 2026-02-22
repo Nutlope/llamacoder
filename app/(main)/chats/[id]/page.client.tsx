@@ -1,16 +1,13 @@
 "use client";
 
-import { createMessage } from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
 import {
   parseReplySegments,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
 } from "@/lib/utils";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { memo, startTransition, use, useEffect, useRef, useState } from "react";
-import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
 import CodeViewer from "./code-viewer";
@@ -29,9 +26,9 @@ const HeaderChat = memo(({ chat }: { chat: Chat }) => (
 
 HeaderChat.displayName = "HeaderChat";
 
-export default function PageClient({ chat }: { chat: Chat }) {
+export default function PageClient({ chat: initialChat }: { chat: Chat }) {
   const context = use(Context);
-  const searchParams = useSearchParams();
+  const [chat, setChat] = useState<Chat>(initialChat);
   const [streamPromise, setStreamPromise] = useState<
     Promise<ReadableStream> | undefined
   >(context.streamPromise);
@@ -59,75 +56,115 @@ export default function PageClient({ chat }: { chat: Chat }) {
       let didPushToCode = false;
       let didPushToPreview = false;
 
-      ChatCompletionStream.fromReadableStream(stream)
-        .on("content", (delta, content) => {
-          setStreamText((text) => text + delta);
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = "";
+      let partialLine = "";
 
-          if (
-            !didPushToCode &&
-            parseReplySegments(content).some((seg) => seg.type === "file")
-          ) {
-            didPushToCode = true;
-            setIsShowingCodeViewer(true);
-            setActiveTab("code");
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = (partialLine + chunk).split("\n");
+          partialLine = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6).trim();
+              if (data === "[DONE]") break;
+              try {
+                const json = JSON.parse(data);
+                const delta = json.choices[0].delta.content;
+                if (delta) {
+                  fullContent += delta;
+                  setStreamText(fullContent);
+
+                  if (
+                    !didPushToCode &&
+                    parseReplySegments(fullContent).some((seg) => seg.type === "file")
+                  ) {
+                    didPushToCode = true;
+                    setIsShowingCodeViewer(true);
+                    setActiveTab("code");
+                  }
+
+                  if (
+                    !didPushToPreview &&
+                    parseReplySegments(fullContent).some(
+                      (seg) => seg.type === "file" && !seg.isPartial,
+                    )
+                  ) {
+                    didPushToPreview = true;
+                    setIsShowingCodeViewer(true);
+                  }
+                }
+              } catch (e) {
+                // Ignore incomplete JSON chunks
+              }
+            }
           }
+        }
+      } finally {
+        const finalText = fullContent;
+        // Get all previous assistant messages with files
+        const previousAssistantMessages = chat.messages.filter(
+          (m) =>
+            m.role === "assistant" &&
+            extractAllCodeBlocks(m.content).length > 0,
+        );
 
-          if (
-            !didPushToPreview &&
-            parseReplySegments(content).some(
-              (seg) => seg.type === "file" && !seg.isPartial,
-            )
-          ) {
-            didPushToPreview = true;
-            setIsShowingCodeViewer(true);
-          }
-        })
-        .on("finalContent", async (finalText) => {
-          startTransition(async () => {
-            // Get all previous assistant messages with files
-            const previousAssistantMessages = chat.messages.filter(
-              (m) =>
-                m.role === "assistant" &&
-                extractAllCodeBlocks(m.content).length > 0,
-            );
+        // Extract all files from previous messages
+        const previousFiles = previousAssistantMessages.flatMap((msg) =>
+          extractAllCodeBlocks(msg.content),
+        );
 
-            // Extract all files from previous messages
-            const previousFiles = previousAssistantMessages.flatMap((msg) =>
-              extractAllCodeBlocks(msg.content),
-            );
+        // Extract files from current AI response
+        const currentFiles = extractAllCodeBlocks(finalText);
 
-            // Extract files from current AI response
-            const currentFiles = extractAllCodeBlocks(finalText);
+        // Merge files (current overrides previous for same paths)
+        const fileMap = new Map();
+        previousFiles.forEach((file) => fileMap.set(file.path, file));
+        currentFiles.forEach((file) => fileMap.set(file.path, file));
+        const allFiles = Array.from(fileMap.values());
 
-            // Merge files (current overrides previous for same paths)
-            const fileMap = new Map();
-            previousFiles.forEach((file) => fileMap.set(file.path, file));
-            currentFiles.forEach((file) => fileMap.set(file.path, file));
-            const allFiles = Array.from(fileMap.values());
+        const newMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: finalText,
+          files: allFiles,
+          position: chat.messages.length,
+          createdAt: new Date().toISOString(),
+        };
 
-            const message = await createMessage(
-              chat.id,
-              finalText, // Store original AI response content (only changed files)
-              "assistant",
-              allFiles, // Store cumulative files
-            );
+        const updatedChat = {
+          ...chat,
+          messages: [...chat.messages, newMessage],
+        };
 
-            startTransition(() => {
-              isHandlingStreamRef.current = false;
-              setStreamText("");
-              setStreamPromise(undefined);
-              setActiveMessage(message);
-              // When streaming finishes, switch to preview mode and keep the viewer open
-              setIsShowingCodeViewer(true);
-              setActiveTab("preview");
-              router.refresh();
-            });
-          });
+        // Save to local storage
+        const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
+        const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
+        if (chatIndex !== -1) {
+          chats[chatIndex] = updatedChat;
+          localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
+        }
+
+        startTransition(() => {
+          setChat(updatedChat);
+          isHandlingStreamRef.current = false;
+          setStreamText("");
+          setStreamPromise(undefined);
+          setActiveMessage(newMessage);
+          setIsShowingCodeViewer(true);
+          setActiveTab("preview");
         });
+      }
     }
 
     f();
-  }, [chat.id, router, streamPromise, context]);
+  }, [chat, streamPromise, context]);
 
   return (
     <div className="h-dvh">
@@ -154,7 +191,21 @@ export default function PageClient({ chat }: { chat: Chat }) {
 
           <ChatBox
             chat={chat}
-            onNewStreamPromise={setStreamPromise}
+            onNewStreamPromise={(promise, updatedMessages) => {
+              const updatedChat = { ...chat, messages: updatedMessages };
+              setChat(updatedChat);
+              setStreamPromise(promise);
+
+              // Save the user message to local storage immediately
+              const chats = JSON.parse(
+                localStorage.getItem("llamacoder-chats") || "[]",
+              );
+              const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
+              if (chatIndex !== -1) {
+                chats[chatIndex] = updatedChat;
+                localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
+              }
+            }}
             isStreaming={!!streamPromise}
           />
         </div>
@@ -182,18 +233,35 @@ export default function PageClient({ chat }: { chat: Chat }) {
                 startTransition(async () => {
                   let newMessageText = `The code is not working. Can you fix it? Here's the error:\n\n`;
                   newMessageText += error.trimStart();
-                  const message = await createMessage(
-                    chat.id,
-                    newMessageText,
-                    "user",
-                  );
 
-                  const streamPromise = fetch(
+                  const newUserMessage: Message = {
+                    id: crypto.randomUUID(),
+                    role: "user",
+                    content: newMessageText,
+                    position: chat.messages.length,
+                    createdAt: new Date().toISOString(),
+                  };
+
+                  const updatedChat = {
+                    ...chat,
+                    messages: [...chat.messages, newUserMessage],
+                  };
+
+                  // Save to local storage
+                  const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
+                  const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
+                  if (chatIndex !== -1) {
+                    chats[chatIndex] = updatedChat;
+                    localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
+                  }
+                  setChat(updatedChat);
+
+                  const promise = fetch(
                     "/api/get-next-completion-stream-promise",
                     {
                       method: "POST",
                       body: JSON.stringify({
-                        messageId: message.id,
+                        messages: updatedChat.messages,
                         model: chat.model,
                       }),
                     },
@@ -203,8 +271,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
                     }
                     return res.body;
                   });
-                  setStreamPromise(streamPromise);
-                  router.refresh();
+                  setStreamPromise(promise);
                 });
               }}
               onRestore={async (
@@ -215,7 +282,6 @@ export default function PageClient({ chat }: { chat: Chat }) {
                 startTransition(async () => {
                   if (!message) return;
 
-                  // Helper to get files from a message (JSON field or extract from content)
                   const getFilesFromMessage = (msg: Message) => {
                     return (
                       (msg.files as any[]) || extractAllCodeBlocks(msg.content)
@@ -236,14 +302,30 @@ export default function PageClient({ chat }: { chat: Chat }) {
                       )
                       .join("\n\n");
 
-                  const newMessage = await createMessage(
-                    chat.id,
-                    newContent,
-                    "assistant",
-                    restoredFiles,
-                  );
+                  const newMessage: Message = {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: newContent,
+                    files: restoredFiles,
+                    position: chat.messages.length,
+                    createdAt: new Date().toISOString(),
+                  };
+
+                  const updatedChat = {
+                    ...chat,
+                    messages: [...chat.messages, newMessage],
+                  };
+
+                  // Save to local storage
+                  const chats = JSON.parse(localStorage.getItem("llamacoder-chats") || "[]");
+                  const chatIndex = chats.findIndex((c: any) => c.id === chat.id);
+                  if (chatIndex !== -1) {
+                    chats[chatIndex] = updatedChat;
+                    localStorage.setItem("llamacoder-chats", JSON.stringify(chats));
+                  }
+
+                  setChat(updatedChat);
                   setActiveMessage(newMessage);
-                  router.refresh();
                 });
               }}
             />

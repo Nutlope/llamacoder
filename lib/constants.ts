@@ -1,34 +1,21 @@
-export const MODELS = [
+export interface Model {
+  label: string;
+  value: string;
+  hidden?: boolean;
+}
+
+export const MODELS: Model[] = [
   {
-    label: "GLM 4.6",
-    value: "zai-org/GLM-4.6",
+    label: "Gemini 2.0 Flash",
+    value: "gemini-2.0-flash",
   },
   {
-    label: "Kimi K2.1",
-    value: "moonshotai/Kimi-K2-Instruct-0905",
+    label: "Gemini 1.5 Flash",
+    value: "gemini-1.5-flash",
   },
   {
-    label: "Qwen 3 Coder",
-    value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-  },
-  {
-    label: "DeepSeek V3.1",
-    value: "deepseek-ai/DeepSeek-V3.1",
-  },
-  {
-    label: "DeepSeek V3",
-    value: "deepseek-ai/DeepSeek-V3",
-    hidden: true,
-  },
-  {
-    label: "Qwen 3 235B",
-    value: "Qwen/Qwen3-235B-A22B-Instruct-2507-tput",
-    hidden: true,
-  },
-  {
-    label: "Llama 3.3 70B",
-    value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    hidden: true,
+    label: "Gemini 1.5 Pro",
+    value: "gemini-1.5-pro",
   },
 ];
 
