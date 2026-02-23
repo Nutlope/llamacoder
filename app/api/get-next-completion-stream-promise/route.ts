@@ -86,7 +86,21 @@ export async function POST(req: Request) {
     systemInstruction: systemMessage,
   });
 
-  const result = await chat.sendMessageStream(lastMessage?.parts[0].text || "");
+  let result;
+  try {
+    result = await chat.sendMessageStream(lastMessage?.parts[0].text || "");
+  } catch (e: any) {
+    console.error("Error starting stream:", e);
+    return new Response(
+      JSON.stringify({
+        error: e.message || "Failed to start completion stream",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
 
   const stream = new ReadableStream({
     async start(controller) {

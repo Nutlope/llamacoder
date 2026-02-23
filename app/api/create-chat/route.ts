@@ -22,8 +22,18 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+
+    // Validate model or default to flash
+    const geminiModelName = [
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro",
+    ].includes(model)
+      ? model
+      : "gemini-1.5-flash";
+
     const geminiModel = genAI.getGenerativeModel({
-      model: model || "gemini-1.5-flash",
+      model: geminiModelName,
     });
 
     async function fetchTitle() {
@@ -67,28 +77,32 @@ export async function POST(request: NextRequest) {
 
     let fullScreenshotDescription;
     if (screenshotUrl) {
-      let base64Data = "";
-      let mimeType = "image/png";
-      if (screenshotUrl.startsWith("data:")) {
-        const match = screenshotUrl.match(/^data:([^;]+);base64,(.+)$/);
-        if (match) {
-          mimeType = match[1];
-          base64Data = match[2];
+      try {
+        let base64Data = "";
+        let mimeType = "image/png";
+        if (screenshotUrl.startsWith("data:")) {
+          const match = screenshotUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            mimeType = match[1];
+            base64Data = match[2];
+          }
         }
-      }
 
-      if (base64Data) {
-        const screenshotResponse = await geminiModel.generateContent([
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType,
+        if (base64Data) {
+          const screenshotResponse = await geminiModel.generateContent([
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType,
+              },
             },
-          },
-          { text: screenshotToCodePrompt },
-        ]);
+            { text: screenshotToCodePrompt },
+          ]);
 
-        fullScreenshotDescription = screenshotResponse.response.text();
+          fullScreenshotDescription = screenshotResponse.response.text();
+        }
+      } catch (e) {
+        console.error("Error analyzing screenshot:", e);
       }
     }
 
@@ -145,10 +159,10 @@ export async function POST(request: NextRequest) {
       messages,
       title,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating chat:", error);
     return NextResponse.json(
-      { error: "Failed to create chat" },
+      { error: error.message || "Failed to create chat" },
       { status: 500 },
     );
   }

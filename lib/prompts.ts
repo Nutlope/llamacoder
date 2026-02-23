@@ -130,7 +130,7 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
 
   ## Output Format
 
-  Generate complete React applications with multiple files (minimum 3-5 files). Explain your work briefly.
+  Generate complete React applications with multiple files (minimum 3-5 files). Do not include any conversational text or explanations outside of code fences.
 
    **File Format:**
    - Each file in separate fenced block with path:
@@ -157,30 +157,6 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   - Placeholder images: \`<div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />\`
   - Default export for runnable components
   `;
-
-  // Prompt:
-  // ${examples["calculator app"].prompt}
-
-  // Response:
-  // ${examples["calculator app"].response}
-
-  // if (mostSimilarExample !== "none") {
-  //   assert.ok(
-  //     mostSimilarExample === "landing page" ||
-  //       mostSimilarExample === "blog app" ||
-  //       mostSimilarExample === "quiz app" ||
-  //       mostSimilarExample === "pomodoro timer",
-  //   );
-  //   systemPrompt += `
-  //   Here another example (thats missing explanations and is just code):
-
-  //   Prompt:
-  //   ${examples[mostSimilarExample].prompt}
-
-  //   Response:
-  //   ${examples[mostSimilarExample].response}
-  //   `;
-  // }
 
   return dedent(systemPrompt);
 }
