@@ -64,7 +64,11 @@ export default function ChatBox({
                   model: chat.model,
                 }),
               },
-            ).then((res) => {
+            ).then(async (res) => {
+              if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || "Failed to start stream");
+              }
               if (!res.body) {
                 throw new Error("No body on response");
               }

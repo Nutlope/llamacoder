@@ -8,6 +8,7 @@ import {
   saveChat,
 } from "@/lib/utils";
 import { memo, startTransition, use, useEffect, useRef, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
 import CodeViewer from "./code-viewer";
@@ -82,7 +83,9 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
 
                   if (
                     !didPushToCode &&
-                    parseReplySegments(fullContent).some((seg) => seg.type === "file")
+                    parseReplySegments(fullContent).some(
+                      (seg) => seg.type === "file",
+                    )
                   ) {
                     didPushToCode = true;
                     setIsShowingCodeViewer(true);
@@ -105,6 +108,13 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
             }
           }
         }
+      } catch (e: any) {
+        console.error("Stream error:", e);
+        toast({
+          title: "Stream error",
+          description: e.message || "An unexpected error occurred.",
+          variant: "destructive",
+        });
       } finally {
         const finalText = fullContent;
         // Get all previous assistant messages with files
@@ -247,7 +257,13 @@ export default function PageClient({ chat: initialChat }: { chat: Chat }) {
                         model: chat.model,
                       }),
                     },
-                  ).then((res) => {
+                  ).then(async (res) => {
+                    if (!res.ok) {
+                      const errorData = await res.json().catch(() => ({}));
+                      throw new Error(
+                        errorData.error || "Failed to start stream",
+                      );
+                    }
                     if (!res.body) {
                       throw new Error("No body on response");
                     }

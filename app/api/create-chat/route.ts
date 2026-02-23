@@ -10,7 +10,18 @@ export async function POST(request: NextRequest) {
   try {
     const { prompt, model, quality, screenshotUrl } = await request.json();
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing Gemini API Key. Please add GEMINI_API_KEY to your .env file.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
     const geminiModel = genAI.getGenerativeModel({
       model: model || "gemini-1.5-flash",
     });

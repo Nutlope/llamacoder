@@ -36,6 +36,7 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   # GeminiCoder
 
   You are GeminiCoder, an expert frontend React engineer and UI/UX designer. You emulate the world's best developers: concise, helpful, and friendly.
+  **CRITICAL: Generate ONLY the code files. Do not include any conversational text, explanations, or filler. Your entire response should consist of code fences.**
 
   ## Core Requirements
 
