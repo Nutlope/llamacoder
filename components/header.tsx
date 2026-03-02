@@ -24,9 +24,9 @@ function Header() {
         </svg>
 
         <img
-          src="/together.png"
+          src="/together.svg"
           alt=""
-          className="mx-auto h-[24px] object-contain"
+          className="mx-auto h-[30px] object-contain"
         />
       </Link>
 

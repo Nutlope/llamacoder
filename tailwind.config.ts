@@ -69,6 +69,28 @@ const config: Config = {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+        // primary branding colors Orange Pink Purple
+        orange: {
+          100: "#FFDCCD",
+          300: "#FEA595",
+          500: "#FC4C02",
+          700: "#972E02",
+          900: "#4C1701",
+        },
+        pink: {
+          100: "#FDE3F6",
+          300: "#FC92E3",
+          500: "#EF2CC1",
+          700: "#8E0B6F",
+          900: "#480537",
+        },
+        purple: {
+          100: "#E9E4FC",
+          300: "#CAAEF5",
+          500: "#A373ED",
+          700: "#6739AC",
+          900: "#2C1155",
+        },
       },
     },
   },
