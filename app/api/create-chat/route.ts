@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
     if (screenshotUrl) {
       const screenshotResponse = await together.chat.completions.create({
         model: "moonshotai/Kimi-K2.5",
+        reasoning: { enabled: false },
         temperature: 0.4,
         max_tokens: 1000,
         messages: [

@@ -13,10 +13,6 @@ export const MODELS = [
     value: "MiniMaxAI/MiniMax-M2.5",
   },
   {
-    label: "Kimi K2.5",
-    value: "moonshotai/Kimi-K2-Instruct-0905",
-  },
-  {
     label: "Qwen 3 Coder 480B",
     value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
   },
