@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     async function fetchTitle() {
       const responseForChatTitle = await together.chat.completions.create({
-        model: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         messages: [
           {
             role: "system",
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     async function fetchTopExample() {
       const findSimilarExamples = await together.chat.completions.create({
-        model: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         messages: [
           {
             role: "system",
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     let userMessage: string;
     if (quality === "high") {
       let initialRes = await together.chat.completions.create({
-        model: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         // model: "moonshotai/Kimi-K2-Thinking",
         messages: [
           {

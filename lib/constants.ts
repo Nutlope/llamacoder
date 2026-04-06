@@ -2,14 +2,27 @@ export const MODELS = [
   {
     label: "GLM 4.6",
     value: "zai-org/GLM-4.6",
+    hidden: true,
   },
   {
-    label: "Kimi K2.1",
+    label: "GLM 5",
+    value: "zai-org/GLM-5",
+  },
+  {
+    label: "MiniMax M2.5",
+    value: "MiniMaxAI/MiniMax-M2.5",
+  },
+  {
+    label: "Kimi K2.5",
     value: "moonshotai/Kimi-K2-Instruct-0905",
   },
   {
-    label: "Qwen 3 Coder",
+    label: "Qwen 3 Coder 480B",
     value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+  },
+  {
+    label: "Qwen 3 Coder Next",
+    value: "Qwen/Qwen3-Coder-Next-FP8",
   },
   {
     label: "DeepSeek V3.1",
