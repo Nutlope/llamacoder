@@ -9,6 +9,10 @@ export const MODELS = [
     value: "zai-org/GLM-5",
   },
   {
+    label: "GLM 5.1",
+    value: "zai-org/GLM-5.1",
+  },
+  {
     label: "MiniMax M2.5",
     value: "MiniMaxAI/MiniMax-M2.5",
   },
@@ -19,10 +23,6 @@ export const MODELS = [
   {
     label: "Qwen 3 Coder Next",
     value: "Qwen/Qwen3-Coder-Next-FP8",
-  },
-  {
-    label: "DeepSeek V3.1",
-    value: "deepseek-ai/DeepSeek-V3.1",
   },
   {
     label: "DeepSeek V3",
