@@ -5,16 +5,16 @@ export const MODELS = [
     hidden: true,
   },
   {
+    label: "GLM 5",
+    value: "zai-org/GLM-5",
+  },
+  {
     label: "GLM 5.1",
     value: "zai-org/GLM-5.1",
   },
   {
     label: "MiniMax M2.5",
     value: "MiniMaxAI/MiniMax-M2.5",
-  },
-  {
-    label: "GLM 5",
-    value: "zai-org/GLM-5",
   },
   {
     label: "Qwen 3 Coder 480B",
