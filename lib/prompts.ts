@@ -31,7 +31,7 @@ Describe the attached screenshot in detail. I will send what you give me to a de
 - Make sure to use the exact text from the screenshot.
 `;
 
-export function getMainCodingPrompt(mostSimilarExample: string) {
+export function getMainCodingPrompt() {
   let systemPrompt = `
   # LlamaCoder
 
@@ -156,30 +156,6 @@ export function getMainCodingPrompt(mostSimilarExample: string) {
   - Placeholder images: \`<div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />\`
   - Default export for runnable components
   `;
-
-  // Prompt:
-  // ${examples["calculator app"].prompt}
-
-  // Response:
-  // ${examples["calculator app"].response}
-
-  // if (mostSimilarExample !== "none") {
-  //   assert.ok(
-  //     mostSimilarExample === "landing page" ||
-  //       mostSimilarExample === "blog app" ||
-  //       mostSimilarExample === "quiz app" ||
-  //       mostSimilarExample === "pomodoro timer",
-  //   );
-  //   systemPrompt += `
-  //   Here another example (thats missing explanations and is just code):
-
-  //   Prompt:
-  //   ${examples[mostSimilarExample].prompt}
-
-  //   Response:
-  //   ${examples[mostSimilarExample].response}
-  //   `;
-  // }
 
   return dedent(systemPrompt);
 }

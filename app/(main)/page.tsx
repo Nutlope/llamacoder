@@ -37,7 +37,7 @@ export default function Home() {
   const [model, setModel] = useState(
     MODELS.find((m) => !m.hidden)?.value || MODELS[0].value,
   );
-  const [quality, setQuality] = useState("high");
+  const [quality, setQuality] = useState("low");
   const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
     undefined,
   );

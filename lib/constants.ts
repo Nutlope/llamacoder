@@ -5,16 +5,16 @@ export const MODELS = [
     hidden: true,
   },
   {
-    label: "GLM 5",
-    value: "zai-org/GLM-5",
-  },
-  {
     label: "GLM 5.1",
     value: "zai-org/GLM-5.1",
   },
   {
     label: "MiniMax M2.5",
     value: "MiniMaxAI/MiniMax-M2.5",
+  },
+  {
+    label: "GLM 5",
+    value: "zai-org/GLM-5",
   },
   {
     label: "Qwen 3 Coder 480B",
@@ -43,38 +43,33 @@ export const MODELS = [
 
 export const SUGGESTED_PROMPTS = [
   {
-    title: "Quiz app",
+    title: "Kanban Board",
     description:
-      "Make me a quiz app about American history. Make sure to give the user an explanation on each question whether they got it right or wrong and keep a score going",
+      "Create a Kanban-style project board with columns for To Do, In Progress, and Done. Let users add, edit, and drag tasks between columns. Include task labels, due dates, and a clean minimal design.",
   },
   {
-    title: "SaaS Landing page",
+    title: "Landing Page",
     description:
-      "A landing page for a SaaS business that includes a clear value proposition in a prominent hero section, concise feature overviews, testimonials, pricing, and a clear call-to-action button leading to a free trial or demo.",
+      "Build a modern landing page for an AI startup with a bold hero section, an animated feature grid, a pricing table with three tiers, a testimonials carousel, and a waitlist signup form. Use smooth scroll animations and a sleek dark theme.",
   },
   {
-    title: "Pomodoro Timer",
+    title: "Habit Tracker",
     description:
-      "Make a beautiful pomodoro timer where I can adjust the lengths of the focus time and the break and it will beep when done.",
+      "Build a daily habit tracker where I can add habits and check them off each day. Show a weekly streak view with a heatmap-style grid, track completion percentages, and celebrate streaks with animations.",
   },
   {
-    title: "Blog app",
+    title: "Expense Tracker",
     description:
-      "Make me a blog app that has a few blogs there for people to read. Users can click into the blogs and read them, then go back to the homepage to see more.",
-  },
-  // {
-  //   title: "Recipe site",
-  //   description:
-  //     "Make me a site that has easy to make recipes in a grid that you can click into and see the full recipe. Also make it possible for me to add my own",
-  // },
-  {
-    title: "Flashcard app",
-    description:
-      "Build me a flashcard app about llamas. Have some flash cards and also have the ability for users to add their own. Show one side of a card at first and reveal the answer on button click, keeping track of correct guesses to measure progress.",
+      "Make a personal expense tracker where I can log expenses with categories like food, transport, and entertainment. Show a monthly breakdown with interactive pie and bar charts, and a running total.",
   },
   {
-    title: "Timezone dashboard",
+    title: "Workout Timer",
     description:
-      "Make me a time zone dashboard that shows me the time zone in the top 6 most popular time zones and gives me a dropdown to add others",
+      "Make an interval workout timer for HIIT training. Let me configure work and rest durations, number of rounds, and exercises. Show a large countdown display with color changes for work vs rest, and play a sound when switching.",
+  },
+  {
+    title: "Calculator",
+    description:
+      "Make a beautiful scientific calculator with a history panel that shows past calculations. Support basic arithmetic, percentages, parentheses, and common functions like square root and exponents. Style it with a modern glassmorphism design.",
   },
 ];

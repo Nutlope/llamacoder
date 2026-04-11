@@ -54,36 +54,7 @@ export async function POST(request: NextRequest) {
       return title;
     }
 
-    async function fetchTopExample() {
-      const findSimilarExamples = await together.chat.completions.create({
-        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        messages: [
-          {
-            role: "system",
-            content: `You are a helpful bot. Given a request for building an app, you match it to the most similar example provided. If the request is NOT similar to any of the provided examples, return "none". Here is the list of examples, ONLY reply with one of them OR "none":
-
-            - landing page
-            - blog app
-            - quiz app
-            - pomodoro timer
-            `,
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      });
-
-      const mostSimilarExample =
-        findSimilarExamples.choices[0].message?.content || "none";
-      return mostSimilarExample;
-    }
-
-    const [title, mostSimilarExample] = await Promise.all([
-      fetchTitle(),
-      fetchTopExample(),
-    ]);
+    const title = await fetchTitle();
 
     let fullScreenshotDescription;
     if (screenshotUrl) {
@@ -115,8 +86,7 @@ export async function POST(request: NextRequest) {
     let userMessage: string;
     if (quality === "high") {
       let initialRes = await together.chat.completions.create({
-        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        // model: "moonshotai/Kimi-K2-Thinking",
+        model: "Qwen/Qwen3-Coder-Next-FP8",
         messages: [
           {
             role: "system",
@@ -156,7 +126,7 @@ export async function POST(request: NextRequest) {
             data: [
               {
                 role: "system",
-                content: getMainCodingPrompt(mostSimilarExample),
+                content: getMainCodingPrompt(),
                 position: 0,
               },
               { role: "user", content: userMessage, position: 1 },
