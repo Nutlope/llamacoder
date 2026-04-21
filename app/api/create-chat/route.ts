@@ -6,15 +6,17 @@ import {
   softwareArchitectPrompt,
 } from "@/lib/prompts";
 import Together from "together-ai";
+import { resolveModel } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   try {
     const { prompt, model, quality, screenshotUrl } = await request.json();
+    const resolvedModel = resolveModel(model);
 
     const prisma = getPrisma();
     const chat = await prisma.chat.create({
       data: {
-        model,
+        model: resolvedModel,
         quality,
         prompt,
         title: "",

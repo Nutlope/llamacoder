@@ -1,9 +1,12 @@
+export const MODEL_ALIASES: Record<string, string> = {
+  "zai-org/GLM-4.6": "zai-org/GLM-5.1",
+};
+
+export function resolveModel(model: string): string {
+  return MODEL_ALIASES[model] ?? model;
+}
+
 export const MODELS = [
-  {
-    label: "GLM 4.6",
-    value: "zai-org/GLM-4.6",
-    hidden: true,
-  },
   {
     label: "GLM 5",
     value: "zai-org/GLM-5",

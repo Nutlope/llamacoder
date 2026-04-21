@@ -3,6 +3,7 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
+import { resolveModel } from "@/lib/constants";
 
 function optimizeMessagesForTokens(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
   const together = new Together(options);
 
   const res = await together.chat.completions.create({
-    model,
+    model: resolveModel(model),
     reasoning: { enabled: false },
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
