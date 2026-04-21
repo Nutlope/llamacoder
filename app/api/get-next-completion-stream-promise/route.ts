@@ -21,20 +21,31 @@ function optimizeMessagesForTokens(
   }
   return messages.map((msg, index) => {
     if (msg.role === "assistant" && !assistantIndices.includes(index)) {
+      const stripped = msg.content.replace(/```[\s\S]*?```/g, "").trim();
       return {
         ...msg,
-        content: msg.content.replace(/```[\s\S]*?```/g, "").trim(),
+        content: stripped || "[code omitted]",
       };
     }
     return msg;
   });
 }
 
+const requestSchema = z.object({
+  messageId: z.string().min(1),
+  model: z.string().min(1),
+});
+
 export async function POST(req: Request) {
   const neon = new Pool({ connectionString: process.env.DATABASE_URL });
   const adapter = new PrismaNeon(neon);
   const prisma = new PrismaClient({ adapter });
-  const { messageId, model } = await req.json();
+
+  const parsed = requestSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return new Response("Invalid request", { status: 400 });
+  }
+  const { messageId, model } = parsed.data;
 
   const message = await prisma.message.findUnique({
     where: { id: messageId },
