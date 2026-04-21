@@ -60,29 +60,33 @@ export async function POST(request: NextRequest) {
 
     let fullScreenshotDescription;
     if (screenshotUrl) {
-      const screenshotResponse = await together.chat.completions.create({
-        model: "moonshotai/Kimi-K2.5",
-        reasoning: { enabled: false },
-        temperature: 0.4,
-        max_tokens: 1000,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: screenshotToCodePrompt },
-              {
-                type: "image_url",
-                image_url: {
-                  url: screenshotUrl,
+      try {
+        const screenshotResponse = await together.chat.completions.create({
+          model: "moonshotai/Kimi-K2.5",
+          reasoning: { enabled: false },
+          temperature: 0.4,
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: screenshotToCodePrompt },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: screenshotUrl,
+                  },
                 },
-              },
-            ],
-          },
-        ],
-      });
+              ],
+            },
+          ],
+        });
 
-      fullScreenshotDescription =
-        screenshotResponse.choices[0].message?.content;
+        fullScreenshotDescription =
+          screenshotResponse.choices[0].message?.content;
+      } catch (err) {
+        console.warn("Screenshot processing failed, continuing without it:", err);
+      }
     }
 
     let userMessage: string;
