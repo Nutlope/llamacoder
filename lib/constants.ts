@@ -1,6 +1,7 @@
 export const MODEL_ALIASES: Record<string, string> = {
   "zai-org/GLM-4.6": "zai-org/GLM-5.1",
   "Qwen/Qwen2.5-Coder-32B-Instruct": "zai-org/GLM-5.1",
+  "MiniMaxAI/MiniMax-M2.5": "MiniMaxAI/MiniMax-M2.7",
 };
 
 export function resolveModel(model: string): string {
