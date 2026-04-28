@@ -17,8 +17,13 @@ export const MODELS = [
     value: "zai-org/GLM-5.1",
   },
   {
+    label: "MiniMax M2.7",
+    value: "MiniMaxAI/MiniMax-M2.7",
+  },
+  {
     label: "MiniMax M2.5",
     value: "MiniMaxAI/MiniMax-M2.5",
+    hidden: true,
   },
   {
     label: "Qwen 3 Coder 480B",
