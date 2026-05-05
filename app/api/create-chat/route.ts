@@ -93,13 +93,13 @@ export async function POST(request: NextRequest) {
       return title;
     }
 
-    const title = await fetchTitle();
-
-    let fullScreenshotDescription;
-    if (screenshotUrl) {
+    async function analyzeScreenshot() {
+      if (!screenshotUrl) return undefined;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30_000);
       try {
         const screenshotResponse = await together.chat.completions.create({
-          model: "moonshotai/Kimi-K2.5",
+          model: "Qwen/Qwen3.5-397B-A17B",
           reasoning: { enabled: false },
           temperature: 0.4,
           max_tokens: 1000,
@@ -108,23 +108,24 @@ export async function POST(request: NextRequest) {
               role: "user",
               content: [
                 { type: "text", text: screenshotToCodePrompt },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: screenshotUrl,
-                  },
-                },
+                { type: "image_url", image_url: { url: screenshotUrl } },
               ],
             },
           ],
-        });
-
-        fullScreenshotDescription =
-          screenshotResponse.choices[0].message?.content;
+        } as any);
+        return screenshotResponse.choices[0].message?.content ?? undefined;
       } catch (err) {
         console.warn("Screenshot processing failed, continuing without it:", err);
+        return undefined;
+      } finally {
+        clearTimeout(timeout);
       }
     }
+
+    const [title, fullScreenshotDescription] = await Promise.all([
+      fetchTitle(),
+      analyzeScreenshot(),
+    ]);
 
     let userMessage: string;
     if (quality === "high") {
