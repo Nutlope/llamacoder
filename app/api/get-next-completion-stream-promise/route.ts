@@ -3,7 +3,12 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
-import { resolveModel } from "@/lib/constants";
+import { resolveModel, MODELS, MODEL_ALIASES } from "@/lib/constants";
+
+const VALID_MODEL_VALUES = new Set([
+  ...MODELS.map((m) => m.value),
+  ...Object.keys(MODEL_ALIASES),
+]);
 
 function optimizeMessagesForTokens(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -33,7 +38,9 @@ function optimizeMessagesForTokens(
 
 const requestSchema = z.object({
   messageId: z.string().min(1),
-  model: z.string().min(1),
+  model: z.string().refine((v) => VALID_MODEL_VALUES.has(v), {
+    message: "Invalid model",
+  }),
 });
 
 export async function POST(req: Request) {

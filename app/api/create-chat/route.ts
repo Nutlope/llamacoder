@@ -6,11 +6,48 @@ import {
   softwareArchitectPrompt,
 } from "@/lib/prompts";
 import Together from "together-ai";
-import { resolveModel } from "@/lib/constants";
+import { resolveModel, MODELS, MODEL_ALIASES } from "@/lib/constants";
+
+const VALID_MODEL_VALUES = new Set([
+  ...MODELS.map((m) => m.value),
+  ...Object.keys(MODEL_ALIASES),
+]);
+
+const ALLOWED_SCREENSHOT_HOSTS = (() => {
+  const bucket = process.env.S3_UPLOAD_BUCKET;
+  const region = process.env.S3_UPLOAD_REGION;
+  const hosts: string[] = [];
+  if (bucket) {
+    hosts.push(`${bucket}.s3.amazonaws.com`);
+    if (region) hosts.push(`${bucket}.s3.${region}.amazonaws.com`);
+  }
+  return hosts;
+})();
+
+function isValidScreenshotUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    return ALLOWED_SCREENSHOT_HOSTS.some((h) => parsed.hostname === h);
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { prompt, model, quality, screenshotUrl } = await request.json();
+
+    if (!VALID_MODEL_VALUES.has(model)) {
+      return NextResponse.json({ error: "Invalid model" }, { status: 400 });
+    }
+
+    if (screenshotUrl !== undefined && !isValidScreenshotUrl(screenshotUrl)) {
+      return NextResponse.json(
+        { error: "Invalid screenshotUrl" },
+        { status: 400 },
+      );
+    }
     const resolvedModel = resolveModel(model);
 
     const prisma = getPrisma();
@@ -108,8 +145,6 @@ export async function POST(request: NextRequest) {
         temperature: 0.4,
         max_tokens: 3000,
       });
-
-      console.log("PLAN:", initialRes.choices[0].message?.content);
 
       userMessage = initialRes.choices[0].message?.content ?? prompt;
     } else if (fullScreenshotDescription) {

@@ -10,12 +10,13 @@ export function resolveModel(model: string): string {
 
 export const MODELS = [
   {
-    label: "GLM 5",
-    value: "zai-org/GLM-5",
-  },
-  {
     label: "GLM 5.1",
     value: "zai-org/GLM-5.1",
+  },
+  {
+    label: "GLM 5",
+    value: "zai-org/GLM-5",
+    hidden: true,
   },
   {
     label: "MiniMax M2.7",
