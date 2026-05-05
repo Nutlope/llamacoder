@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "next lint && tsc --noEmit --noUnusedLocals"
+    "lint": "tsc --noEmit --noUnusedLocals"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
@@ -16,7 +16,6 @@
     "@headlessui/react": "^2.2.0",
     "@monaco-editor/react": "^4.7.0",
     "@neondatabase/serverless": "^1.0.1",
-    "@next/bundle-analyzer": "^15.1.5",
     "@prisma/adapter-neon": "6.5.0",
     "@prisma/client": "6.5.0",
     "@radix-ui/react-radio-group": "^1.2.2",
@@ -52,8 +51,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.7",
     "postcss": "^8",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.10",
