@@ -16,7 +16,6 @@
     "@headlessui/react": "^2.2.0",
     "@monaco-editor/react": "^4.7.0",
     "@neondatabase/serverless": "^1.0.1",
-    "@next/bundle-analyzer": "^16.2.6",
     "@prisma/adapter-neon": "6.5.0",
     "@prisma/client": "6.5.0",
     "@radix-ui/react-radio-group": "^1.2.2",
