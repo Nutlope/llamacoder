@@ -6,7 +6,7 @@ import {
   softwareArchitectPrompt,
 } from "@/lib/prompts";
 import Together from "together-ai";
-import { resolveModel } from "@/lib/constants";
+import { resolveModel, PLANNING_MODEL } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     let userMessage: string;
     if (quality === "high") {
       let initialRes = await together.chat.completions.create({
-        model: "Qwen/Qwen3-Coder-Next-FP8",
+        model: PLANNING_MODEL,
         messages: [
           {
             role: "system",

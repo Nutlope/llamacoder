@@ -231,7 +231,7 @@ const INTERNAL_MODELS: { label: string; value: string }[] = [
   { label: "Kimi K2.7-Code (screenshot→code)", value: "moonshotai/Kimi-K2.7-Code" },
   {
     label: "Qwen3-Coder-Next (high-quality plan)",
-    value: "Qwen/Qwen3-Coder-Next-FP8",
+    value: "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
   },
 ];
 

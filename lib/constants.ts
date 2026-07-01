@@ -8,11 +8,18 @@ export const MODEL_ALIASES: Record<string, string> = {
   "MiniMaxAI/MiniMax-M2.5": "MiniMaxAI/MiniMax-M3",
   "MiniMaxAI/MiniMax-M2.7": "MiniMaxAI/MiniMax-M3",
   "moonshotai/Kimi-K2.5": "moonshotai/Kimi-K2.7-Code",
+  "Qwen/Qwen3-Coder-Next-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
+  "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
 };
 
 export function resolveModel(model: string): string {
   return MODEL_ALIASES[model] ?? model;
 }
+
+// Model used for the high-quality "software architect" plan step in
+// create-chat. Must support non-streaming completions (create-chat calls it
+// with stream=false). Qwen3-Coder-* are now non-serverless on Together.
+export const PLANNING_MODEL = "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8";
 
 export const MODELS = [
   {
@@ -32,12 +39,8 @@ export const MODELS = [
     value: "moonshotai/Kimi-K2.6",
   },
   {
-    label: "Qwen 3 Coder 480B",
-    value: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-  },
-  {
-    label: "Qwen 3 Coder Next",
-    value: "Qwen/Qwen3-Coder-Next-FP8",
+    label: "Qwen 3 235B",
+    value: "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
   },
   {
     label: "DeepSeek V3",
