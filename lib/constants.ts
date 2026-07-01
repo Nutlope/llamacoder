@@ -1,7 +1,13 @@
+// Legacy model IDs → current serverless replacements. resolveModel() maps these
+// so existing chats/DB rows that reference an old ID keep working.
 export const MODEL_ALIASES: Record<string, string> = {
-  "zai-org/GLM-4.6": "zai-org/GLM-5.1",
-  "Qwen/Qwen2.5-Coder-32B-Instruct": "zai-org/GLM-5.1",
-  "MiniMaxAI/MiniMax-M2.5": "MiniMaxAI/MiniMax-M2.7",
+  "zai-org/GLM-4.6": "zai-org/GLM-5.2",
+  "zai-org/GLM-5": "zai-org/GLM-5.2",
+  "zai-org/GLM-5.1": "zai-org/GLM-5.2",
+  "Qwen/Qwen2.5-Coder-32B-Instruct": "zai-org/GLM-5.2",
+  "MiniMaxAI/MiniMax-M2.5": "MiniMaxAI/MiniMax-M3",
+  "MiniMaxAI/MiniMax-M2.7": "MiniMaxAI/MiniMax-M3",
+  "moonshotai/Kimi-K2.5": "moonshotai/Kimi-K2.7-Code",
 };
 
 export function resolveModel(model: string): string {
@@ -10,21 +16,20 @@ export function resolveModel(model: string): string {
 
 export const MODELS = [
   {
-    label: "GLM 5",
-    value: "zai-org/GLM-5",
+    label: "GLM 5.2",
+    value: "zai-org/GLM-5.2",
   },
   {
-    label: "GLM 5.1",
-    value: "zai-org/GLM-5.1",
+    label: "MiniMax M3",
+    value: "MiniMaxAI/MiniMax-M3",
   },
   {
-    label: "MiniMax M2.7",
-    value: "MiniMaxAI/MiniMax-M2.7",
+    label: "Kimi K2.7 Code",
+    value: "moonshotai/Kimi-K2.7-Code",
   },
   {
-    label: "MiniMax M2.5",
-    value: "MiniMaxAI/MiniMax-M2.5",
-    hidden: true,
+    label: "Kimi K2.6",
+    value: "moonshotai/Kimi-K2.6",
   },
   {
     label: "Qwen 3 Coder 480B",

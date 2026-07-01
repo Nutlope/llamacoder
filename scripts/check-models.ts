@@ -228,7 +228,7 @@ async function mapLimit<T, R>(
 
 // Models the app uses internally but that are NOT on the homepage MODELS list.
 const INTERNAL_MODELS: { label: string; value: string }[] = [
-  { label: "Kimi K2.5 (screenshot→code)", value: "moonshotai/Kimi-K2.5" },
+  { label: "Kimi K2.7-Code (screenshot→code)", value: "moonshotai/Kimi-K2.7-Code" },
   {
     label: "Qwen3-Coder-Next (high-quality plan)",
     value: "Qwen/Qwen3-Coder-Next-FP8",
