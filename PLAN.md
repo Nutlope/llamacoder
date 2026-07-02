@@ -4,7 +4,7 @@ This plan captures the current problems and proposes concrete fixes. The goal is
 
 The plan is written around agreed data structures so the implementation has clear interfaces and is not open to reinterpretation.
 
-**Status (2026-07-02):** the renderer migration (section 0) is a working, flag-gated POC (`?preview=wasm`), verified on desktop Chrome and real-device iOS Safari. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
+**Status (2026-07-02):** the renderer migration (section 0) is implemented and wasm is now the default preview runner, with Sandpack still available via `?preview=sandpack` for one release. Chrome and real-device iOS Safari have been verified. The GLM 5.2 launch sweep and §0.3 hardening are complete. The benchmark harness exists through judge integration (§4 step 3.4), and the dataset draft is ready for Riccardo review before any full rank run. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
 
 ---
 
@@ -13,12 +13,13 @@ The plan is written around agreed data structures so the implementation has clea
 The company launch does **not** wait for this plan. Launch-critical vs. deferred:
 
 **Must happen before Monday:**
-1. GLM 5.2 confirmed as default model (it is first in `lib/constants.ts` — verify the default-selection path agrees).
-2. **Manual render test:** run GLM 5.2 on the 8 dataset prompt categories (§1.1) through the app, in *both* renderers (`?preview=wasm` vs default Sandpack). This is the launch go/no-go evidence.
-3. **Renderer decision, driven by #2:**
+1. [x] GLM 5.2 confirmed as default model (it is first in `lib/constants.ts`, and the homepage default-selection path uses the first visible model).
+2. [x] **Manual render test:** run GLM 5.2 on the 8 dataset prompt categories (§1.1) through the app, in *both* renderers (`?preview=wasm` vs default Sandpack). Result: 7/8 generated apps rendered in both; `settings-page-v1` failed in both because generated source included a stray code fence, not because of a renderer-specific break. Screenshots are in `tmp/benchmark/launch-scope-manual/screenshots`.
+3. [x] **Renderer decision, driven by #2:**
    - If GLM 5.2 output renders fine under Sandpack → launch on Sandpack, flip to wasm calmly mid-week after launch.
    - If GLM 5.2's modern output breaks Sandpack (e.g. recharts v3 code) → the wasm flip becomes launch-critical: do §0.3 hardening + parity run before Monday (small, known edits — feasible in a day).
-4. §0.3 hardening fixes regardless (they're on the critical path of every timeline).
+   - Actual decision: no Sandpack-specific GLM 5.2 launch blocker was found; wasm hardening still completed and the default was flipped.
+4. [x] §0.3 hardening fixes regardless (they're on the critical path of every timeline).
 
 **Everything else in this plan is post-launch.** Sequence so each day ends in a shippable state: launch must never depend on the benchmark existing. If the harness (§1–§2) lands before Monday, benchmark data is a bonus, not a blocker.
 
@@ -29,11 +30,12 @@ The company launch does **not** wait for this plan. Launch-critical vs. deferred
 - **What already exists:** the wasm renderer POC is *built and committed* (`d49406f`, `6637ec3`) — see §0.1 for the file map. `poc-wasm-esm.md` in the repo root is the original build spec; where it and the code disagree, **the code + this plan win** (the POC deviated from the spec in reviewed, accepted ways).
 - **Try it:** `pnpm dev`, then `/preview-poc?preview=wasm&debug=1` (gauntlet fixture app + error cases). Flags: `?preview=wasm|sandpack` per-page, `NEXT_PUBLIC_PREVIEW_RUNNER=wasm` globally, `?debug=1` shows the timing badge.
 - **Environment:** generation needs `TOGETHER_API_KEY` (Helicone proxy is optional, auto-enabled via env). The benchmark harness needs no database — only the app's chat routes touch Prisma; `/preview-harness` must stay client-only precisely so the harness never needs one.
-- **Known bugs being fixed in §0.3** (details in the checklist): console-error overlay regression and the ready/error race are both in `components/code-runner-react.tsx`; the watchdog is absent by omission, not by decision.
+- **Known bugs fixed in §0.3:** console-error overlay regression, the ready/error race, and the missing watchdog were fixed in `components/code-runner-react.tsx`.
 - **Content deliverables that don't exist yet** (design is specified, the artifact isn't — don't assume they're written somewhere):
-  - [ ] The 8 dataset prompt texts + `expectedBehavior` lists (§1.1) — drafted for Riccardo's review.
-  - [ ] The judge prompt template + calibration procedure write-up (§1.5).
-  - [ ] The canonical machine-readable forbidden-import list for the `policyViolations` scan (§3.2 item 3).
+  - [x] The 8 dataset prompt texts + static-screenshot-judgeable `expectedBehavior` lists (§1.1) — drafted in `scripts/benchmark/prompts.json` for Riccardo's review.
+  - [x] The judge prompt template — implemented in `scripts/benchmark/judge.ts`.
+  - [ ] Calibration procedure write-up (§1.5).
+  - [x] The canonical machine-readable forbidden-import/policy scan — implemented in `scripts/benchmark/policy.ts`.
 
 ---
 
@@ -57,20 +59,21 @@ Sandpack is unmaintained (last release ~a year ago, maintainer gone, CodeSandbox
 - **Browser support bar [decided]:** Chrome + Safari must pass; Firefox is best-effort. Status: Chrome verified; **iOS Safari verified on a real device (2026-07-02, preview-poc page)**. Note the stack intentionally needs no SharedArrayBuffer / COOP-COEP (unlike WebContainers), which is why mobile Safari works.
 - **react-router-dom [decided]:** keep the dependency in `PREVIEW_DEPS` (renderer stays forgiving; old chats and disobedient generations still render), keep the prompt ban (scope control: single-page MVPs keep evaluation well-defined — one screenshot, one route). Enforcement principle: **the forbidden list is enforced by static checks on `generatedFiles`, never by the renderer.** Revisit the ban post-release with benchmark data (see §6).
 
-### 0.3 Hardening checklist (remaining, time-boxed: ~2 days)
+### 0.3 Hardening checklist (complete except post-release cleanup)
 
-- [ ] `console-error` messages must not trigger the fatal error overlay (current regression): only `type: "error"` flips the overlay; accumulate console errors in state for the "Try to fix" payload and the benchmark.
-- [ ] Guard the `ready` handler so it cannot overwrite an `error` state (render errors can be reported before the `ready` rAF fires).
-- [ ] Watchdog: if neither `ready` nor `error` arrives within ~15s of `running`, flip to error so the overlay never hangs forever.
-- [ ] Update recharts prompt/docs snippets to v3 (per §0.2).
-- [ ] Parity run: every app in `lib/shadcn-examples.ts` side-by-side in both pipelines; fix divergences. Chart apps compare "renders without errors," not pixel-identical (recharts major bump).
-- [ ] Spot-check recent real chats from the DB through the wasm preview (per §0.2 backwards-compat decision).
+- [x] `console-error` messages must not trigger the fatal error overlay (current regression): only `type: "error"` flips the overlay; accumulate console errors in state for the "Try to fix" payload and the benchmark.
+- [x] Guard the `ready` handler so it cannot overwrite an `error` state (render errors can be reported before the `ready` rAF fires).
+- [x] Watchdog: if neither `ready` nor `error` arrives within ~15s of `running`, flip to error so the overlay never hangs forever.
+- [x] Update recharts prompt/docs snippets to v3 (per §0.2).
+- [x] Parity run: every app in `lib/shadcn-examples.ts` side-by-side in both pipelines; fix divergences. Result: five shipped examples passed in both renderers. Chart apps compare "renders without errors," not pixel-identical (recharts major bump).
+- [x] Spot-check recent real chats from the DB through the wasm preview (per §0.2 backwards-compat decision). Result: 3 recent chats passed wasm, 1 showed wasm-only old-chat breakage, and 1 had no runnable preview surface.
 - [x] Safari verification (real iPhone, 2026-07-02). Firefox: best-effort, non-blocking.
-- [ ] Flip the default to wasm; keep Sandpack behind `?preview=sandpack` for one release; then delete `@codesandbox/sandpack-react`, `@codesandbox/sandpack-themes`, `lib/sandpack-config.ts`.
+- [x] Flip the default to wasm; keep Sandpack behind `?preview=sandpack` for one release.
+- [ ] After one release, delete `@codesandbox/sandpack-react`, `@codesandbox/sandpack-themes`, and `lib/sandpack-config.ts`.
 
 ### 0.4 Definition of done
 
-Checklist above complete. Do not polish beyond it — the renderer exists to serve sections 1–3, not the other way around. (Optional wasm self-hosting moved to §6.)
+Launch-critical checklist above complete. Remaining renderer work is the post-release Sandpack deletion. Do not polish beyond it — the renderer exists to serve sections 1–3, not the other way around. (Optional wasm self-hosting moved to §6.)
 
 ---
 
@@ -104,9 +107,9 @@ interface BenchmarkManifest {
 - *Core tier (6–8):* todo CRUD, chart dashboard (deliberately exercises recharts v3), sortable/filterable data table, quiz app, calculator, shadcn-heavy settings page (dialog/tabs/select), tic-tac-toe.
 
 Rules:
-- `expectedBehavior` items are written as **visually checkable** statements ("clicking + increments the number") because the judge sees pixels, not code.
+- `expectedBehavior` items are written as **static-screenshot-checkable** statements ("increment, decrement, and reset buttons are visible") because the judge sees one frame, not interaction history.
 - **Append-only, immutable ids.** Editing a prompt after runs exist invalidates comparisons; changed prompts get a new id (`counter-v2`), old ids never change meaning.
-- Authorship: drafted by Claude, reviewed by Riccardo.
+- Authorship: drafted by Claude, pending Riccardo review.
 - Stress-tier prompts (kanban drag-drop, scope-explosion traps) are post-release (§6).
 
 ### 1.2 Result structure
@@ -140,6 +143,7 @@ type EvalResult = {
   screenshot: string | null;    // relative path inside run dir
   judge: JudgeResult | null;    // null when the mechanical gate failed
   qualityScore: number;         // 0 when gate failed; else judge score 0-10
+  cellError?: string;            // generation/render/judge failure details when a cell fails unexpectedly
 };
 ```
 
@@ -148,8 +152,9 @@ Why this shape:
 - `promptVersion` lets us compare prompt A versus prompt B on the same prompt/model pair.
 - `timing` and `tokens` are the raw inputs for cost/score analysis; `sampling` is recorded so no run's conditions are implicit.
 - `generatedFiles` is kept so failures can be inspected or re-run.
-- `build`, `runtime`, and `screenshot` separate three failure modes; `policyViolations` separates a fourth (disobedience) from all of them — a rendered app that used a banned library is a *different* defect than a crash.
+- `build`, `runtime`, and `screenshot` separate three mechanical failure modes; `policyViolations` separates a fourth (disobedience) from all of them — a rendered app that used a banned library or pattern is a *different* defect than a crash and must not fail the mechanical gate by itself.
 - The build/runtime fields map 1:1 onto types that already exist in `lib/preview` — the harness consumes them, it does not reinvent them.
+- `cellError` lets a long campaign continue after a flaky judge, model API issue, path-safety rejection, or unexpected runner error; one cell failure must never kill the whole run.
 
 ### 1.3 On-disk layout
 
@@ -201,9 +206,10 @@ type JudgeResult = {
 };
 ```
 
-- **Gate first, judge second.** The judge only runs on cells that pass the mechanical gate (`build.ok && runtime.ok && screenshot !== null`). Gate failures get `qualityScore: 0` and `judge: null` — no vision tokens spent scoring error overlays.
+- **Gate first, judge second.** The judge only runs on cells that pass the mechanical gate (`build.ok && runtime.ok && screenshot !== null`). `policyViolations` are recorded separately and do not block judging by themselves. Gate failures get `qualityScore: 0` and `judge: null` — no vision tokens spent scoring error overlays.
 - **Judge inputs:** screenshot + original user prompt + `expectedBehavior` checklist. **Not the generated source code** — the judge scores pixels, so it can't be seduced by nice code that renders poorly. (A code-reading judge is a possible second axis, post-release.)
-- **Judge model:** a Together-hosted vision model (single API/key for the whole harness), set in `manifest.judgeModel` and pinned per run — a benchmark whose judge silently changes between runs cannot be compared across time.
+- **Judge model:** a Together-hosted vision model (currently `moonshotai/Kimi-K2.7-Code`; single API/key for the whole harness), set in `manifest.judgeModel` and pinned per run — a benchmark whose judge silently changes between runs cannot be compared across time.
+- **Judge resilience:** retry empty or unparseable judge output 1–2 times, then record a `cellError` and continue the campaign with `judge: null` / `qualityScore: 0`.
 - **Calibration:** hand-label ~20 judged runs early and check judge–human agreement; adjust the judge prompt or model if agreement is poor. The stored rationale is what makes this audit possible.
 
 ---
@@ -231,7 +237,7 @@ interface RunnerOutput {
 - Playwright does `page.goto("/preview-harness")` once per worker, then `page.evaluate(renderFiles, files)` per cell — no POST route, no server state, no re-navigation between cells.
 - **The run script spawns the app itself** (`next build` + `next start`) if it isn't already up. Production build, not dev mode — that's what we're measuring.
 - **Wait condition:** poll `data-preview-phase` until `"ready"` or `"error"`, bounded by the §0.3 watchdog. (Replaces the old `networkidle` idea — this observes the pipeline's own state machine.)
-- **Screenshot determinism:** fixed 1280×800 viewport; after `ready`, wait ~800ms for framer-motion entrance animations to settle; disable animations via Playwright where possible. The judge scores pixels — mid-animation frames make quality scores flaky for identical apps.
+- **Screenshot determinism:** fixed 1280×800 viewport crop, not full-page screenshots; after `ready`, wait ~800ms for framer-motion entrance animations to settle; disable animations via Playwright where possible. The judge scores pixels — mid-animation frames and variable-height screenshots make quality scores flaky for identical apps.
 - **Field mapping:** `BundleResult.ok/error/durationMs` → `build`; bridge `error`/`console-error` messages → `runtime`; `data-preview-runtime-ms` → `runtime.durationMs`; `page.screenshot()` → `screenshot`.
 - Rejected alternative: bundling in Node with native esbuild (faster per cell, but then the benchmark is not running the production pipeline; speed is irrelevant at ~260 cells).
 
@@ -272,7 +278,7 @@ Accepted temporary cost: orchestration logic exists twice for a few weeks. Conta
 
 1. **Identity** — one paragraph. Sets the role and tone; no examples.
 2. **Allowed stack** — **generated from `PREVIEW_DEPS` in `lib/preview/deps.ts`**, not hand-written. The prompt can then never advertise a package or version the renderer does not serve (the recharts 2-vs-3 drift, codified away). Models must not add dependencies outside this list.
-3. **Forbidden libraries / patterns** — `@chakra-ui/react`, `@headlessui/react`, `axios`, arbitrary Tailwind bracket values, React Router (kept per §0.2; revisit post-release per §6). Plus one renderer-derived rule: **import packages from their root specifier only** (no subpath imports — import-map prefix entries can't carry `?external`, so subpaths would duplicate React). Enforced by static scan → `EvalResult.policyViolations`, never by the renderer.
+3. **Forbidden libraries / patterns** — `@chakra-ui/react`, `@headlessui/react`, `axios`, arbitrary Tailwind bracket values, React Router (kept per §0.2; revisit post-release per §6). Plus one renderer-derived rule: **import packages from their root specifier only** (no subpath imports — import-map prefix entries can't carry `?external`, so subpaths would duplicate React). Enforced by static scan → `EvalResult.policyViolations`, never by the renderer and never as part of the mechanical render gate. Note: `/tailwind-test` confirmed arbitrary Tailwind values currently render in both wasm and Sandpack via `@tailwindcss/browser@4`; the bracket-value ban is a prompt/product policy, not a renderer limitation.
 4. **Output format** — each file as a code fence with `path=...`; no prose outside `<thinking>` tags; all files form a single valid React project; entry point `App.tsx`.
 5. **Renderer contract** — much simpler than the Sandpack version: entry point `App.tsx`, alias table (`@/components/*`, `@/lib/*`, `@/utils/*`, `@/types/*`), pinned versions from the import map, root-specifier imports only.
 6. **Complexity guardrails** — single page only, max N files, no external APIs or backend, target 2-3 MVP features.
@@ -299,16 +305,16 @@ Winner chosen by mechanical pass rate, quality score, latency, and token cost. O
 
 ## 4. Order of work
 
-1. **Finish renderer hardening (§0.3).** Time-boxed ~2 days; it is a checklist, not a project.
-2. **Draft the dataset (§1.1)** — Claude drafts 7–9 prompts, Riccardo reviews.
-3. **Build the benchmark harness (§1 + §2)** — in dependency order, each sub-step testable before the next exists:
-   1. `lib/generation.ts` (`generateApp`) — prompt in, files out. Test standalone against one model.
-   2. `/preview-harness` route + Playwright runner (§2.2) — files in, `RunnerOutput` + screenshot out. Test with hand-written files, no model needed.
-   3. Orchestration: CLI walks the manifest, chains 3.1 → 3.2, adds the static policy scan, writes `results.jsonl` with mechanical pass/fail. **The harness is useful from this point** even with `judge: null`.
-   4. Judge integration (§1.5) last — it consumes the screenshots 3.2 produces and fills `qualityScore`. (Note: document order §1-then-§2 is problem-statement order, not build order; the judge depends on the runner, not the other way around.)
+1. [x] **Finish renderer hardening (§0.3).** Time-boxed ~2 days; it is a checklist, not a project.
+2. [x] **Draft the dataset (§1.1)** — Claude drafts 7–9 prompts, Riccardo reviews. Draft exists in `scripts/benchmark/prompts.json`; Riccardo review is still pending before any big run.
+3. [x] **Build the benchmark harness (§1 + §2)** — in dependency order, each sub-step testable before the next exists:
+   1. [x] `lib/generation.ts` (`generateApp`) — prompt in, files out. Tested standalone against GLM 5.2.
+   2. [x] `/preview-harness` route + Playwright runner (§2.2) — files in, `RunnerOutput` + screenshot out. Tested with hand-written files, no model needed.
+   3. [x] Orchestration: CLI walks the manifest, chains 3.1 → 3.2, adds the static policy scan, writes `results.jsonl` with mechanical pass/fail. **The harness is useful from this point** even with `judge: null`.
+   4. [x] Judge integration (§1.5) last — it consumes the screenshots 3.2 produces and fills `qualityScore`. Judge retries empty/unparseable output and records failures per cell. (Note: document order §1-then-§2 is problem-statement order, not build order; the judge depends on the runner, not the other way around.)
 4. **Calibrate the judge** on ~20 hand-labeled runs (§1.5).
-5. **Run explore profile** → lock architecture mode and prompt version (§3.4).
-6. **Run rank profile** → model leaderboard with the winning config.
+5. **Run explore profile** → lock architecture mode and prompt version (§3.4). Deferred for now because the current requested run pins `promptVersion: "current-v0"` and `archMode: "separate"`.
+6. **Run rank profile** → model leaderboard with the winning config. Next big step after Riccardo reviews `scripts/benchmark/prompts.json`.
 7. **Lock defaults:** refactor production routes onto `generateApp` + winning `PromptConfig`; delete the Sandpack path and competing prompt implementations.
 8. **Only then** consider the autonomous-agent direction (§5).
 
