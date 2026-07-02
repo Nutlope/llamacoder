@@ -301,7 +301,11 @@ Winner chosen by mechanical pass rate, quality score, latency, and token cost. O
 
 1. **Finish renderer hardening (§0.3).** Time-boxed ~2 days; it is a checklist, not a project.
 2. **Draft the dataset (§1.1)** — Claude drafts 7–9 prompts, Riccardo reviews.
-3. **Build the benchmark harness (§1 + §2):** `lib/generation.ts` (`generateApp`), `/preview-harness` route, Playwright runner, static policy scan, judge integration, `results.jsonl`, CLI + summary table.
+3. **Build the benchmark harness (§1 + §2)** — in dependency order, each sub-step testable before the next exists:
+   1. `lib/generation.ts` (`generateApp`) — prompt in, files out. Test standalone against one model.
+   2. `/preview-harness` route + Playwright runner (§2.2) — files in, `RunnerOutput` + screenshot out. Test with hand-written files, no model needed.
+   3. Orchestration: CLI walks the manifest, chains 3.1 → 3.2, adds the static policy scan, writes `results.jsonl` with mechanical pass/fail. **The harness is useful from this point** even with `judge: null`.
+   4. Judge integration (§1.5) last — it consumes the screenshots 3.2 produces and fills `qualityScore`. (Note: document order §1-then-§2 is problem-statement order, not build order; the judge depends on the runner, not the other way around.)
 4. **Calibrate the judge** on ~20 hand-labeled runs (§1.5).
 5. **Run explore profile** → lock architecture mode and prompt version (§3.4).
 6. **Run rank profile** → model leaderboard with the winning config.
