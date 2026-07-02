@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["*.trycloudflare.com"],
   turbopack: {},
   webpack: (config, options) => {
     if (options.nextRuntime === "edge") {
