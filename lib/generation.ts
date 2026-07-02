@@ -86,6 +86,7 @@ export async function generateApp(
   const plan = planResponse.choices[0].message?.content ?? prompt;
 
   let firstTokenMs = 0;
+  const codingStartedAt = performance.now();
   const stream = together.chat.completions.stream({
     model: resolveModel(model),
     reasoning: { enabled: false },
@@ -99,7 +100,7 @@ export async function generateApp(
 
   stream.on("content", (delta) => {
     if (!firstTokenMs && delta.length > 0) {
-      firstTokenMs = performance.now() - startedAt;
+      firstTokenMs = performance.now() - codingStartedAt;
     }
   });
 

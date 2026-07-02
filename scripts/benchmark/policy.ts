@@ -10,8 +10,8 @@ const FORBIDDEN_IMPORTS = [
 
 const IMPORT_SPECIFIER_REGEX =
   /(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
-const TAILWIND_ARBITRARY_VALUE_REGEX =
-  /\b(?:[a-z0-9-]+:)*[a-z][a-z0-9-]*-\[[^\]]+\]/gi;
+const CLASS_TOKEN_REGEX = /[A-Za-z0-9_:/[\].%=#(),-]+/g;
+const ARBITRARY_UTILITY_REGEX = /^[a-z][a-z0-9-]*-\[[^\]]+\]$/i;
 
 const ROOT_ONLY_IMPORTS = Object.keys(PREVIEW_DEPS).sort(
   (left, right) => right.length - left.length,
@@ -37,9 +37,9 @@ export function findPolicyViolations(files: GeneratedFile[]): string[] {
       }
     }
 
-    for (const match of file.content.matchAll(TAILWIND_ARBITRARY_VALUE_REGEX)) {
+    for (const match of findArbitraryTailwindUtilities(file.content)) {
       violations.add(
-        `${file.path}: arbitrary Tailwind value "${match[0]}" is forbidden`,
+        `${file.path}: arbitrary Tailwind value "${match}" is forbidden`,
       );
     }
   }
@@ -64,4 +64,38 @@ function isBareSpecifier(specifier: string) {
     !specifier.startsWith("/") &&
     !specifier.startsWith("@/")
   );
+}
+
+function findArbitraryTailwindUtilities(content: string): string[] {
+  const values = new Set<string>();
+
+  for (const token of content.match(CLASS_TOKEN_REGEX) ?? []) {
+    const utility = splitTailwindToken(token).at(-1);
+    if (utility && ARBITRARY_UTILITY_REGEX.test(utility)) {
+      values.add(utility);
+    }
+  }
+
+  return Array.from(values);
+}
+
+function splitTailwindToken(token: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let bracketDepth = 0;
+
+  for (const char of token) {
+    if (char === "[") bracketDepth++;
+    if (char === "]") bracketDepth = Math.max(0, bracketDepth - 1);
+
+    if (char === ":" && bracketDepth === 0) {
+      parts.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  if (current) parts.push(current);
+  return parts;
 }

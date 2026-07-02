@@ -77,7 +77,7 @@ async function renderFilesInPage(
     });
     await page.waitForTimeout(800);
     await fs.mkdir(path.dirname(options.screenshotPath), { recursive: true });
-    await page.screenshot({ path: options.screenshotPath, fullPage: true });
+    await page.screenshot({ path: options.screenshotPath, fullPage: false });
     screenshot = options.screenshotPath;
   }
 
@@ -121,7 +121,7 @@ async function main() {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
     console.error(error);
     process.exitCode = 1;

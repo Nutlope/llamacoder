@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
+import { pathToFileURL } from "node:url";
 import { MODELS } from "../../lib/constants";
 import {
   generateApp,
@@ -56,6 +57,7 @@ type EvalResult = {
   screenshot: string | null;
   judge: JudgeResult | null;
   qualityScore: number;
+  cellError?: string;
 };
 
 const PROFILES = {
@@ -103,7 +105,7 @@ async function main() {
     for (const model of models) {
       for (const prompt of prompts) {
         for (let rep = 0; rep < repetitions; rep++) {
-          const result = await runCell({
+          const cellOptions = {
             runId,
             outDir,
             prompt,
@@ -114,7 +116,10 @@ async function main() {
             judgeModel: manifest.judgeModel,
             skipJudge: args.skipJudge,
             renderFiles: session.renderFiles,
-          });
+          };
+          const result = await runCell(cellOptions).catch((error) =>
+            createFailedEvalResult(cellOptions, error),
+          );
           results.push(result);
           await appendJsonl(path.join(outDir, "results.jsonl"), result);
           printCell(result);
@@ -157,7 +162,7 @@ async function runCell(options: {
   });
 
   for (const file of generated.files) {
-    const filePath = path.join(generatedDir, file.path);
+    const filePath = safeGeneratedFilePath(generatedDir, file.path);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, file.content);
   }
@@ -173,19 +178,24 @@ async function runCell(options: {
 
   const policyViolations = findPolicyViolations(generated.files);
   const mechanicalPass =
-    policyViolations.length === 0 &&
     runnerOutput.build.ok &&
     runnerOutput.runtime.ok &&
     runnerOutput.screenshot !== null;
-  const judge =
-    mechanicalPass && runnerOutput.screenshot && !options.skipJudge
-      ? await judgeScreenshot({
-          model: options.judgeModel,
-          prompt: options.prompt.prompt,
-          expectedBehavior: options.prompt.expectedBehavior,
-          screenshotPath: runnerOutput.screenshot,
-        })
-      : null;
+  let judge: JudgeResult | null = null;
+  let cellError: string | undefined;
+
+  if (mechanicalPass && runnerOutput.screenshot && !options.skipJudge) {
+    try {
+      judge = await judgeScreenshot({
+        model: options.judgeModel,
+        prompt: options.prompt.prompt,
+        expectedBehavior: options.prompt.expectedBehavior,
+        screenshotPath: runnerOutput.screenshot,
+      });
+    } catch (error) {
+      cellError = `Judge failed: ${formatError(error)}`;
+    }
+  }
 
   if (judge) {
     await fs.writeFile(
@@ -224,6 +234,52 @@ async function runCell(options: {
       : null,
     judge,
     qualityScore: judge?.score ?? 0,
+    cellError,
+  };
+}
+
+function createFailedEvalResult(
+  options: {
+    runId: string;
+    prompt: BenchmarkPrompt;
+    model: string;
+    promptVersion: PromptVersion;
+    archMode: ArchMode;
+  },
+  error: unknown,
+): EvalResult {
+  return {
+    runId: options.runId,
+    promptId: options.prompt.id,
+    model: options.model,
+    promptVersion: options.promptVersion,
+    archMode: options.archMode,
+    sampling: { temperature: 0.4, maxTokens: 9000 },
+    timing: {
+      firstTokenMs: 0,
+      totalGenerationMs: 0,
+      buildMs: 0,
+      renderMs: 0,
+    },
+    tokens: {
+      input: 0,
+      output: 0,
+    },
+    generatedFiles: [],
+    policyViolations: [],
+    build: {
+      ok: false,
+      stdout: "",
+      stderr: `Cell failed: ${formatError(error)}`,
+    },
+    runtime: {
+      ok: false,
+      consoleErrors: [],
+    },
+    screenshot: null,
+    judge: null,
+    qualityScore: 0,
+    cellError: formatError(error),
   };
 }
 
@@ -377,11 +433,7 @@ async function appendJsonl(pathname: string, value: unknown) {
 }
 
 function printCell(result: EvalResult) {
-  const pass =
-    result.policyViolations.length === 0 &&
-    result.build.ok &&
-    result.runtime.ok &&
-    result.screenshot !== null;
+  const pass = isMechanicalPass(result);
   console.log(
     `${pass ? "PASS" : "FAIL"} ${result.promptId} ${result.model} ` +
       `gen=${Math.round(result.timing.totalGenerationMs)}ms ` +
@@ -399,11 +451,7 @@ function printSummary(results: EvalResult[]) {
   console.table(
     Array.from(byModel.entries()).map(([model, modelResults]) => {
       const passCount = modelResults.filter(
-        (result) =>
-          result.policyViolations.length === 0 &&
-          result.build.ok &&
-          result.runtime.ok &&
-          result.screenshot !== null,
+        (result) => isMechanicalPass(result),
       ).length;
       return {
         model,
@@ -430,6 +478,10 @@ function printSummary(results: EvalResult[]) {
   );
 }
 
+function isMechanicalPass(result: EvalResult) {
+  return result.build.ok && result.runtime.ok && result.screenshot !== null;
+}
+
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -443,11 +495,34 @@ function sanitizePathPart(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "_");
 }
 
+export function safeGeneratedFilePath(baseDir: string, modelPath: string) {
+  const normalized = modelPath.replace(/^\/+/, "");
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedFile = path.resolve(resolvedBase, normalized);
+  const relative = path.relative(resolvedBase, resolvedFile);
+
+  if (
+    !normalized ||
+    relative.startsWith("..") ||
+    path.isAbsolute(relative)
+  ) {
+    throw new Error(`Generated file path escapes run directory: ${modelPath}`);
+  }
+
+  return resolvedFile;
+}
+
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function makeRunId() {
   return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

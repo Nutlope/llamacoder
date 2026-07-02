@@ -11,39 +11,48 @@ export type JudgeResult = {
   rationale: string;
 };
 
+type JudgeRequest = {
+  create: (options: {
+    model: string;
+    prompt: string;
+    expectedBehavior: string[];
+    screenshotBase64: string;
+  }) => Promise<string>;
+};
+
 export async function judgeScreenshot(options: {
   model: string;
   prompt: string;
   expectedBehavior: string[];
   screenshotPath: string;
+  maxAttempts?: number;
+  request?: JudgeRequest;
 }): Promise<JudgeResult> {
-  const together = new Together(getTogetherOptions());
   const screenshot = await fs.readFile(options.screenshotPath, "base64");
-  const response = await together.chat.completions.create({
-    model: options.model,
-    reasoning: { enabled: false },
-    temperature: 0,
-    max_tokens: 1200,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: buildJudgePrompt(options.prompt, options.expectedBehavior),
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/png;base64,${screenshot}`,
-            },
-          },
-        ],
-      },
-    ],
-  });
-  const content = response.choices[0].message?.content ?? "";
-  return normalizeJudgeResult(options.model, options.expectedBehavior, content);
+  const request = options.request ?? createTogetherJudgeRequest();
+  const maxAttempts = options.maxAttempts ?? 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const content = await request.create({
+        model: options.model,
+        prompt: options.prompt,
+        expectedBehavior: options.expectedBehavior,
+        screenshotBase64: screenshot,
+      });
+
+      return normalizeJudgeResult(
+        options.model,
+        options.expectedBehavior,
+        content,
+      );
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 function buildJudgePrompt(prompt: string, expectedBehavior: string[]) {
@@ -68,7 +77,7 @@ Return strict JSON only, with this shape:
 Use a 0-10 score. A beautiful but incomplete app should not score above 6. A screenshot showing an error, blank page, or irrelevant app should score 0-2.`;
 }
 
-function normalizeJudgeResult(
+export function normalizeJudgeResult(
   model: string,
   expectedBehavior: string[],
   content: string,
@@ -101,7 +110,14 @@ function normalizeJudgeResult(
 }
 
 function parseJsonObject(content: string): any {
-  const trimmed = content.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "");
+  if (!content.trim()) {
+    throw new Error("Judge returned empty content");
+  }
+
+  const trimmed = content
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/, "");
 
   try {
     return JSON.parse(trimmed);
@@ -113,6 +129,43 @@ function parseJsonObject(content: string): any {
     }
     throw new Error(`Judge did not return JSON: ${content.slice(0, 500)}`);
   }
+}
+
+function createTogetherJudgeRequest(): JudgeRequest {
+  const together = new Together(getTogetherOptions());
+
+  return {
+    create: async (options) => {
+      const response = await together.chat.completions.create({
+        model: options.model,
+        reasoning: { enabled: false },
+        temperature: 0,
+        max_tokens: 1200,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: buildJudgePrompt(
+                  options.prompt,
+                  options.expectedBehavior,
+                ),
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/png;base64,${options.screenshotBase64}`,
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      return response.choices[0].message?.content ?? "";
+    },
+  };
 }
 
 function getTogetherOptions(): ConstructorParameters<typeof Together>[0] {
