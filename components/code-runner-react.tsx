@@ -6,16 +6,41 @@ import {
   useSandpack,
 } from "@codesandbox/sandpack-react/unstyled";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getSandpackConfig } from "@/lib/sandpack-config";
+import { bundle, ensureEsbuild } from "@/lib/preview/bundle";
+import { assemblePreviewFiles } from "@/lib/preview/files";
+import { buildSrcdoc } from "@/lib/preview/html";
 
-export default function ReactCodeRunner({
-  files,
-  onRequestFix,
-}: {
+type RunnerProps = {
   files: Array<{ path: string; content: string }>;
   onRequestFix?: (e: string) => void;
-}) {
+};
+
+type PreviewState =
+  | { phase: "bundling" }
+  | { phase: "running" }
+  | { phase: "ready" }
+  | { phase: "error"; error: string };
+
+type PreviewMetrics = {
+  bundleMs?: number;
+  prepareMs?: number;
+  runtimeMs?: number;
+  totalMs?: number;
+};
+
+export default function ReactCodeRunner({ files, onRequestFix }: RunnerProps) {
+  const useWasmPreview = useWasmPreviewFlag();
+
+  if (useWasmPreview) {
+    return <WasmReactCodeRunner files={files} onRequestFix={onRequestFix} />;
+  }
+
+  return <SandpackReactCodeRunner files={files} onRequestFix={onRequestFix} />;
+}
+
+function SandpackReactCodeRunner({ files, onRequestFix }: RunnerProps) {
   const filesKey = files.map((f) => f.path + f.content).join("");
   return (
     <SandpackProvider
@@ -31,16 +56,163 @@ export default function ReactCodeRunner({
         showOpenNewtab={false}
         className="h-full w-full"
       />
-      {onRequestFix && <ErrorMessage onRequestFix={onRequestFix} />}
+      {onRequestFix && <SandpackErrorMessage onRequestFix={onRequestFix} />}
     </SandpackProvider>
   );
 }
 
-function ErrorMessage({ onRequestFix }: { onRequestFix: (e: string) => void }) {
+function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const runStartedAtRef = useRef<number>(0);
+  const iframeStartedAtRef = useRef<number | null>(null);
+  const [srcdoc, setSrcdoc] = useState("");
+  const [state, setState] = useState<PreviewState>({ phase: "bundling" });
+  const [metrics, setMetrics] = useState<PreviewMetrics>({});
+  const filesKey = useMemo(
+    () => files.map((file) => file.path + file.content).join(""),
+    [files],
+  );
+
+  useEffect(() => {
+    void ensureEsbuild();
+  }, []);
+
+  useEffect(() => {
+    let didCancel = false;
+    runStartedAtRef.current = performance.now();
+    iframeStartedAtRef.current = null;
+    setMetrics({});
+    setState({ phase: "bundling" });
+
+    const timeout = window.setTimeout(async () => {
+      const result = await bundle(assemblePreviewFiles(files));
+
+      if (didCancel) return;
+
+      if (!result.ok) {
+        setState({ phase: "error", error: result.error });
+        return;
+      }
+
+      iframeStartedAtRef.current = performance.now();
+      setSrcdoc(buildSrcdoc(result.code, result.css));
+      setMetrics({
+        bundleMs: result.durationMs,
+        prepareMs: performance.now() - runStartedAtRef.current,
+      });
+      setState({ phase: "running" });
+    }, 300);
+
+    return () => {
+      didCancel = true;
+      window.clearTimeout(timeout);
+    };
+  }, [filesKey]);
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (
+        event.source !== iframeRef.current?.contentWindow ||
+        event.data?.source !== "preview"
+      ) {
+        return;
+      }
+
+      if (event.data.type === "ready") {
+        const readyAt = performance.now();
+        setMetrics((current) => ({
+          ...current,
+          runtimeMs: iframeStartedAtRef.current
+            ? readyAt - iframeStartedAtRef.current
+            : undefined,
+          totalMs: readyAt - runStartedAtRef.current,
+        }));
+        setState({ phase: "ready" });
+        return;
+      }
+
+      if (event.data.type === "error") {
+        setState({
+          phase: "error",
+          error: String(event.data.message || "Unknown preview error"),
+        });
+      }
+    }
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  const error = state.phase === "error" ? state.error : undefined;
+
+  return (
+    <div
+      className="relative h-full w-full"
+      data-preview-phase={state.phase}
+      data-preview-bundle-ms={formatMetricValue(metrics.bundleMs)}
+      data-preview-prepare-ms={formatMetricValue(metrics.prepareMs)}
+      data-preview-runtime-ms={formatMetricValue(metrics.runtimeMs)}
+      data-preview-total-ms={formatMetricValue(metrics.totalMs)}
+    >
+      <iframe
+        ref={iframeRef}
+        sandbox="allow-scripts allow-forms allow-modals allow-popups"
+        srcDoc={srcdoc}
+        title="Preview"
+        className="h-full w-full border-0"
+      />
+      {(state.phase === "bundling" || state.phase === "running") && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/60 text-sm font-medium text-gray-500 backdrop-blur-sm">
+          {state.phase === "bundling" ? "Bundling preview..." : "Running..."}
+        </div>
+      )}
+      {error && <ErrorMessage error={error} onRequestFix={onRequestFix} />}
+      <PreviewMetricsBadge state={state} metrics={metrics} />
+    </div>
+  );
+}
+
+function PreviewMetricsBadge({
+  state,
+  metrics,
+}: {
+  state: PreviewState;
+  metrics: PreviewMetrics;
+}) {
+  return (
+    <div className="absolute bottom-3 left-3 z-20 rounded-md border border-zinc-300 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-zinc-700 shadow-sm backdrop-blur">
+      <span className="mr-2 text-zinc-500">wasm</span>
+      <span className="mr-2">phase {state.phase}</span>
+      <span className="mr-2">prep {formatMs(metrics.prepareMs)}</span>
+      <span className="mr-2">bundle {formatMs(metrics.bundleMs)}</span>
+      <span className="mr-2">runtime {formatMs(metrics.runtimeMs)}</span>
+      <span>total {formatMs(metrics.totalMs)}</span>
+    </div>
+  );
+}
+
+function SandpackErrorMessage({
+  onRequestFix,
+}: {
+  onRequestFix: (e: string) => void;
+}) {
   const { sandpack } = useSandpack();
-  const [didCopy, setDidCopy] = useState(false);
 
   if (!sandpack.error) return null;
+
+  return (
+    <ErrorMessage error={sandpack.error.message} onRequestFix={onRequestFix} />
+  );
+}
+
+function ErrorMessage({
+  error,
+  onRequestFix,
+}: {
+  error: string;
+  onRequestFix?: (e: string) => void;
+}) {
+  const [didCopy, setDidCopy] = useState(false);
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/5 text-base backdrop-blur-sm">
@@ -48,18 +220,14 @@ function ErrorMessage({ onRequestFix }: { onRequestFix: (e: string) => void }) {
         <p className="text-lg font-medium">Error</p>
 
         <p className="mt-4 line-clamp-[10] overflow-x-auto whitespace-pre font-mono text-xs">
-          {sandpack.error.message}
+          {error}
         </p>
 
         <div className="mt-8 flex justify-between gap-4">
           <button
             onClick={async () => {
-              if (!sandpack.error) return;
-
               setDidCopy(true);
-              await window.navigator.clipboard.writeText(
-                sandpack.error.message,
-              );
+              await window.navigator.clipboard.writeText(error);
               await new Promise((resolve) => setTimeout(resolve, 2000));
               setDidCopy(false);
             }}
@@ -67,17 +235,39 @@ function ErrorMessage({ onRequestFix }: { onRequestFix: (e: string) => void }) {
           >
             {didCopy ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
           </button>
-          <button
-            onClick={() => {
-              if (!sandpack.error) return;
-              onRequestFix(sandpack.error.message);
-            }}
-            className="rounded bg-white px-2.5 py-1.5 text-sm font-medium text-black"
-          >
-            Try to fix
-          </button>
+          {onRequestFix && (
+            <button
+              onClick={() => {
+                onRequestFix(error);
+              }}
+              className="rounded bg-white px-2.5 py-1.5 text-sm font-medium text-black"
+            >
+              Try to fix
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+function useWasmPreviewFlag() {
+  const envFlag = process.env.NEXT_PUBLIC_PREVIEW_RUNNER === "wasm";
+  const [queryFlag, setQueryFlag] = useState(false);
+
+  useEffect(() => {
+    setQueryFlag(
+      new URLSearchParams(window.location.search).get("preview") === "wasm",
+    );
+  }, []);
+
+  return envFlag || queryFlag;
+}
+
+function formatMs(value: number | undefined) {
+  return typeof value === "number" ? `${Math.round(value)}ms` : "--";
+}
+
+function formatMetricValue(value: number | undefined) {
+  return typeof value === "number" ? String(Math.round(value)) : "";
 }

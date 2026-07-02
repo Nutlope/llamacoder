@@ -65,6 +65,9 @@ importers:
       dedent:
         specifier: ^1.6.0
         version: 1.6.0
+      esbuild-wasm:
+        specifier: 0.25.5
+        version: 0.25.5
       framer-motion:
         specifier: ^11.18.0
         version: 11.18.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -1974,6 +1977,11 @@ packages:
     resolution: {integrity: sha512-H2/S7Pm8a9CL1uhp9OvjwrBh5Pvx0H8qVOxNu8Wed9Y7qv56MPtq+GGM8RJpq6glYJn9Wspr8uw7l55uyinNeg==}
     peerDependencies:
       esbuild: '>=0.12 <1'
+
+  esbuild-wasm@0.25.5:
+    resolution: {integrity: sha512-V/rbdOws2gDcnCAECfPrajhuafI0WY4WumUgc8ZHwOLnvmM0doLQ+dqvVFI2qkVxQsvo6880aC9IjpyDqcwwTw==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   esbuild@0.25.9:
     resolution: {integrity: sha512-CRbODhYyQx3qp7ZEwzxOk4JBqmD/seJrzPa/cGjY1VtIn5E09Oi9/dB4JwctnfZ8Q8iT7rioVv5k/FNT/uf54g==}
@@ -5281,6 +5289,8 @@ snapshots:
       esbuild: 0.25.9
     transitivePeerDependencies:
       - supports-color
+
+  esbuild-wasm@0.25.5: {}
 
   esbuild@0.25.9:
     optionalDependencies:
