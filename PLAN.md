@@ -4,7 +4,7 @@ This plan captures the current problems and proposes concrete fixes. The goal is
 
 The plan is written around agreed data structures so the implementation has clear interfaces and is not open to reinterpretation.
 
-**Status (2026-07-02):** the renderer migration (section 0) is implemented and wasm is now the default preview runner, with Sandpack still available via `?preview=sandpack` for one release. Chrome and real-device iOS Safari have been verified. The GLM 5.2 launch sweep and §0.3 hardening are complete. The benchmark harness exists through judge integration (§4 step 3.4), and the dataset draft is ready for Riccardo review before any full rank run. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
+**Status (2026-07-02):** the renderer migration (section 0) is implemented and wasm is now the default preview runner, with Sandpack still available via `?preview=sandpack` for one release. Chrome and real-device iOS Safari have been verified. The GLM 5.2 launch sweep and §0.3 hardening are complete. The benchmark harness exists through judge integration (§4 step 3.4), and the dataset draft is ready for Riccardo review before any full rank run. Local production build was repaired by pinning TypeScript back to the stable 5.9 line and excluding benchmark scratch output from app type-checking; production deploy verification is still an explicit launch gate. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
 
 ---
 
@@ -20,6 +20,7 @@ The company launch does **not** wait for this plan. Launch-critical vs. deferred
    - If GLM 5.2's modern output breaks Sandpack (e.g. recharts v3 code) → the wasm flip becomes launch-critical: do §0.3 hardening + parity run before Monday (small, known edits — feasible in a day).
    - Actual decision: no Sandpack-specific GLM 5.2 launch blocker was found; wasm hardening still completed and the default was flipped.
 4. [x] §0.3 hardening fixes regardless (they're on the critical path of every timeline).
+5. [ ] **Production build passes and deploys.** Local `pnpm exec next build` now passes after TypeScript was pinned to `5.9.3` and scratch output was excluded from `tsconfig.json`; production deployment still needs verification.
 
 **Everything else in this plan is post-launch.** Sequence so each day ends in a shippable state: launch must never depend on the benchmark existing. If the harness (§1–§2) lands before Monday, benchmark data is a bonus, not a blocker.
 
@@ -28,7 +29,7 @@ The company launch does **not** wait for this plan. Launch-critical vs. deferred
 ## Context for the implementer
 
 - **What already exists:** the wasm renderer POC is *built and committed* (`d49406f`, `6637ec3`) — see §0.1 for the file map. `poc-wasm-esm.md` in the repo root is the original build spec; where it and the code disagree, **the code + this plan win** (the POC deviated from the spec in reviewed, accepted ways).
-- **Try it:** `pnpm dev`, then `/preview-poc?preview=wasm&debug=1` (gauntlet fixture app + error cases). Flags: `?preview=wasm|sandpack` per-page, `NEXT_PUBLIC_PREVIEW_RUNNER=wasm` globally, `?debug=1` shows the timing badge.
+- **Try it:** `pnpm dev`, then `/preview-poc?preview=wasm&debug=1` (gauntlet fixture app + error cases). Flags: `?preview=wasm|sandpack` per-page, `NEXT_PUBLIC_PREVIEW_RUNNER=wasm` globally, `?debug=1` shows the timing badge. A temporary `/tailwind-test` route was used to validate Tailwind 4 browser arbitrary-value behavior and then deleted so it does not ship publicly.
 - **Environment:** generation needs `TOGETHER_API_KEY` (Helicone proxy is optional, auto-enabled via env). The benchmark harness needs no database — only the app's chat routes touch Prisma; `/preview-harness` must stay client-only precisely so the harness never needs one.
 - **Known bugs fixed in §0.3:** console-error overlay regression, the ready/error race, and the missing watchdog were fixed in `components/code-runner-react.tsx`.
 - **Content deliverables that don't exist yet** (design is specified, the artifact isn't — don't assume they're written somewhere):
@@ -278,7 +279,7 @@ Accepted temporary cost: orchestration logic exists twice for a few weeks. Conta
 
 1. **Identity** — one paragraph. Sets the role and tone; no examples.
 2. **Allowed stack** — **generated from `PREVIEW_DEPS` in `lib/preview/deps.ts`**, not hand-written. The prompt can then never advertise a package or version the renderer does not serve (the recharts 2-vs-3 drift, codified away). Models must not add dependencies outside this list.
-3. **Forbidden libraries / patterns** — `@chakra-ui/react`, `@headlessui/react`, `axios`, arbitrary Tailwind bracket values, React Router (kept per §0.2; revisit post-release per §6). Plus one renderer-derived rule: **import packages from their root specifier only** (no subpath imports — import-map prefix entries can't carry `?external`, so subpaths would duplicate React). Enforced by static scan → `EvalResult.policyViolations`, never by the renderer and never as part of the mechanical render gate. Note: `/tailwind-test` confirmed arbitrary Tailwind values currently render in both wasm and Sandpack via `@tailwindcss/browser@4`; the bracket-value ban is a prompt/product policy, not a renderer limitation.
+3. **Forbidden libraries / patterns** — `@chakra-ui/react`, `@headlessui/react`, `axios`, arbitrary Tailwind bracket values, React Router (kept per §0.2; revisit post-release per §6). Plus one renderer-derived rule: **import packages from their root specifier only** (no subpath imports — import-map prefix entries can't carry `?external`, so subpaths would duplicate React). Enforced by static scan → `EvalResult.policyViolations`, never by the renderer and never as part of the mechanical render gate. Note: the temporary `/tailwind-test` route confirmed arbitrary Tailwind values currently render in both wasm and Sandpack via `@tailwindcss/browser@4`; that route has been deleted, and the bracket-value ban remains a prompt/product policy rather than a renderer limitation.
 4. **Output format** — each file as a code fence with `path=...`; no prose outside `<thinking>` tags; all files form a single valid React project; entry point `App.tsx`.
 5. **Renderer contract** — much simpler than the Sandpack version: entry point `App.tsx`, alias table (`@/components/*`, `@/lib/*`, `@/utils/*`, `@/types/*`), pinned versions from the import map, root-specifier imports only.
 6. **Complexity guardrails** — single page only, max N files, no external APIs or backend, target 2-3 MVP features.
@@ -313,10 +314,12 @@ Winner chosen by mechanical pass rate, quality score, latency, and token cost. O
    3. [x] Orchestration: CLI walks the manifest, chains 3.1 → 3.2, adds the static policy scan, writes `results.jsonl` with mechanical pass/fail. **The harness is useful from this point** even with `judge: null`.
    4. [x] Judge integration (§1.5) last — it consumes the screenshots 3.2 produces and fills `qualityScore`. Judge retries empty/unparseable output and records failures per cell. (Note: document order §1-then-§2 is problem-statement order, not build order; the judge depends on the runner, not the other way around.)
 4. **Calibrate the judge** on ~20 hand-labeled runs (§1.5).
-5. **Run explore profile** → lock architecture mode and prompt version (§3.4). Deferred for now because the current requested run pins `promptVersion: "current-v0"` and `archMode: "separate"`.
-6. **Run rank profile** → model leaderboard with the winning config. Next big step after Riccardo reviews `scripts/benchmark/prompts.json`.
-7. **Lock defaults:** refactor production routes onto `generateApp` + winning `PromptConfig`; delete the Sandpack path and competing prompt implementations.
-8. **Only then** consider the autonomous-agent direction (§5).
+5. **Run rank profile with `current-v0` / `separate`** → baseline model leaderboard for today's production prompt and two-call pipeline. This is the next big run after Riccardo reviews `scripts/benchmark/prompts.json` and judge calibration is acceptable.
+6. **Implement §3 prompt/pipeline modes** after launch. Today `generateApp` intentionally supports only `promptVersion: "current-v0"` and `archMode: "separate"`; other modes throw by design so the current benchmark measures production behavior, not speculative prompt work.
+7. **Run explore profile** → lock architecture mode and prompt version (§3.4) once §3 modes exist.
+8. **Re-run rank profile** against the winning prompt/pipeline config, then compare to the `current-v0` / `separate` baseline.
+9. **Lock defaults:** refactor production routes onto `generateApp` + winning `PromptConfig`; delete the Sandpack path and competing prompt implementations.
+10. **Only then** consider the autonomous-agent direction (§5).
 
 ---
 
@@ -331,6 +334,7 @@ The autonomous-agent proposal (filesystem and web access) is a future step, not 
 Explicitly deferred until after steps 1–7 of §4 ship. Each item exists because the benchmark can then answer it with data instead of opinion.
 
 - **Revisit the React Router ban (§0.2/§3.2).** Run a matrix with the ban lifted and the single-page guardrail loosened; measure pass rate, file count, latency, and judge-score impact. Lift permanently if the damage is small.
+- **Revisit the arbitrary Tailwind bracket-value ban (§3.2).** The temporary `/tailwind-test` route proved Tailwind 4 browser rendering supports arbitrary values in both wasm and Sandpack; use benchmark data to decide whether the product/prompt ban still improves consistency enough to keep.
 - **Stress-tier prompts:** drag-and-drop kanban, deliberate scope-explosion traps, historically-failing prompts mined from the real chat DB. Grow the dataset toward 30–50 prompts once the harness has proven itself.
 - **PR smoke job:** counter prompt × 1 fast model × mechanical gate only (no judge) on PRs touching `lib/preview/` or `lib/prompts.ts`. Pipeline regression protection, not model evaluation.
 - **Code-reading judge axis:** a second judge pass over `generatedFiles` (code quality, idiom), kept separate from the visual score.

@@ -37,6 +37,8 @@
   ],
   "exclude": [
     "node_modules",
-    "scripts"
+    "scripts",
+    "tmp",
+    "test-results"
   ]
 }

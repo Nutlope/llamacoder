@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { memo } from "react";
 
 import GithubIcon from "@/components/icons/github-icon";
