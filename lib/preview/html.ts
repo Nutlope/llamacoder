@@ -51,20 +51,9 @@ window.addEventListener("load", () => {
 `;
 
 export function buildSrcdoc(bundledCode: string, bundledCss = ""): string {
-  const moduleLoader = `
-const moduleUrl = URL.createObjectURL(new Blob([${JSON.stringify(bundledCode)}], { type: "text/javascript" }));
-import(moduleUrl)
-  .then(() => requestAnimationFrame(() => parent.postMessage({ source: "preview", type: "ready" }, "*")))
-  .catch((error) => {
-    parent.postMessage({
-      source: "preview",
-      type: "error",
-      message: String((error && error.stack) || error),
-    }, "*");
-  })
-  .finally(() => URL.revokeObjectURL(moduleUrl));
-`;
-  const safeCode = escapeScriptContents(moduleLoader);
+  const safeCode = escapeScriptContents(`${bundledCode}
+requestAnimationFrame(() => parent.postMessage({ source: "preview", type: "ready" }, "*"));
+`);
   const safeBridge = escapeScriptContents(ERROR_BRIDGE);
   const safeCss = bundledCss.replace(/<\/style/gi, "<\\/style");
 

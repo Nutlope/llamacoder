@@ -1,24 +1,16 @@
 import CodeRunner from "@/components/code-runner";
-import { getPrisma } from "@/lib/prisma";
 import { assemblePreviewFiles } from "@/lib/preview/files";
-import { parseReplySegments } from "@/lib/utils";
 import Link from "next/link";
 import SourceInspector from "./source-inspector";
 
 type PreviewCase = "gauntlet" | "syntax-error" | "missing-import";
-type PreviewSource = "fixture" | "generated-app" | "message";
-type PreviewFile = { path: string; content: string };
 type PreviewParams = {
   case?: string;
-  id?: string;
-  messageId?: string;
+  debug?: string;
   preview?: string;
-  source?: string;
 };
 
 export const dynamic = "force-dynamic";
-
-const SELECTED_APP_TIMEOUT_MS = 12000;
 
 const gauntletFiles = [
   {
@@ -491,14 +483,8 @@ export default async function PreviewPocPage({
   searchParams: Promise<PreviewParams>;
 }) {
   const params = await searchParams;
-  const previewSource = getPreviewSource(params);
   const activeCase = isPreviewCase(params.case) ? params.case : "gauntlet";
-  const selectedDbApp = await withTimeout(
-    getSelectedDbApp(params, previewSource),
-    null,
-    SELECTED_APP_TIMEOUT_MS,
-  );
-  const files = selectedDbApp?.files ?? cases[activeCase];
+  const files = cases[activeCase];
   const assembledFiles = toSortedFiles(assemblePreviewFiles(files));
 
   return (
@@ -517,26 +503,43 @@ function CaseSwitcher({
   activeCase: PreviewCase;
   params: PreviewParams;
 }) {
+  const activePreview = params.preview === "wasm" ? "wasm" : "sandpack";
+
   return (
-    <nav className="fixed right-4 top-4 z-[60] flex flex-wrap justify-end gap-2">
-      {Object.entries(caseLabels).map(([value, label]) => (
-        <Link
-          key={value}
-          href={buildHref(params, {
-            case: value === "gauntlet" ? undefined : value,
-            id: undefined,
-            messageId: undefined,
-            source: undefined,
-          })}
-          className={`rounded-md border px-3 py-2 text-xs font-medium shadow-sm ${
-            activeCase === value
-              ? "border-zinc-900 bg-zinc-900 text-white"
-              : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50"
-          }`}
-        >
-          {label}
-        </Link>
-      ))}
+    <nav className="fixed right-4 top-4 z-[60] flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2">
+      <div className="flex overflow-hidden rounded-md border border-zinc-300 bg-white shadow-sm">
+        {(["sandpack", "wasm"] as const).map((preview) => (
+          <Link
+            key={preview}
+            href={buildHref(params, { preview })}
+            className={`px-3 py-2 text-xs font-medium ${
+              activePreview === preview
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-800 hover:bg-zinc-50"
+            }`}
+          >
+            {preview === "wasm" ? "WASM" : "Sandpack"}
+          </Link>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap justify-end gap-2">
+        {Object.entries(caseLabels).map(([value, label]) => (
+          <Link
+            key={value}
+            href={buildHref(params, {
+              case: value === "gauntlet" ? undefined : value,
+            })}
+            className={`rounded-md border px-3 py-2 text-xs font-medium shadow-sm ${
+              activeCase === value
+                ? "border-zinc-900 bg-zinc-900 text-white"
+                : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
     </nav>
   );
 }
@@ -549,142 +552,17 @@ function isPreviewCase(value: string | undefined): value is PreviewCase {
   );
 }
 
-function getPreviewSource(params: PreviewParams): PreviewSource {
-  if (params.source === "generated-app" && params.id) return "generated-app";
-  if (params.source === "message" && params.messageId) return "message";
-  return "fixture";
-}
-
-async function getSelectedDbApp(
-  params: PreviewParams,
-  source: PreviewSource,
-): Promise<{ files: Array<PreviewFile>; id: string } | null> {
-  if (source === "fixture") return null;
-
-  try {
-    const prisma = getPrisma();
-
-    if (source === "generated-app" && params.id) {
-      const app = await prisma.generatedApp.findUnique({
-        where: { id: params.id },
-      });
-      if (!app) return null;
-
-      return {
-        id: `generated-app:${app.id}`,
-        files: [{ path: "App.tsx", content: app.code }],
-      };
-    }
-
-    if (source === "message" && params.messageId) {
-      const message = await prisma.message.findUnique({
-        where: { id: params.messageId },
-      });
-      if (!message) return null;
-
-      const history = await prisma.message.findMany({
-        orderBy: { position: "asc" },
-        where: {
-          chatId: message.chatId,
-          position: { lte: message.position },
-          role: "assistant",
-        },
-      });
-      const files = mergeFiles(history.flatMap(filesFromMessage));
-      if (files.length === 0) return null;
-
-      return {
-        id: `message:${message.id}`,
-        files,
-      };
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function filesFromMessage(message: { content: string; files: unknown }) {
-  const fencedFiles = parseReplySegments(message.content).flatMap((segment) =>
-    segment.type === "file"
-      ? [{ path: segment.path, content: segment.code }]
-      : [],
-  );
-
-  if (Array.isArray(message.files)) {
-    return mergeFiles([
-      ...message.files.flatMap((file) => {
-        if (!isMessageFile(file)) return [];
-        const content = file.content ?? file.code;
-        if (typeof content !== "string") return [];
-        return [{ path: file.path, content }];
-      }),
-      ...fencedFiles,
-    ]);
-  }
-
-  return fencedFiles;
-}
-
-function mergeFiles(files: Array<PreviewFile>) {
-  const byPath = new Map<string, PreviewFile>();
-  for (const file of files) {
-    byPath.set(file.path, file);
-  }
-  return Array.from(byPath.values());
-}
-
-async function withTimeout<T>(
-  promise: Promise<T>,
-  fallback: T,
-  timeoutMs = SELECTED_APP_TIMEOUT_MS,
-): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((resolve) => {
-        timeout = setTimeout(() => resolve(fallback), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
-}
-
-function isMessageFile(
-  file: unknown,
-): file is { code?: string; content?: string; path: string } {
-  if (!file || typeof file !== "object") return false;
-  const candidate = file as {
-    code?: unknown;
-    content?: unknown;
-    path?: unknown;
-  };
-  return (
-    typeof candidate.path === "string" &&
-    (typeof candidate.code === "string" ||
-      typeof candidate.content === "string")
-  );
-}
-
 function buildHref(
   params: PreviewParams,
   updates: {
     case?: string;
-    id?: string;
-    messageId?: string;
-    source?: string;
+    preview?: string;
   },
 ) {
   const query = new URLSearchParams();
   if (params.preview) query.set("preview", params.preview);
   if (params.case) query.set("case", params.case);
-  if (params.source) query.set("source", params.source);
-  if (params.id) query.set("id", params.id);
-  if (params.messageId) query.set("messageId", params.messageId);
+  if (params.debug) query.set("debug", params.debug);
 
   for (const [key, value] of Object.entries(updates)) {
     if (value) query.set(key, value);

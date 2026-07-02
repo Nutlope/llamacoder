@@ -65,6 +65,7 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const runStartedAtRef = useRef<number>(0);
   const iframeStartedAtRef = useRef<number | null>(null);
+  const showDebugMetrics = usePreviewDebugFlag();
   const [srcdoc, setSrcdoc] = useState("");
   const [state, setState] = useState<PreviewState>({ phase: "bundling" });
   const [metrics, setMetrics] = useState<PreviewMetrics>({});
@@ -136,6 +137,14 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
           phase: "error",
           error: String(event.data.message || "Unknown preview error"),
         });
+        return;
+      }
+
+      if (event.data.type === "console-error") {
+        setState({
+          phase: "error",
+          error: String(event.data.message || "Unknown console error"),
+        });
       }
     }
 
@@ -167,7 +176,9 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
         </div>
       )}
       {error && <ErrorMessage error={error} onRequestFix={onRequestFix} />}
-      <PreviewMetricsBadge state={state} metrics={metrics} />
+      {showDebugMetrics && (
+        <PreviewMetricsBadge state={state} metrics={metrics} />
+      )}
     </div>
   );
 }
@@ -253,15 +264,24 @@ function ErrorMessage({
 
 function useWasmPreviewFlag() {
   const envFlag = process.env.NEXT_PUBLIC_PREVIEW_RUNNER === "wasm";
-  const [queryFlag, setQueryFlag] = useState(false);
+  const [queryFlag, setQueryFlag] = useState<"sandpack" | "wasm" | null>(null);
 
   useEffect(() => {
-    setQueryFlag(
-      new URLSearchParams(window.location.search).get("preview") === "wasm",
-    );
+    const preview = new URLSearchParams(window.location.search).get("preview");
+    setQueryFlag(preview === "wasm" || preview === "sandpack" ? preview : null);
   }, []);
 
-  return envFlag || queryFlag;
+  return queryFlag ? queryFlag === "wasm" : envFlag;
+}
+
+function usePreviewDebugFlag() {
+  const [debug, setDebug] = useState(false);
+
+  useEffect(() => {
+    setDebug(new URLSearchParams(window.location.search).get("debug") === "1");
+  }, []);
+
+  return debug;
 }
 
 function formatMs(value: number | undefined) {

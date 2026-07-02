@@ -53,6 +53,8 @@ export function buildImportMapObject() {
 
     imports[name] =
       `https://esm.sh/${name}@${version}?external=react,react-dom`;
+    // Import-map prefix entries cannot carry esm.sh query params, so React
+    // packages should be imported from their root specifier in generated apps.
     imports[`${name}/`] = `https://esm.sh/${name}@${version}/`;
   }
 
