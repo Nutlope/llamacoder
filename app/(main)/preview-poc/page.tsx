@@ -1,9 +1,23 @@
 import CodeRunner from "@/components/code-runner";
+import blog from "@/lib/examples/blog.json";
+import calculator from "@/lib/examples/calculator.json";
+import landing from "@/lib/examples/landing.json";
+import pomodoro from "@/lib/examples/pomodoro.json";
+import quiz from "@/lib/examples/quiz.json";
 import { assemblePreviewFiles } from "@/lib/preview/files";
 import Link from "next/link";
 import SourceInspector from "./source-inspector";
 
-type PreviewCase = "gauntlet" | "syntax-error" | "missing-import";
+type PreviewCase =
+  | "gauntlet"
+  | "console-error"
+  | "syntax-error"
+  | "missing-import"
+  | "example-landing"
+  | "example-blog"
+  | "example-calculator"
+  | "example-pomodoro"
+  | "example-quiz";
 type PreviewParams = {
   case?: string;
   debug?: string;
@@ -465,16 +479,55 @@ export default function App() {
   },
 ];
 
+const consoleErrorFiles = [
+  {
+    path: "src/App.tsx",
+    content: `import React from "react";
+
+export default function App() {
+  React.useEffect(() => {
+    console.error("Intentional console error from preview-poc");
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-white p-8 text-zinc-950">
+      <h1 className="text-2xl font-semibold">Console error case</h1>
+      <p className="mt-2 text-zinc-600">
+        This page should reach ready while recording a console error.
+      </p>
+    </main>
+  );
+}
+`,
+  },
+];
+
+function exampleFiles(content: string) {
+  return [{ path: "src/App.tsx", content }];
+}
+
 const cases: Record<PreviewCase, Array<{ path: string; content: string }>> = {
   gauntlet: gauntletFiles,
+  "console-error": consoleErrorFiles,
   "syntax-error": syntaxErrorFiles,
   "missing-import": missingImportFiles,
+  "example-landing": exampleFiles(landing.content),
+  "example-blog": exampleFiles(blog.content),
+  "example-calculator": exampleFiles(calculator.content),
+  "example-pomodoro": exampleFiles(pomodoro.content),
+  "example-quiz": exampleFiles(quiz.content),
 };
 
 const caseLabels: Record<PreviewCase, string> = {
   gauntlet: "Compatibility gauntlet",
+  "console-error": "Console error",
   "syntax-error": "Syntax error",
   "missing-import": "Missing import",
+  "example-landing": "Example: landing",
+  "example-blog": "Example: blog",
+  "example-calculator": "Example: calculator",
+  "example-pomodoro": "Example: pomodoro",
+  "example-quiz": "Example: quiz",
 };
 
 export default async function PreviewPocPage({
@@ -503,7 +556,7 @@ function CaseSwitcher({
   activeCase: PreviewCase;
   params: PreviewParams;
 }) {
-  const activePreview = params.preview === "wasm" ? "wasm" : "sandpack";
+  const activePreview = params.preview === "sandpack" ? "sandpack" : "wasm";
 
   return (
     <nav className="fixed right-4 top-4 z-[60] flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2">
@@ -547,8 +600,14 @@ function CaseSwitcher({
 function isPreviewCase(value: string | undefined): value is PreviewCase {
   return (
     value === "gauntlet" ||
+    value === "console-error" ||
     value === "syntax-error" ||
-    value === "missing-import"
+    value === "missing-import" ||
+    value === "example-landing" ||
+    value === "example-blog" ||
+    value === "example-calculator" ||
+    value === "example-pomodoro" ||
+    value === "example-quiz"
   );
 }
 

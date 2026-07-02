@@ -80,8 +80,9 @@ export function getMainCodingPrompt() {
     Available: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight
     Import: \`import { IconName } from "lucide-react"\`
 
-  - **Charts:** Recharts (only for dashboards/graphs)
-    Import: \`import { LineChart, XAxis, ... } from "recharts"\`
+  - **Charts:** Recharts v3 (only for dashboards/graphs)
+    Import from the root package only: \`import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts"\`
+    Use current v3 composition: \`<ResponsiveContainer width="100%" height={320}><LineChart data={data}><XAxis dataKey="name" /><YAxis /><Tooltip /><Line type="monotone" dataKey="value" stroke="currentColor" /></LineChart></ResponsiveContainer>\`
 
   - **Animations:** Framer Motion
   - **Date Formatting:** date-fns (NOT date-fns-tz)

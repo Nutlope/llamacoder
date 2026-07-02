@@ -30,6 +30,8 @@ type PreviewMetrics = {
   totalMs?: number;
 };
 
+const PREVIEW_WATCHDOG_MS = 15_000;
+
 export default function ReactCodeRunner({ files, onRequestFix }: RunnerProps) {
   const useWasmPreview = useWasmPreviewFlag();
 
@@ -65,14 +67,27 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const runStartedAtRef = useRef<number>(0);
   const iframeStartedAtRef = useRef<number | null>(null);
+  const stateRef = useRef<PreviewState>({ phase: "bundling" });
+  const consoleErrorsRef = useRef<string[]>([]);
   const showDebugMetrics = usePreviewDebugFlag();
   const [srcdoc, setSrcdoc] = useState("");
   const [state, setState] = useState<PreviewState>({ phase: "bundling" });
+  const [consoleErrors, setConsoleErrors] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<PreviewMetrics>({});
   const filesKey = useMemo(
     () => files.map((file) => file.path + file.content).join(""),
     [files],
   );
+
+  function transitionState(nextState: PreviewState) {
+    stateRef.current = nextState;
+    setState(nextState);
+  }
+
+  function appendConsoleError(message: string) {
+    consoleErrorsRef.current = [...consoleErrorsRef.current, message];
+    setConsoleErrors(consoleErrorsRef.current);
+  }
 
   useEffect(() => {
     void ensureEsbuild();
@@ -82,8 +97,10 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
     let didCancel = false;
     runStartedAtRef.current = performance.now();
     iframeStartedAtRef.current = null;
+    consoleErrorsRef.current = [];
+    setConsoleErrors([]);
     setMetrics({});
-    setState({ phase: "bundling" });
+    transitionState({ phase: "bundling" });
 
     const timeout = window.setTimeout(async () => {
       const result = await bundle(assemblePreviewFiles(files));
@@ -91,7 +108,7 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
       if (didCancel) return;
 
       if (!result.ok) {
-        setState({ phase: "error", error: result.error });
+        transitionState({ phase: "error", error: result.error });
         return;
       }
 
@@ -101,12 +118,24 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
         bundleMs: result.durationMs,
         prepareMs: performance.now() - runStartedAtRef.current,
       });
-      setState({ phase: "running" });
+      transitionState({ phase: "running" });
     }, 300);
+
+    const watchdog = window.setTimeout(() => {
+      if (didCancel || stateRef.current.phase !== "running") return;
+
+      transitionState({
+        phase: "error",
+        error: `Preview did not report ready or error within ${Math.round(
+          PREVIEW_WATCHDOG_MS / 1000,
+        )}s.`,
+      });
+    }, PREVIEW_WATCHDOG_MS);
 
     return () => {
       didCancel = true;
       window.clearTimeout(timeout);
+      window.clearTimeout(watchdog);
     };
   }, [filesKey]);
 
@@ -120,6 +149,8 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
       }
 
       if (event.data.type === "ready") {
+        if (stateRef.current.phase === "error") return;
+
         const readyAt = performance.now();
         setMetrics((current) => ({
           ...current,
@@ -128,12 +159,12 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
             : undefined,
           totalMs: readyAt - runStartedAtRef.current,
         }));
-        setState({ phase: "ready" });
+        transitionState({ phase: "ready" });
         return;
       }
 
       if (event.data.type === "error") {
-        setState({
+        transitionState({
           phase: "error",
           error: String(event.data.message || "Unknown preview error"),
         });
@@ -141,10 +172,9 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
       }
 
       if (event.data.type === "console-error") {
-        setState({
-          phase: "error",
-          error: String(event.data.message || "Unknown console error"),
-        });
+        appendConsoleError(
+          String(event.data.message || "Unknown console error"),
+        );
       }
     }
 
@@ -152,7 +182,10 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  const error = state.phase === "error" ? state.error : undefined;
+  const error =
+    state.phase === "error"
+      ? formatErrorForFixPayload(state.error, consoleErrors)
+      : undefined;
 
   return (
     <div
@@ -162,6 +195,7 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
       data-preview-prepare-ms={formatMetricValue(metrics.prepareMs)}
       data-preview-runtime-ms={formatMetricValue(metrics.runtimeMs)}
       data-preview-total-ms={formatMetricValue(metrics.totalMs)}
+      data-preview-console-errors={JSON.stringify(consoleErrors)}
     >
       <iframe
         ref={iframeRef}
@@ -263,7 +297,7 @@ function ErrorMessage({
 }
 
 function useWasmPreviewFlag() {
-  const envFlag = process.env.NEXT_PUBLIC_PREVIEW_RUNNER === "wasm";
+  const envFlag = process.env.NEXT_PUBLIC_PREVIEW_RUNNER;
   const [queryFlag, setQueryFlag] = useState<"sandpack" | "wasm" | null>(null);
 
   useEffect(() => {
@@ -271,7 +305,9 @@ function useWasmPreviewFlag() {
     setQueryFlag(preview === "wasm" || preview === "sandpack" ? preview : null);
   }, []);
 
-  return queryFlag ? queryFlag === "wasm" : envFlag;
+  if (queryFlag) return queryFlag === "wasm";
+  if (envFlag === "sandpack" || envFlag === "wasm") return envFlag === "wasm";
+  return true;
 }
 
 function usePreviewDebugFlag() {
@@ -290,4 +326,12 @@ function formatMs(value: number | undefined) {
 
 function formatMetricValue(value: number | undefined) {
   return typeof value === "number" ? String(Math.round(value)) : "";
+}
+
+function formatErrorForFixPayload(error: string, consoleErrors: string[]) {
+  if (consoleErrors.length === 0) return error;
+
+  return `${error}\n\nConsole errors before the fatal error:\n${consoleErrors
+    .map((message) => `- ${message}`)
+    .join("\n")}`;
 }
