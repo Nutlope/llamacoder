@@ -1,7 +1,7 @@
 {
   "promptVersion": "current-v0",
   "archMode": "separate",
-  "judgeModel": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
+  "judgeModel": "moonshotai/Kimi-K2.7-Code",
   "prompts": [
     {
       "id": "counter-v1",

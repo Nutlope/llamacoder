@@ -14,6 +14,7 @@ import {
   type RunnerOutput,
 } from "./preview-runner";
 import { findPolicyViolations } from "./policy";
+import { judgeScreenshot, type JudgeResult } from "./judge";
 
 type BenchmarkPrompt = {
   id: string;
@@ -53,7 +54,7 @@ type EvalResult = {
   build: { ok: boolean; stdout: string; stderr: string };
   runtime: { ok: boolean; consoleErrors: string[] };
   screenshot: string | null;
-  judge: null;
+  judge: JudgeResult | null;
   qualityScore: number;
 };
 
@@ -67,7 +68,8 @@ async function main() {
   const manifest = await readManifest(args.manifest);
   const runId = args.runId ?? makeRunId();
   const outDir = path.resolve(args.out ?? `tmp/benchmark/${runId}`);
-  const promptVersion = args.promptVersion ?? manifest.promptVersion ?? "current-v0";
+  const promptVersion =
+    args.promptVersion ?? manifest.promptVersion ?? "current-v0";
   const archMode = args.archMode ?? manifest.archMode ?? "separate";
   const repetitions = args.repetitions ?? PROFILES[args.profile];
   const prompts = selectPrompts(manifest.prompts, args.prompts);
@@ -109,6 +111,8 @@ async function main() {
             rep,
             promptVersion,
             archMode,
+            judgeModel: manifest.judgeModel,
+            skipJudge: args.skipJudge,
             renderFiles: session.renderFiles,
           });
           results.push(result);
@@ -133,6 +137,8 @@ async function runCell(options: {
   rep: number;
   promptVersion: PromptVersion;
   archMode: ArchMode;
+  judgeModel: string;
+  skipJudge: boolean;
   renderFiles: (
     files: GeneratedFile[],
     options: { screenshotPath?: string },
@@ -171,6 +177,22 @@ async function runCell(options: {
     runnerOutput.build.ok &&
     runnerOutput.runtime.ok &&
     runnerOutput.screenshot !== null;
+  const judge =
+    mechanicalPass && runnerOutput.screenshot && !options.skipJudge
+      ? await judgeScreenshot({
+          model: options.judgeModel,
+          prompt: options.prompt.prompt,
+          expectedBehavior: options.prompt.expectedBehavior,
+          screenshotPath: runnerOutput.screenshot,
+        })
+      : null;
+
+  if (judge) {
+    await fs.writeFile(
+      path.join(cellDir, "judge.json"),
+      JSON.stringify(judge, null, 2),
+    );
+  }
 
   return {
     runId: options.runId,
@@ -200,8 +222,8 @@ async function runCell(options: {
     screenshot: runnerOutput.screenshot
       ? path.relative(options.outDir, runnerOutput.screenshot)
       : null,
-    judge: null,
-    qualityScore: mechanicalPass ? 0 : 0,
+    judge,
+    qualityScore: judge?.score ?? 0,
   };
 }
 
@@ -218,6 +240,7 @@ function parseCliArgs() {
       repetitions: { type: "string" },
       "base-url": { type: "string" },
       "run-id": { type: "string" },
+      "skip-judge": { type: "boolean", default: false },
     },
   });
 
@@ -249,6 +272,7 @@ function parseCliArgs() {
       : undefined,
     baseUrl: values["base-url"],
     runId: values["run-id"],
+    skipJudge: values["skip-judge"],
   };
 }
 
@@ -398,6 +422,9 @@ function printSummary(results: EvalResult[]) {
             ),
           ),
         ),
+        meanQuality: round1(
+          average(modelResults.map((result) => result.qualityScore)),
+        ),
       };
     }),
   );
@@ -406,6 +433,10 @@ function printSummary(results: EvalResult[]) {
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function round1(value: number) {
+  return Math.round(value * 10) / 10;
 }
 
 function sanitizePathPart(value: string) {
