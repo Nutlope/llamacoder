@@ -4,6 +4,11 @@ import {
   getMainCodingPrompt,
   softwareArchitectPrompt,
 } from "./prompts";
+import {
+  DEFAULT_PROMPT_CONFIG,
+  buildMinimalCodingPrompt,
+  type PromptConfig,
+} from "./prompt-config";
 import { extractAllCodeBlocks } from "./utils";
 
 export type GeneratedFile = {
@@ -11,9 +16,9 @@ export type GeneratedFile = {
   content: string;
 };
 
-export type ArchMode = "separate" | "none";
+export type ArchMode = "separate" | "none" | "inline";
 
-export type PromptVersion = "current-v0" | "current-v0-plan-v2";
+export type PromptVersion = "current-v0" | "current-v0-plan-v2" | "minimal-v1";
 
 export type GenerateAppConfig = {
   promptVersion?: PromptVersion;
@@ -21,6 +26,7 @@ export type GenerateAppConfig = {
   temperature?: number;
   maxTokens?: number;
   heliconeSessionId?: string;
+  promptConfig?: PromptConfig;
 };
 
 export type GenerateAppResult = {
@@ -58,16 +64,22 @@ export async function generateApp(
   const temperature = config.temperature ?? 0.4;
 
   const maxTokens =
-    config.maxTokens ?? (archMode === "separate" ? 13000 : 9000);
+    config.maxTokens ??
+    (archMode === "separate" || archMode === "inline" ? 13000 : 9000);
 
   if (
     promptVersion !== "current-v0" &&
-    promptVersion !== "current-v0-plan-v2"
+    promptVersion !== "current-v0-plan-v2" &&
+    promptVersion !== "minimal-v1"
   ) {
     throw new Error(`Unsupported promptVersion: ${promptVersion}`);
   }
 
-  if (archMode !== "separate" && archMode !== "none") {
+  if (
+    archMode !== "separate" &&
+    archMode !== "none" &&
+    archMode !== "inline"
+  ) {
     throw new Error(`Unsupported archMode: ${archMode}`);
   }
 
@@ -79,6 +91,10 @@ export async function generateApp(
   let plan = prompt;
   let planUsage: TokenUsage | undefined;
 
+  // archMode "inline" behaves like "none" (no planning API call; the raw
+  // user prompt is the user message) but folds a short plan-first instruction
+  // into the system prompt so the model writes its brief plan inside the
+  // <thinking> block before the code files, all in one response.
   if (archMode === "separate") {
     const planResponse = await together.chat.completions.create({
       model: PLANNING_MODEL,
@@ -101,11 +117,23 @@ export async function generateApp(
 
   let firstTokenMs = 0;
   const codingStartedAt = performance.now();
+
+  let systemPrompt =
+    promptVersion === "minimal-v1"
+      ? buildMinimalCodingPrompt(config.promptConfig ?? DEFAULT_PROMPT_CONFIG)
+      : getMainCodingPrompt();
+
+  if (archMode === "inline") {
+    systemPrompt +=
+      "\n\n" +
+      "Before writing any code files, first write a brief implementation plan inside a single <thinking>...</thinking> block. List the MVP features you will build and the files you will create (with their paths), keeping it concise. After the closing </thinking>, emit all the code files in the fenced format above. Everything — the plan and the code — must be in this one response.";
+  }
+
   const stream = together.chat.completions.stream({
     model: resolveModel(model),
     reasoning: { enabled: false },
     messages: [
-      { role: "system", content: getMainCodingPrompt() },
+      { role: "system", content: systemPrompt },
       { role: "user", content: plan },
     ],
     temperature,
