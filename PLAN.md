@@ -318,12 +318,14 @@ Winner chosen by mechanical pass rate, quality score, latency, and token cost. O
    - **`none` (production default):** Kimi K2.6 23/24 pass · 7.5 quality · 22s; Kimi K2.7-Code 21/24 · 7.5 · 21s; MiniMax M3 23/24 · 7.0 · 58s; **GLM 5.2 (launch default) 18/24 · 7.6 · 81s (slowest)**; Qwen 18/24 · 7.8 · 70s.
    - **`separate` (High-quality toggle) hurts reliability:** pass rate drops for 3 of 5 models (K2.7-Code 21→12, MiniMax 23→17, Qwen 18→14; GLM flat, K2.6 −1) while adding ~20–25s latency and ~40% more tokens. Quality of *passing* cells rises ~+0.3–0.8 (survivorship caveat: fewer passes). The planning step appears to inflate scope beyond what models reliably implement.
    - **Policy violations are rampant under the current prompt** (GLM 17/24 cells, K2.6 15/24 — almost all arbitrary Tailwind values, which §3.2 confirmed render fine). Strong input for the §6 bracket-ban revisit and the §3 rewrite.
-   - **Pending product decisions from this data:** (a) fate of the High-quality toggle (evidence says drop or de-emphasize; final §3.4 check is `inline` vs `none`), (b) whether GLM 5.2 stays the Monday default given Kimi K2.6 beats it on pass rate and speed at equal quality — escalate to whoever owns the launch narrative.
-6. **Implement §3 prompt/pipeline modes** after launch. Today `generateApp` intentionally supports only `promptVersion: "current-v0"` and `archMode: "separate"`; other modes throw by design so the current benchmark measures production behavior, not speculative prompt work.
-7. **Run explore profile** → lock architecture mode and prompt version (§3.4) once §3 modes exist.
-8. **Re-run rank profile** against the winning prompt/pipeline config, then compare to the `current-v0` / `separate` baseline.
-9. **Lock defaults:** refactor production routes onto `generateApp` + winning `PromptConfig`; delete the Sandpack path and competing prompt implementations.
-10. **Only then** consider the autonomous-agent direction (§5).
+   - **Failure taxonomy (54 fails, 46 build / 8 runtime):** (1) ~13× truncated or unparseable output — models blow past the 9,000 `max_tokens` cap, concentrated in `separate` mode (plan-inflated scope) and `settings-page-v1`; (2) 9× models emit their own `lib/utils.ts` without `cn`, clobbering the injected shadcn one and breaking every `import { cn }`; (3) ~8× phantom imports of files never written. Clusters 1–2 are pipeline/prompt bugs, not model failures — fixing them should lift every model's score.
+   - **Pending product decisions from this data:** (a) fate of the High-quality toggle — decided to **retest with fixes first** (step 6) since passing runs showed a real quality lift (+0.3–0.8, best score of the campaign was K2.7-Code at 8.3 in `separate`); (b) whether GLM 5.2 stays the Monday default given Kimi K2.6 beats it on pass rate and speed at equal quality — escalate to whoever owns the launch narrative.
+6. **High-quality retest with fixes** (decided 2026-07-03, motivated by the failure taxonomy in step 5): (a) raise `maxTokens` for `separate`-mode coding calls (~12–14k) so planned apps stop truncating; (b) add an explicit scope constraint to `softwareArchitectPrompt` (2–3 MVP features, max 5 files — the §3.2 guardrail, applied to the planner); (c) harness/prompt guard so generated files cannot overwrite injected ones (`lib/utils.ts` and `components/ui/*`). Then rerun the 120 `separate` cells and compare against both baselines. Outcome decides the toggle: reliability recovers → keep (with data); doesn't → remove (with data). Note: (b) is an architect-prompt change, so label the rerun's `promptVersion` accordingly (e.g. `current-v0-plan-v2`) — baselines stay comparable because the coding prompt is untouched.
+7. **Implement §3 prompt/pipeline modes** after launch: `PromptConfig`, `minimal-v1` prompt (allowed stack generated from `PREVIEW_DEPS`, `includeExamples: false` default), `inline` arch mode. **Note: examples on/off has NOT been tested yet** — all runs so far use `current-v0`, the production prompt with examples. This step builds the apparatus for that experiment.
+8. **Run explore profile** → lock architecture mode and prompt version (§3.4) once §3 modes exist. This is where "with examples vs without" gets its verdict, on the top models from step 5 (Kimi K2.6, K2.7-Code, + GLM 5.2 for continuity).
+9. **Re-run rank profile** against the winning prompt/pipeline config, then compare to the step-5 baselines.
+10. **Lock defaults:** refactor production routes onto `generateApp` + winning `PromptConfig`; delete the Sandpack path and competing prompt implementations.
+11. **Only then** consider the autonomous-agent direction (§5).
 
 ---
 
@@ -335,7 +337,7 @@ The autonomous-agent proposal (filesystem and web access) is a future step, not 
 
 ## 6. Post-release / nice-to-have
 
-Explicitly deferred until after steps 1–9 of §4 ship. Each item exists because the benchmark can then answer it with data instead of opinion.
+Explicitly deferred until the §4 sequence ships. Each item exists because the benchmark can then answer it with data instead of opinion.
 
 - **Revisit the React Router ban (§0.2/§3.2).** Run a matrix with the ban lifted and the single-page guardrail loosened; measure pass rate, file count, latency, and judge-score impact. Lift permanently if the damage is small.
 - **Revisit the arbitrary Tailwind bracket-value ban (§3.2).** The temporary `/tailwind-test` route proved Tailwind 4 browser rendering supports arbitrary values in both wasm and Sandpack; use benchmark data to decide whether the product/prompt ban still improves consistency enough to keep.
