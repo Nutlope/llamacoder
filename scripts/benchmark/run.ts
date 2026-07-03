@@ -115,6 +115,7 @@ async function main() {
             archMode,
             judgeModel: manifest.judgeModel,
             skipJudge: args.skipJudge,
+            includeExamples: args.includeExamples,
             renderFiles: session.renderFiles,
           };
           const result = await runCell(cellOptions).catch((error) =>
@@ -144,6 +145,7 @@ async function runCell(options: {
   archMode: ArchMode;
   judgeModel: string;
   skipJudge: boolean;
+  includeExamples: boolean;
   renderFiles: (
     files: GeneratedFile[],
     options: { screenshotPath?: string },
@@ -159,6 +161,16 @@ async function runCell(options: {
   const generated = await generateApp(options.prompt.prompt, options.model, {
     promptVersion: options.promptVersion,
     archMode: options.archMode,
+    // Only meaningful for minimal-v1; current-v0 always embeds its examples.
+    ...(options.promptVersion === "minimal-v1" && options.includeExamples
+      ? {
+          promptConfig: {
+            includeExamples: true,
+            includeComponentDocs: true,
+            maxFiles: 5,
+          },
+        }
+      : {}),
   });
 
   for (const file of generated.files) {
@@ -297,6 +309,7 @@ function parseCliArgs() {
       "base-url": { type: "string" },
       "run-id": { type: "string" },
       "skip-judge": { type: "boolean", default: false },
+      "include-examples": { type: "boolean", default: false },
     },
   });
 
@@ -307,7 +320,8 @@ function parseCliArgs() {
   if (
     values["prompt-version"] &&
     values["prompt-version"] !== "current-v0" &&
-    values["prompt-version"] !== "current-v0-plan-v2"
+    values["prompt-version"] !== "current-v0-plan-v2" &&
+    values["prompt-version"] !== "minimal-v1"
   ) {
     throw new Error(`Unsupported --prompt-version ${values["prompt-version"]}`);
   }
@@ -315,7 +329,8 @@ function parseCliArgs() {
   if (
     values["arch-mode"] &&
     values["arch-mode"] !== "separate" &&
-    values["arch-mode"] !== "none"
+    values["arch-mode"] !== "none" &&
+    values["arch-mode"] !== "inline"
   ) {
     throw new Error(`Unsupported --arch-mode ${values["arch-mode"]}`);
   }
@@ -334,6 +349,7 @@ function parseCliArgs() {
     baseUrl: values["base-url"],
     runId: values["run-id"],
     skipJudge: values["skip-judge"],
+    includeExamples: values["include-examples"],
   };
 }
 
