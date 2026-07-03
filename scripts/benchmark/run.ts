@@ -311,7 +311,11 @@ function parseCliArgs() {
     throw new Error(`Unsupported --prompt-version ${values["prompt-version"]}`);
   }
 
-  if (values["arch-mode"] && values["arch-mode"] !== "separate") {
+  if (
+    values["arch-mode"] &&
+    values["arch-mode"] !== "separate" &&
+    values["arch-mode"] !== "none"
+  ) {
     throw new Error(`Unsupported --arch-mode ${values["arch-mode"]}`);
   }
 

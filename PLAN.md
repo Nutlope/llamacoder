@@ -4,7 +4,7 @@ This plan captures the current problems and proposes concrete fixes. The goal is
 
 The plan is written around agreed data structures so the implementation has clear interfaces and is not open to reinterpretation.
 
-**Status (2026-07-02):** the renderer migration (section 0) is implemented and wasm is now the default preview runner, with Sandpack still available via `?preview=sandpack` for one release. Chrome and real-device iOS Safari have been verified. The GLM 5.2 launch sweep and §0.3 hardening are complete. The benchmark harness exists through judge integration (§4 step 3.4), and the dataset draft is ready for Riccardo review before any full rank run. Local production build was repaired by pinning TypeScript back to the stable 5.9 line and excluding benchmark scratch output from app type-checking; production deploy verification is still an explicit launch gate. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
+**Status (2026-07-02):** the renderer migration (section 0) is implemented and wasm is now the default preview runner, with Sandpack still available via `?preview=sandpack` for one release. Chrome and real-device iOS Safari have been verified. The GLM 5.2 launch sweep and §0.3 hardening are complete. The benchmark harness exists through judge integration (§4 step 3.4), and the dataset is **reviewed and approved (§7)**. Local production build was repaired by pinning TypeScript back to the stable 5.9 line and excluding benchmark scratch output from app type-checking; production deploy verification is still an explicit launch gate. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
 
 ---
 
@@ -110,7 +110,7 @@ interface BenchmarkManifest {
 Rules:
 - `expectedBehavior` items are written as **static-screenshot-checkable** statements ("increment, decrement, and reset buttons are visible") because the judge sees one frame, not interaction history.
 - **Append-only, immutable ids.** Editing a prompt after runs exist invalidates comparisons; changed prompts get a new id (`counter-v2`), old ids never change meaning.
-- Authorship: drafted by Claude, pending Riccardo review.
+- Authorship: drafted by Claude; **reviewed and approved 2026-07-02** (see §7). The 8 prompts and their `expectedBehavior` lists are locked — any change from here follows the append-only rule (new id, never an edit).
 - Stress-tier prompts (kanban drag-drop, scope-explosion traps) are post-release (§6).
 
 ### 1.2 Result structure
@@ -211,7 +211,7 @@ type JudgeResult = {
 - **Judge inputs:** screenshot + original user prompt + `expectedBehavior` checklist. **Not the generated source code** — the judge scores pixels, so it can't be seduced by nice code that renders poorly. (A code-reading judge is a possible second axis, post-release.)
 - **Judge model:** a Together-hosted vision model (currently `moonshotai/Kimi-K2.7-Code`; single API/key for the whole harness), set in `manifest.judgeModel` and pinned per run — a benchmark whose judge silently changes between runs cannot be compared across time.
 - **Judge resilience:** retry empty or unparseable judge output 1–2 times, then record a `cellError` and continue the campaign with `judge: null` / `qualityScore: 0`.
-- **Calibration:** hand-label ~20 judged runs early and check judge–human agreement; adjust the judge prompt or model if agreement is poor. The stored rationale is what makes this audit possible.
+- **Calibration [revised 2026-07-02, supersedes the original hand-labeling protocol]:** calibration by inspection, not by labeling. Every judged run generates an HTML report (`scripts/benchmark/report.ts`) showing each cell's screenshot beside the judge's verdicts, score, rationale, timing, and tokens. Riccardo skims the report and either agrees with the judge (rank results are trusted) or points at disagreements (judge prompt/model gets adjusted and the run repeats). The stored rationale is what makes this audit possible. Rationale for the change: the scores have exactly one consumer, so formal judge–human agreement stats add process without adding trust.
 
 ---
 
@@ -307,14 +307,18 @@ Winner chosen by mechanical pass rate, quality score, latency, and token cost. O
 ## 4. Order of work
 
 1. [x] **Finish renderer hardening (§0.3).** Time-boxed ~2 days; it is a checklist, not a project.
-2. [x] **Draft the dataset (§1.1)** — Claude drafts 7–9 prompts, Riccardo reviews. Draft exists in `scripts/benchmark/prompts.json`; Riccardo review is still pending before any big run.
+2. [x] **Draft the dataset (§1.1)** — Claude drafts 7–9 prompts, Riccardo reviews. Draft exists in `scripts/benchmark/prompts.json`; **reviewed and approved 2026-07-02 (§7)**.
 3. [x] **Build the benchmark harness (§1 + §2)** — in dependency order, each sub-step testable before the next exists:
    1. [x] `lib/generation.ts` (`generateApp`) — prompt in, files out. Tested standalone against GLM 5.2.
    2. [x] `/preview-harness` route + Playwright runner (§2.2) — files in, `RunnerOutput` + screenshot out. Tested with hand-written files, no model needed.
    3. [x] Orchestration: CLI walks the manifest, chains 3.1 → 3.2, adds the static policy scan, writes `results.jsonl` with mechanical pass/fail. **The harness is useful from this point** even with `judge: null`.
    4. [x] Judge integration (§1.5) last — it consumes the screenshots 3.2 produces and fills `qualityScore`. Judge retries empty/unparseable output and records failures per cell. (Note: document order §1-then-§2 is problem-statement order, not build order; the judge depends on the runner, not the other way around.)
-4. **Calibrate the judge** on ~20 hand-labeled runs (§1.5).
-5. **Run rank profile with `current-v0` / `separate`** → baseline model leaderboard for today's production prompt and two-call pipeline. This is the next big run after Riccardo reviews `scripts/benchmark/prompts.json` and judge calibration is acceptable.
+4. [x] **Calibrate the judge** (§1.5, inspection-based): GLM 5.2 × 8 prompts judged run (`tmp/benchmark/calibration-glm52`), HTML report reviewed by Riccardo 2026-07-02 — **scoring approved as-is** (7/8 mechanical pass, mean quality 6.9; the one failure was a genuine model bug caught by the build gate). Judge locked: `moonshotai/Kimi-K2.7-Code` with the current judge prompt.
+5. [x] **Baseline rank runs, both arch modes (2026-07-03).** Discovery during review: production's *default* is `quality: "low"` (no planning call) — the plan's assumption that `separate` was "current behavior" described only the non-default High-quality toggle. So the baseline ran both modes: 5 models × 8 prompts × k=3 × {`none`, `separate`} = 240 cells (`tmp/benchmark/rank-current-v0-none`, `rank-current-v0-separate`). Headline results:
+   - **`none` (production default):** Kimi K2.6 23/24 pass · 7.5 quality · 22s; Kimi K2.7-Code 21/24 · 7.5 · 21s; MiniMax M3 23/24 · 7.0 · 58s; **GLM 5.2 (launch default) 18/24 · 7.6 · 81s (slowest)**; Qwen 18/24 · 7.8 · 70s.
+   - **`separate` (High-quality toggle) hurts reliability:** pass rate drops for 3 of 5 models (K2.7-Code 21→12, MiniMax 23→17, Qwen 18→14; GLM flat, K2.6 −1) while adding ~20–25s latency and ~40% more tokens. Quality of *passing* cells rises ~+0.3–0.8 (survivorship caveat: fewer passes). The planning step appears to inflate scope beyond what models reliably implement.
+   - **Policy violations are rampant under the current prompt** (GLM 17/24 cells, K2.6 15/24 — almost all arbitrary Tailwind values, which §3.2 confirmed render fine). Strong input for the §6 bracket-ban revisit and the §3 rewrite.
+   - **Pending product decisions from this data:** (a) fate of the High-quality toggle (evidence says drop or de-emphasize; final §3.4 check is `inline` vs `none`), (b) whether GLM 5.2 stays the Monday default given Kimi K2.6 beats it on pass rate and speed at equal quality — escalate to whoever owns the launch narrative.
 6. **Implement §3 prompt/pipeline modes** after launch. Today `generateApp` intentionally supports only `promptVersion: "current-v0"` and `archMode: "separate"`; other modes throw by design so the current benchmark measures production behavior, not speculative prompt work.
 7. **Run explore profile** → lock architecture mode and prompt version (§3.4) once §3 modes exist.
 8. **Re-run rank profile** against the winning prompt/pipeline config, then compare to the `current-v0` / `separate` baseline.
@@ -331,7 +335,7 @@ The autonomous-agent proposal (filesystem and web access) is a future step, not 
 
 ## 6. Post-release / nice-to-have
 
-Explicitly deferred until after steps 1–7 of §4 ship. Each item exists because the benchmark can then answer it with data instead of opinion.
+Explicitly deferred until after steps 1–9 of §4 ship. Each item exists because the benchmark can then answer it with data instead of opinion.
 
 - **Revisit the React Router ban (§0.2/§3.2).** Run a matrix with the ban lifted and the single-page guardrail loosened; measure pass rate, file count, latency, and judge-score impact. Lift permanently if the damage is small.
 - **Revisit the arbitrary Tailwind bracket-value ban (§3.2).** The temporary `/tailwind-test` route proved Tailwind 4 browser rendering supports arbitrary values in both wasm and Sandpack; use benchmark data to decide whether the product/prompt ban still improves consistency enough to keep.
@@ -340,4 +344,27 @@ Explicitly deferred until after steps 1–7 of §4 ship. Each item exists becaus
 - **Code-reading judge axis:** a second judge pass over `generatedFiles` (code quality, idiom), kept separate from the visual score.
 - **Self-host `esbuild.wasm`** in `public/` with a CI check that its version matches `esbuild-wasm` in package.json; removes esm.sh as a dependency for the compiler itself.
 - **Firefox verification** of the preview pipeline (best-effort tier).
-- **HTML report generation** from `results.jsonl` (screenshot grid per run) if the summary table proves insufficient.
+- ~~**HTML report generation** from `results.jsonl`~~ — pulled forward into v1 (`scripts/benchmark/report.ts`) as the vehicle for inspection-based judge calibration (§1.5 revised).
+- **together-ai SDK crash bug:** `together-ai@0.40.0` has a TDZ bug (`Cannot access 'TogetherError' before initialization` in `AbstractChatCompletionRunner`) that kills the process from a background tick when a stream errors, bypassing per-cell isolation (observed 2026-07-03, cost 18 cells, recovered via `--models`/`--prompts` patch rerun into the same out dir). Upgrade the SDK when a fix ships, or add a `process.on("unhandledRejection")` guard in `run.ts`.
+- **`--models all` semantics:** today it returns `manifest.models` (the 5 visible models); either add the hidden models to the manifest or make `all` mean "every model in `lib/constants.ts`".
+
+---
+
+## 7. Review & approval record (2026-07-02)
+
+**Approved.** The implementation was reviewed commit-by-commit (`f26e869` → `68c0b40`) against this plan, with fixes verified in code, not just by report:
+
+- **Dataset (`scripts/benchmark/prompts.json`): approved as-is.** 8 prompts (counter canary + 7 core), all `expectedBehavior` items static-screenshot-checkable after the rewrite, no internal guidance leaked into user prompts. Locked under the append-only rule.
+- **Harness: approved.** All review findings were fixed and independently verified: per-cell failure isolation (`cellError`), judge retry on empty/unparseable output (flakiness observed empirically: 1 of 3 probe calls returned empty), policy scan separated from the mechanical gate, variant-aware Tailwind tokenizer, viewport screenshots, coding-stream `firstTokenMs`, generated-file path sanitization.
+- **Judge vision capability: verified empirically** — `moonshotai/Kimi-K2.7-Code` correctly described two different app screenshots via the Together API (probe script preserved at `tmp/vision-check.ts`).
+- **Build health: verified independently** — `pnpm lint` and `pnpm exec next build` both pass after the TypeScript `5.9.3` pin (the `7.0.1-rc` regression predated this work, from commit `e7f80c6`).
+
+**Open gates, in order — this is the to-do list:**
+
+1. **Deploy verification** (launch item 5, the only unchecked launch item): push to the production host, smoke-test the deployed app — homepage generation with GLM 5.2, wasm preview renders, `?preview=sandpack` escape hatch works, `/preview-harness` returns 404. *Owner: Riccardo (needs deploy access). Before Monday.*
+2. **Judge calibration by inspection** (§1.5, revised): run `--profile explore --models "zai-org/GLM-5.2"` (8 judged cells), generate the HTML report, Riccardo skims screenshots vs judge scores/rationales and says agree/disagree. No hand-labeling protocol. *Owner: Claude runs + reports, Riccardo skims.*
+3. **Baseline rank run** (§4 step 5): `--profile rank`, all visible models, `current-v0`/`separate`. Deliverable: the model leaderboard (pass rate × quality × latency × tokens) answering "which models are good with today's prompt." *Unblocked the moment #2 is acceptable; results inform launch-week model choices.*
+4. **Monday morning:** launch checklist sweep — deployed build healthy, GLM 5.2 default confirmed in prod, error overlay + "Try to fix" behave on a forced failure.
+5. **Post-launch:** §4 steps 6–10 in order (prompt/pipeline modes → explore → re-rank vs baseline → lock defaults → delete Sandpack after one release).
+
+Anything not listed here is §6 material. The benchmark exists as of today; from now on, changes to prompts, models, or renderer policy get measured, not argued.

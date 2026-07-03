@@ -12,7 +12,7 @@ export type GeneratedFile = {
 };
 
 export type PromptVersion = "current-v0";
-export type ArchMode = "separate";
+export type ArchMode = "separate" | "none";
 
 export type GenerateAppConfig = {
   promptVersion?: PromptVersion;
@@ -61,29 +61,37 @@ export async function generateApp(
     throw new Error(`Unsupported promptVersion: ${promptVersion}`);
   }
 
-  if (archMode !== "separate") {
+  if (archMode !== "separate" && archMode !== "none") {
     throw new Error(`Unsupported archMode: ${archMode}`);
   }
 
   const together = new Together(getTogetherOptions(config.heliconeSessionId));
   const startedAt = performance.now();
 
-  const planResponse = await together.chat.completions.create({
-    model: PLANNING_MODEL,
-    messages: [
-      {
-        role: "system",
-        content: softwareArchitectPrompt,
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-    temperature,
-    max_tokens: 3000,
-  });
-  const plan = planResponse.choices[0].message?.content ?? prompt;
+  // archMode "none" mirrors the production default (quality "low"): the raw
+  // user prompt goes straight to the coding model with no planning call.
+  let plan = prompt;
+  let planUsage: TokenUsage | undefined;
+
+  if (archMode === "separate") {
+    const planResponse = await together.chat.completions.create({
+      model: PLANNING_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: softwareArchitectPrompt,
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature,
+      max_tokens: 3000,
+    });
+    plan = planResponse.choices[0].message?.content ?? prompt;
+    planUsage = planResponse.usage ?? undefined;
+  }
 
   let firstTokenMs = 0;
   const codingStartedAt = performance.now();
@@ -107,7 +115,7 @@ export async function generateApp(
   const rawText = (await stream.finalContent()) ?? "";
   const totalGenerationMs = performance.now() - startedAt;
   const usage = addUsage(
-    planResponse.usage ?? undefined,
+    planUsage,
     await stream.totalUsage().catch(() => undefined),
   );
   const files = extractAllCodeBlocks(rawText).map((file) => ({
