@@ -11,8 +11,9 @@ export type GeneratedFile = {
   content: string;
 };
 
-export type PromptVersion = "current-v0";
 export type ArchMode = "separate" | "none";
+
+export type PromptVersion = "current-v0" | "current-v0-plan-v2";
 
 export type GenerateAppConfig = {
   promptVersion?: PromptVersion;
@@ -55,9 +56,14 @@ export async function generateApp(
   const promptVersion = config.promptVersion ?? "current-v0";
   const archMode = config.archMode ?? "separate";
   const temperature = config.temperature ?? 0.4;
-  const maxTokens = config.maxTokens ?? 9000;
 
-  if (promptVersion !== "current-v0") {
+  const maxTokens =
+    config.maxTokens ?? (archMode === "separate" ? 13000 : 9000);
+
+  if (
+    promptVersion !== "current-v0" &&
+    promptVersion !== "current-v0-plan-v2"
+  ) {
     throw new Error(`Unsupported promptVersion: ${promptVersion}`);
   }
 

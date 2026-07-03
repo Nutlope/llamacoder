@@ -13,7 +13,9 @@ export function assemblePreviewFiles(
   };
 
   for (const file of files) {
-    previewFiles[normalizeModelPath(file.path)] = file.content;
+    const normalized = normalizeModelPath(file.path);
+    if (normalized in shadcnFiles) continue;
+    previewFiles[normalized] = file.content;
   }
 
   if (!previewFiles["App.tsx"] && files.length > 0) {

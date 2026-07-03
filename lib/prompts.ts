@@ -19,6 +19,8 @@ Guidelines:
 - ALWAYS plan for at least 3-5 files to ensure proper code organization and separation of concerns
 - You CANNOT use any other libraries or frameworks besides those specified above (such as React router)
 If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
+
+**Scope constraints:** Keep the plan to 2-3 MVP features at most and no more than 5 files. Build a single page with no routing. Do not plan any backend or external API calls. Keep the plan itself concise — under roughly 300 words — so it stays well within the coding model's output budget.
 `;
 
 export const screenshotToCodePrompt = dedent`
