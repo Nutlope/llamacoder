@@ -1,7 +1,7 @@
 export const name = "Label";
 
 export const importDocs = `
-import { Label } from "/components/ui/label"
+import { Label } from "@/components/ui/label"
 `;
 
 export const usageDocs = `
