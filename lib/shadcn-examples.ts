@@ -1,4 +1,6 @@
-import "server-only";
+// NOTE: no "server-only" guard here — the benchmark CLI (scripts/benchmark, plain
+// Node/tsx) must import this via lib/prompt-config.ts. Keep it out of client
+// components regardless: it embeds ~20k tokens of example apps.
 import dedent from "dedent";
 import blog from "./examples/blog.json";
 import calculator from "./examples/calculator.json";
