@@ -7,6 +7,14 @@ export type PromptConfig = {
   includeExamples: boolean;
   includeComponentDocs: boolean;
   maxFiles: number;
+  /**
+   * Minimal-prompt variant. Optional; `undefined` is treated as `"v1"` so the
+   * default config stays implicitly v1. When `"v2"`, `buildMinimalCodingPrompt`
+   * makes exactly two changes vs v1: omits the arbitrary-Tailwind-bracket-values
+   * forbidden bullet, and adds a phantom-import self-check bullet under File
+   * Format. No other differences.
+   */
+  promptVariant?: "v1" | "v2";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -100,6 +108,15 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     Put any reasoning or planning inside a single \`<thinking>...</thinking>\` block. Your final answer, after the closing \`</thinking>\`, must consist only of valid code files in the fence format above — no prose, no summaries, no file lists outside the fences.
   `;
 
+  // Variant v2 differs from v1 (the default) in exactly two ways, applied here
+  // to the already-rendered prompt so the v1 `dedent` template above — and thus
+  // the v1/undefined output — stays byte-identical. Both tweaks target text
+  // that `dedent` always emits verbatim regardless of config flags, so the
+  // substitutions below are stable for every config combination.
+  if (config.promptVariant === "v2") {
+    prompt = applyMinimalV2Tweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -109,6 +126,45 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
   }
 
   return prompt;
+}
+
+/**
+ * Apply the two minimal-v2-only differences to an already-rendered v1 prompt.
+ *
+ * (tweak 1 — phantom-import self-check) Under the `**File Format:**` bullet
+ * list, add one final bullet requiring every relative import (`./` or `../`)
+ * to resolve to a file emitted in the same response.
+ *
+ * (tweak 4 — arbitrary-Tailwind-bracket-values ban removed) Omit the
+ * `## Forbidden` bullet about arbitrary Tailwind bracket values such as
+ * `w-[100px]`, `h-[600px]`, `bg-[#123456]`, or `text-[14px]`.
+ *
+ * No other text changes. The targeted substrings are emitted verbatim by the
+ * `dedent` template for every config combination, so these replacements are
+ * stable and the v1 path (which never calls this) is untouched.
+ */
+function applyMinimalV2Tweaks(prompt: string): string {
+  const tailwindBullet =
+    "- Arbitrary Tailwind bracket values such as `w-[100px]`, `h-[600px]`, `bg-[#123456]`, or `text-[14px]`\n";
+  const lastFormatBullet = "- ALWAYS create multiple files - never put all code in one file\n";
+  const phantomImportBullet =
+    "- REQUIRED: Every relative import (./ or ../) MUST resolve to a file you also emit in this same response. Before finishing, re-check each relative import has a matching emitted file — never import a component, hook, or module you did not create.\n";
+
+  if (!prompt.includes(tailwindBullet) || !prompt.includes(lastFormatBullet)) {
+    throw new Error(
+      "applyMinimalV2Tweaks: expected minimal-prompt substrings not found; the v1 template may have changed.",
+    );
+  }
+
+  // tweak 4: remove the arbitrary-Tailwind-bracket-values forbidden bullet
+  // (including its trailing newline) so the React Router bullet follows axios.
+  let result = prompt.replace(tailwindBullet, "");
+
+  // tweak 1: append the phantom-import self-check as the final File Format
+  // bullet, immediately before the blank line + `**Critical Rules:**`.
+  result = result.replace(lastFormatBullet, lastFormatBullet + phantomImportBullet);
+
+  return result;
 }
 
 /**

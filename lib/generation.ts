@@ -18,7 +18,11 @@ export type GeneratedFile = {
 
 export type ArchMode = "separate" | "none" | "inline";
 
-export type PromptVersion = "current-v0" | "current-v0-plan-v2" | "minimal-v1";
+export type PromptVersion =
+  | "current-v0"
+  | "current-v0-plan-v2"
+  | "minimal-v1"
+  | "minimal-v2";
 
 export type GenerateAppConfig = {
   promptVersion?: PromptVersion;
@@ -70,7 +74,8 @@ export async function generateApp(
   if (
     promptVersion !== "current-v0" &&
     promptVersion !== "current-v0-plan-v2" &&
-    promptVersion !== "minimal-v1"
+    promptVersion !== "minimal-v1" &&
+    promptVersion !== "minimal-v2"
   ) {
     throw new Error(`Unsupported promptVersion: ${promptVersion}`);
   }
@@ -119,8 +124,15 @@ export async function generateApp(
   const codingStartedAt = performance.now();
 
   let systemPrompt =
-    promptVersion === "minimal-v1"
-      ? buildMinimalCodingPrompt(config.promptConfig ?? DEFAULT_PROMPT_CONFIG)
+    promptVersion === "minimal-v1" || promptVersion === "minimal-v2"
+      ? buildMinimalCodingPrompt(
+          promptVersion === "minimal-v2"
+            ? {
+                ...(config.promptConfig ?? DEFAULT_PROMPT_CONFIG),
+                promptVariant: "v2",
+              }
+            : config.promptConfig ?? DEFAULT_PROMPT_CONFIG,
+        )
       : getMainCodingPrompt();
 
   if (archMode === "inline") {
