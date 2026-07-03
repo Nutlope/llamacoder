@@ -355,6 +355,31 @@ Explicitly deferred until the §4 sequence ships. Each item exists because the b
 - **together-ai SDK crash bug:** `together-ai@0.40.0` has a TDZ bug (`Cannot access 'TogetherError' before initialization` in `AbstractChatCompletionRunner`) that kills the process from a background tick when a stream errors, bypassing per-cell isolation (observed 2026-07-03, cost 18 cells, recovered via `--models`/`--prompts` patch rerun into the same out dir). Upgrade the SDK when a fix ships, or add a `process.on("unhandledRejection")` guard in `run.ts`.
 - **`--models all` semantics:** today it returns `manifest.models` (the 5 visible models); either add the hidden models to the manifest or make `all` mean "every model in `lib/constants.ts`".
 
+### 6.1 `minimal-v2` prompt tweak backlog (data-backed candidates)
+
+Each is a hypothesis grounded in the 744-cell campaign, to be run as an explore-profile variant against the locked `minimal-v1` × `inline` baseline (reuse stored baseline results; only run the new variant). Ranked by expected payoff. Confidence ordering is a prior, not a result — the benchmark decides.
+
+1. **Phantom-import rule (high confidence).** ~8 baseline failures imported a `./` file the model never emitted — the biggest *unaddressed* failure cluster. Add to output-format: "Every relative import must resolve to a file you also emit; verify before finishing." Free to add; targets a known-failing class. Catchable by the mechanical gate alone (build failure) — `--skip-judge`.
+2. **Design-quality bar in identity.** The judge scores visual completeness but the identity paragraph only asks for "working MVP." Add one sentence about polish (spacing, hierarchy, hover/empty/loading states). Targets the quality axis; risk: may nudge scope up and cost speed — needs the judge.
+3. **Recharts-only-when-charting.** Chart prompts were slowest + most failure-prone; recharts is the heaviest dep. Guardrail: "Only use recharts when the app is fundamentally data visualization." Measures latency delta on non-chart prompts.
+4. **Drop the arbitrary-Tailwind ban (high confidence).** Violated in most cells (GLM 17/24, K2.6 15/24), proven to render fine under Tailwind 4 browser build. Removing it shortens the prompt (faster) and stops models fighting an ignored rule (maybe better). Overlaps §6's ban-revisit item; promote to the next explore run.
+5. **Fewer, larger files.** "ALWAYS multiple files" contradicts "≤5 files" and multiplies import edges (→ tweak 1 risk) and output tokens (→ slower). Replace with "2–3 files by concern; avoid over-fragmenting." Hypothesis: fewer resolution failures + faster, no quality loss.
+
+Sequencing: **1 and 4 first** (highest confidence; one shortens the prompt, one closes a live failure class, neither risks scope creep) as `minimal-v2`. Tweaks 2/3/5 each trade one axis against another — run isolated, not bundled, or attribution is lost.
+
+### 6.2 Fast-iteration recipe for prompt tweaks
+
+The full 3-model × 8-prompt × judged explore run is the *confirmation* pass, not the iteration loop. For a ~1–2 minute smoke signal per tweak:
+
+- **Reuse the baseline** — `minimal-v1` × `inline` numbers already exist (`rank-minimal-inline`, `explore-min-inline`); only run the new variant, compare against stored `results.jsonl`.
+- **1 fast model, not 3** — a prompt tweak's effect is largely model-independent; smoke on Kimi K2.7-Code (~10–14s/gen), confirm on 3 only if promising.
+- **Representative prompt subset** — run `--prompts` scoped to the failure modes the tweak targets (e.g. tweak 1: `settings-page-v1,data-table-v1,calculator-v1`), not all 8.
+- **`--skip-judge` for mechanical tweaks** — tweaks 1, 4, 5 move pass-rate/speed/tokens, all visible without the vision judge; skipping it removes the per-cell judge latency. Add the judge back only for quality tweaks (2, 3).
+
+Smoke example: `minimal-v2 × inline`, Kimi K2.7-Code, 5 prompts, `--skip-judge` ≈ **~75 seconds**. Escalate to the full judged 3-model run only when the smoke looks worth it.
+
+**Durable harness fix (separate task):** the runner is serial today (one Playwright page, sequential cells). Generation is Together-API-bound, so parallelizing generation across ~3–5 workers (render stays serialized) would cut a 24-cell judged run from ~8–10 min to ~2–3 min — the right long-term answer once tweak iteration becomes frequent.
+
 ---
 
 ## 7. Review & approval record (2026-07-02)
