@@ -377,12 +377,19 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 | **v1** (champion, shipped) | clean minimal prompt + inline | 22/24 | 8.18 | 13.8 | 3005 | **live in prod** |
 | **v2** | +phantom-import rule, −Tailwind ban | 21/24 | 7.86 | (confounded) | 2953 | ✗ shelved — no gain; phantom rule didn't fix its target; dropping ban raised flagged violations |
 | **v3** | +Hallmark design-quality section | 20/24 | 8.00 | 13.5 | 3832 | ~ mixed — **not promoted**. See below. |
+| **v4** | +Modern-patterns section | 21/24 | 8.00 | 13.4 | 3020 | ✗ shelved — fewer policy violations, but no quality/pass gain and GLM regressed. |
 
 **v3 detail (design rubric):** net a slight wash at k=1, but *polarizing* and worth remembering:
 - **Helped GLM 5.2 notably** (q 7.63→**8.43**) and lifted visually-weak prompts hard (calculator 6.5→9.0, quiz 7.0→9.0, chart 9.3→9.7).
 - **Hurt Kimi K2.7-Code** (q 8.43→7.33, −1 pass) and some prompts (todo 7.7→6.3, settings 6.0→5.3).
 - Costs **+28% output tokens** (3005→3832) — the rubric makes models write more styling code.
 - Takeaway: design guidance is *model-dependent* — a clear win for GLM (the launch default), a loss for Kimi. If GLM is locked as the production model, a **trimmed** design rubric is worth a k=3 re-test on GLM alone. As a universal prompt addition it doesn't pay for its tokens. Not promoted; revisit if the model choice narrows to GLM.
+
+**v4 detail (modern-patterns directive):** not worth promoting as a universal prompt:
+- Net result was baseline-ish but worse where it matters: `21/24` pass vs baseline `22/24`, judged quality `8.00` vs `8.18`.
+- **Helped Kimi K2.7-Code quality** (q 8.43→**8.57**) and Kimi K2.6 reliability (7/8→**8/8**), but **hurt GLM 5.2 reliability** (8/8→**6/8**) with a missing `scroll-area` import and a settings-page runtime timeout.
+- Token cost stayed effectively flat (3005→3020 output tokens) and policy violations improved (11→6), so the wording is not bloating output.
+- Takeaway: code-modernity wording is cheap and makes outputs more compliant, but it did not improve the headline benchmark and it creates GLM risk. Shelved.
 
 ### 6.2 Fast-iteration recipe for prompt tweaks
 

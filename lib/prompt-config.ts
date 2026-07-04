@@ -12,12 +12,15 @@ export type PromptConfig = {
    * default config stays implicitly v1. When `"v2"`, `buildMinimalCodingPrompt`
    * makes exactly two changes vs v1: omits the arbitrary-Tailwind-bracket-values
    * forbidden bullet, and adds a phantom-import self-check bullet under File
-   * Format. No other differences. When `"v3"`,
-   * `buildMinimalCodingPrompt` appends a `## Design quality` section after
-   * the Reasoning section (before any component-docs/examples sections) and
-   * does NOT apply the v2 tweaks. No other differences.
+   * Format. No other differences. When `"v3"`, `buildMinimalCodingPrompt`
+   * appends a `## Design quality` section after the Reasoning section (before
+   * any component-docs/examples sections) and does NOT apply the v2 tweaks. No
+   * other differences. When `"v4"`, `buildMinimalCodingPrompt` appends a
+   * `## Modern patterns` section after the Reasoning section (before any
+   * component-docs/examples sections) and does NOT apply the v2 or v3 tweaks.
+   * No other differences.
    */
-  promptVariant?: "v1" | "v2" | "v3";
+  promptVariant?: "v1" | "v2" | "v3" | "v4";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -147,6 +150,14 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV3Tweaks(prompt);
   }
 
+  // Variant v4 = v1 + a `## Modern patterns` section appended after the
+  // Reasoning section (and before any component-docs/examples sections). It
+  // does NOT apply the v2 or v3 tweaks, so the v1/undefined/v2/v3 outputs stay
+  // byte-identical to today; only the v4 path appends this block.
+  if (config.promptVariant === "v4") {
+    prompt = applyMinimalV4Tweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -220,6 +231,27 @@ function applyMinimalV3Tweaks(prompt: string): string {
     - Polish over quantity: better one refined feature than three rough ones. If a detail would look unfinished, cut it.
   `;
   return prompt + "\n\n" + designQualitySection;
+}
+
+/**
+ * Apply the minimal-v4-only difference to an already-rendered v1 prompt:
+ * append a `## Modern patterns` section, preceded by two newlines, to the end
+ * of the prompt. Like v3, this changes nothing else in the v1 template. It is
+ * called after the base prompt is rendered (and before any component-docs /
+ * examples sections are appended), so the section lands right after the
+ * `## Reasoning` section.
+ */
+function applyMinimalV4Tweaks(prompt: string): string {
+  const modernPatternsSection = dedent`
+    ## Modern patterns
+
+    Write idiomatic, modern React and CSS:
+    - Lay out with flexbox and CSS grid (Tailwind flex/grid utilities). Never use absolute positioning for page structure or manual pixel math for alignment.
+    - Use semantic HTML: <button> for actions, <nav>/<main>/<header>/<section>, and <label> tied to each input. Avoid a div for everything.
+    - Function components and hooks only; controlled inputs; derive state from existing state instead of duplicating it.
+    - Prefer native browser APIs (fetch, Intl, Date, structuredClone) over adding helper libraries.
+  `;
+  return prompt + "\n\n" + modernPatternsSection;
 }
 
 /**
