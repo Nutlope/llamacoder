@@ -21,6 +21,7 @@ Run in the background, then **health-check at ~60s** (see below), review the dif
 **Trigger:** `tcodex exec ... "<prompt>"` with an open/inherited stdin and no TTY.
 **Workaround:** append `< /dev/null` to every invocation. With stdin closed it runs cleanly every time.
 **Suggested fix:** when `exec` is given the task as an argument AND stdin is not a TTY, do **not** block waiting for more stdin — treat the arg as the complete task. Or add a `--no-stdin` flag. This is the single biggest footgun; it cost the most time.
+**Refinement (2026-07-04):** the log line `Reading additional input from stdin...` **also prints on healthy `< /dev/null` runs** — tcodex reads EOF immediately and proceeds. So that string alone is NOT a hang signal (my health check falsely flagged it). The true hang signal is: that line is the **last** line AND the output line-count stays frozen. Health check should watch for *frozen line count*, not the presence of the stdin message.
 
 ### 2. [MED] No fast failure signal — a bad start looks identical to a slow start
 A hung/failed start and a legitimately-working task both look like "background process still running." Without tailing the log there's no way to tell in the first minute whether it even connected.
