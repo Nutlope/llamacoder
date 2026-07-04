@@ -23,7 +23,7 @@ export type PromptConfig = {
    * section. When `"v7"`, it appends a `## Output contract` section. These
    * variants do NOT apply the earlier tweaks. No other differences.
    */
-  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7";
+  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v3b";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -178,6 +178,13 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV7Tweaks(prompt);
   }
 
+  // Variant v3b = v1 + a compact `## Design quality` section (~half the
+  // length of v3's). It does NOT apply the v2/v3/v4/v5/v6/v7 tweaks, so only
+  // the v3b path appends this block.
+  if (config.promptVariant === "v3b") {
+    prompt = applyMinimalV3bTweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -249,6 +256,27 @@ function applyMinimalV3Tweaks(prompt: string): string {
     - Real states: implement hover, focus, empty, and loading states — not just the happy path.
     - Subtle motion: quick, purposeful ease-out transitions on interactive elements; respect prefers-reduced-motion.
     - Polish over quantity: better one refined feature than three rough ones. If a detail would look unfinished, cut it.
+  `;
+  return prompt + "\n\n" + designQualitySection;
+}
+
+/**
+ * Apply the minimal-v3b-only difference to an already-rendered v1 prompt:
+ * append a compact `## Design quality` section (~half the length of v3's),
+ * preceded by two newlines, to the end of the prompt. Like v3, this changes
+ * nothing else in the v1 template. Called after the base prompt is rendered
+ * (and before any component-docs / examples sections are appended), so the
+ * section lands right after the `## Reasoning` section.
+ */
+function applyMinimalV3bTweaks(prompt: string): string {
+  const designQualitySection = dedent`
+    ## Design quality
+
+    Make it look intentional, not generic:
+    - One anchor hue; keep accent color small; use solid, softly-tinted neutral backgrounds — never gradient backgrounds.
+    - Clear type hierarchy: distinct heading vs body sizes and weights.
+    - Bias the layout (asymmetric margins, one dominant column) instead of centering everything; vary card sizes rather than a uniform grid.
+    - Real hover, focus, and empty states — not just the happy path.
   `;
   return prompt + "\n\n" + designQualitySection;
 }
