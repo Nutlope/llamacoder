@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import {
-  getMainCodingPrompt,
   screenshotToCodePrompt,
   softwareArchitectPrompt,
 } from "@/lib/prompts";
+import { buildProductionCodingPrompt } from "@/lib/prompt-config";
 import Together from "together-ai";
 import { resolveModel, PLANNING_MODEL } from "@/lib/constants";
 
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
             data: [
               {
                 role: "system",
-                content: getMainCodingPrompt(),
+                content: buildProductionCodingPrompt(),
                 position: 0,
               },
               { role: "user", content: userMessage, position: 1 },

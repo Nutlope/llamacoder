@@ -24,6 +24,25 @@ export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
 };
 
 /**
+ * The "inline" architecture-mode instruction: the model writes a brief plan in
+ * a <thinking> block, then the code — all in one response, no separate planning
+ * API call. Shared verbatim by the benchmark harness (lib/generation.ts) and
+ * production (app/api/create-chat) so the two never drift.
+ */
+export const INLINE_PLAN_INSTRUCTION =
+  "Before writing any code files, first write a brief implementation plan inside a single <thinking>...</thinking> block. List the MVP features you will build and the files you will create (with their paths), keeping it concise. After the closing </thinking>, emit all the code files in the fenced format above. Everything — the plan and the code — must be in this one response.";
+
+/**
+ * The production coding system prompt: the benchmark-winning `minimal-v1` prompt
+ * (clean, no few-shot examples, allowed stack generated from PREVIEW_DEPS) plus
+ * the `inline` plan-first instruction. This is the locked winning config
+ * (`minimal-v1` × `inline`) from the 2026-07-03 benchmark campaign.
+ */
+export function buildProductionCodingPrompt(): string {
+  return buildMinimalCodingPrompt(DEFAULT_PROMPT_CONFIG) + "\n\n" + INLINE_PLAN_INSTRUCTION;
+}
+
+/**
  * Build a compact, section-structured system prompt from `config`.
  *
  * Sections (in order): identity, allowed stack, forbidden, output format,

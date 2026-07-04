@@ -6,6 +6,7 @@ import {
 } from "./prompts";
 import {
   DEFAULT_PROMPT_CONFIG,
+  INLINE_PLAN_INSTRUCTION,
   buildMinimalCodingPrompt,
   type PromptConfig,
 } from "./prompt-config";
@@ -136,9 +137,7 @@ export async function generateApp(
       : getMainCodingPrompt();
 
   if (archMode === "inline") {
-    systemPrompt +=
-      "\n\n" +
-      "Before writing any code files, first write a brief implementation plan inside a single <thinking>...</thinking> block. List the MVP features you will build and the files you will create (with their paths), keeping it concise. After the closing </thinking>, emit all the code files in the fenced format above. Everything — the plan and the code — must be in this one response.";
+    systemPrompt += "\n\n" + INLINE_PLAN_INSTRUCTION;
   }
 
   const stream = together.chat.completions.stream({
