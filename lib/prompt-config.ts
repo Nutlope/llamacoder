@@ -18,9 +18,10 @@ export type PromptConfig = {
    * other differences. When `"v4"`, `buildMinimalCodingPrompt` appends a
    * `## Modern patterns` section after the Reasoning section (before any
    * component-docs/examples sections) and does NOT apply the v2 or v3 tweaks.
-   * No other differences.
+   * When `"v5"`, it appends a `## Scope discipline` section and does NOT apply
+   * the v2, v3, or v4 tweaks. No other differences.
    */
-  promptVariant?: "v1" | "v2" | "v3" | "v4";
+  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -158,6 +159,12 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV4Tweaks(prompt);
   }
 
+  // Variant v5 = v1 + a `## Scope discipline` section. It does NOT apply the
+  // v2/v3/v4 tweaks, so only the v5 path appends this block.
+  if (config.promptVariant === "v5") {
+    prompt = applyMinimalV5Tweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -252,6 +259,22 @@ function applyMinimalV4Tweaks(prompt: string): string {
     - Prefer native browser APIs (fetch, Intl, Date, structuredClone) over adding helper libraries.
   `;
   return prompt + "\n\n" + modernPatternsSection;
+}
+
+/**
+ * Apply the minimal-v5-only difference to an already-rendered v1 prompt.
+ */
+function applyMinimalV5Tweaks(prompt: string): string {
+  const scopeDisciplineSection = dedent`
+    ## Scope discipline
+
+    Build one polished core workflow, not a feature list:
+    - Prefer 2-3 source files; split only when it clearly separates state, reusable UI, or data.
+    - Finish the primary workflow completely before adding extras, with real empty, error, success, and disabled states where relevant.
+    - Avoid optional nice-to-haves, fake navigation, marketing sections, unused sample data, and decorative code that does not support the user's main goal.
+    - Keep state local and simple; avoid over-engineered abstractions, duplicated derived state, and helper files for tiny logic.
+  `;
+  return prompt + "\n\n" + scopeDisciplineSection;
 }
 
 /**

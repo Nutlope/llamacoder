@@ -378,6 +378,7 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 | **v2** | +phantom-import rule, −Tailwind ban | 21/24 | 7.86 | (confounded) | 2953 | ✗ shelved — no gain; phantom rule didn't fix its target; dropping ban raised flagged violations |
 | **v3** | +Hallmark design-quality section | 20/24 | 8.00 | 13.5 | 3832 | ~ mixed — **not promoted**. See below. |
 | **v4** | +Modern-patterns section | 21/24 | 8.00 | 13.4 | 3020 | ✗ shelved — fewer policy violations, but no quality/pass gain and GLM regressed. |
+| **v5** | +Scope-discipline section | 20/24 | 8.10 | 11.4 | 3194 | ✗ shelved — fast and good for K2.7 only; reliability regressed elsewhere. |
 
 **v3 detail (design rubric):** net a slight wash at k=1, but *polarizing* and worth remembering:
 - **Helped GLM 5.2 notably** (q 7.63→**8.43**) and lifted visually-weak prompts hard (calculator 6.5→9.0, quiz 7.0→9.0, chart 9.3→9.7).
@@ -390,6 +391,13 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 - **Helped Kimi K2.7-Code quality** (q 8.43→**8.57**) and Kimi K2.6 reliability (7/8→**8/8**), but **hurt GLM 5.2 reliability** (8/8→**6/8**) with a missing `scroll-area` import and a settings-page runtime timeout.
 - Token cost stayed effectively flat (3005→3020 output tokens) and policy violations improved (11→6), so the wording is not bloating output.
 - Takeaway: code-modernity wording is cheap and makes outputs more compliant, but it did not improve the headline benchmark and it creates GLM risk. Shelved.
+
+**v5 detail (scope discipline):** confirms "less scope" is model-sensitive, not a universal free lunch:
+- Overall pass regressed to `20/24`; judged quality on passing cells was a small nominal lift (`8.10`) but not enough to offset reliability.
+- **Kimi K2.7-Code loved it**: `8/8`, q `8.38`, and **6.9s** average generation, a real speed win.
+- **GLM 5.2 and Kimi K2.6 both fell to 6/8**. GLM introduced unterminated strings and a missing emitted component; K2.6 still hit missing `scroll-area`/`use-toast`.
+- Output tokens rose slightly overall (3005→3194) because K2.6 got longer, so the scope wording did not reliably shrink generated code.
+- Takeaway: keep in mind if product defaults to Kimi K2.7, but do not promote as the shared production prompt.
 
 ### 6.2 Fast-iteration recipe for prompt tweaks
 
