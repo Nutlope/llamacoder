@@ -38,3 +38,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /session-export-1783165362339
+
+benchmark-results/*
+
+public/preview-vendor/*

@@ -1,8 +1,8 @@
-import * as esbuild from "esbuild-wasm";
+import { createRequire } from "node:module";
+import { NextRequest, NextResponse } from "next/server";
+import { precompilePreviewTailwindCss } from "@/lib/preview/server-tailwind";
 
-const ESBUILD_WASM_URL = "/preview-vendor/esbuild/esbuild.wasm";
-
-type OutputFile = { path: string; text: string };
+export const runtime = "nodejs";
 
 type BundleOptions = {
   externalBaseuiComponents?: boolean;
@@ -11,51 +11,20 @@ type BundleOptions = {
   inlineBaseuiComponentPaths?: string[];
 };
 
-export type BundleResult =
-  | {
-      ok: true;
-      code: string;
-      css: string;
-      durationMs: number;
-      cacheHit: boolean;
-      cacheSource: string;
-      cacheLookupMs: number;
-      ensureMs: number;
-      inputFileCount: number;
-      inputBytes: number;
-      cacheKeyBytes: number;
-      outputJsBytes: number;
-      outputCssBytes: number;
-    }
-  | {
-      ok: false;
-      error: string;
-      durationMs: number;
-      cacheHit: boolean;
-      cacheSource: string;
-      cacheLookupMs: number;
-      ensureMs: number;
-      inputFileCount: number;
-      inputBytes: number;
-      cacheKeyBytes: number;
-      outputJsBytes: number;
-      outputCssBytes: number;
-    };
-
-declare global {
-  var __llamacoderEsbuildInitPromise: Promise<void> | undefined;
-  var __llamacoderPreviewBundleCache: Map<string, CachedBundle> | undefined;
-}
-
 type CachedBundle = {
   code: string;
   css: string;
 };
 
-const BUNDLE_CACHE_LIMIT = 24;
-const BUNDLE_DB_NAME = "llamacoder-preview";
-const BUNDLE_DB_VERSION = 1;
-const BUNDLE_STORE_NAME = "bundles";
+type OutputFile = { path: string; text: string };
+type Esbuild = typeof import("esbuild");
+type EsbuildPlugin = import("esbuild").Plugin;
+type EsbuildLoader = import("esbuild").Loader;
+type EsbuildMessage = import("esbuild").Message;
+
+const BUNDLE_CACHE_LIMIT = 48;
+const bundleCache = new Map<string, CachedBundle>();
+const nativeRequire = createRequire(import.meta.url);
 const REACT_DEPENDENCY_SPECIFIERS = [
   "react",
   "react-dom",
@@ -63,64 +32,55 @@ const REACT_DEPENDENCY_SPECIFIERS = [
   "react-dom/client",
 ];
 
-export function ensureEsbuild(): Promise<void> {
-  globalThis.__llamacoderEsbuildInitPromise ??= esbuild.initialize({
-    wasmURL: ESBUILD_WASM_URL,
-    worker: true,
-  });
+export async function POST(request: NextRequest) {
+  const body = (await request.json().catch(() => null)) as {
+    files?: unknown;
+    options?: unknown;
+    tailwind?: unknown;
+  } | null;
+  const files = normalizeFiles(body?.files);
+  const options = normalizeOptions(body?.options);
+  const tailwindOptions = normalizeTailwindOptions(body?.tailwind);
 
-  return globalThis.__llamacoderEsbuildInitPromise;
-}
+  if (!files || !files["main.tsx"]) {
+    return NextResponse.json(
+      { ok: false, error: "Missing preview files." },
+      { status: 400 },
+    );
+  }
 
-export async function bundle(
-  files: Record<string, string>,
-  options: BundleOptions = {},
-): Promise<BundleResult> {
   const bundleFiles = getBundleFiles(files, options);
   const cacheKey = stableFilesKey(files, options);
   const inputStats = getInputStats(bundleFiles, cacheKey);
   const cacheLookupStartedAt = performance.now();
   const cached = getCachedBundle(cacheKey);
+  const tailwindPromise = tailwindOptions
+    ? startTailwindPrecompile(tailwindOptions.cacheKey, tailwindOptions.candidates)
+    : null;
+
   if (cached) {
-    return {
+    const tailwind = await tailwindPromise;
+    return NextResponse.json({
       ok: true,
       code: cached.code,
       css: cached.css,
       durationMs: 0,
       cacheHit: true,
-      cacheSource: "memory",
-      cacheLookupMs: performance.now() - cacheLookupStartedAt,
+      cacheSource: "server-memory",
+      cacheLookupMs: Math.round(performance.now() - cacheLookupStartedAt),
       ensureMs: 0,
       ...inputStats,
       outputJsBytes: cached.code.length,
       outputCssBytes: cached.css.length,
-    };
-  }
-  const persistentCached = await getPersistentCachedBundle(cacheKey);
-  if (persistentCached) {
-    setCachedBundle(cacheKey, persistentCached);
-    return {
-      ok: true,
-      code: persistentCached.code,
-      css: persistentCached.css,
-      durationMs: 0,
-      cacheHit: true,
-      cacheSource: "indexeddb",
-      cacheLookupMs: performance.now() - cacheLookupStartedAt,
-      ensureMs: 0,
-      ...inputStats,
-      outputJsBytes: persistentCached.code.length,
-      outputCssBytes: persistentCached.css.length,
-    };
+      tailwind: formatTailwindResult(tailwind),
+    });
   }
 
   const cacheLookupMs = performance.now() - cacheLookupStartedAt;
-  const ensureStartedAt = performance.now();
-  await ensureEsbuild();
-  const ensureMs = performance.now() - ensureStartedAt;
-  const start = performance.now();
+  const startedAt = performance.now();
 
   try {
+    const esbuild = getNativeEsbuild();
     const result = await esbuild.build({
       entryPoints: ["/main.tsx"],
       bundle: true,
@@ -140,45 +100,121 @@ export async function bundle(
         : [],
       plugins: [virtualFs(bundleFiles, files, options)],
     });
-
     const code = joinJavaScriptOutput(result.outputFiles);
     const css = joinOutputFiles(result.outputFiles, ".css");
     const bundled = {
-      ok: true,
       code,
       css,
-      durationMs: performance.now() - start,
+    };
+    setCachedBundle(cacheKey, bundled);
+
+    return NextResponse.json({
+      ok: true,
+      ...bundled,
+      durationMs: Math.round(performance.now() - startedAt),
       cacheHit: false,
-      cacheSource: "none",
-      cacheLookupMs,
-      ensureMs,
+      cacheSource: "server-none",
+      cacheLookupMs: Math.round(cacheLookupMs),
+      ensureMs: 0,
       ...inputStats,
       outputJsBytes: code.length,
       outputCssBytes: css.length,
-    } as const;
-    setCachedBundle(cacheKey, {
-      code: bundled.code,
-      css: bundled.css,
+      tailwind: formatTailwindResult(await tailwindPromise),
     });
-    void setPersistentCachedBundle(cacheKey, {
-      code: bundled.code,
-      css: bundled.css,
-    });
-    return bundled;
   } catch (error) {
-    return {
+    return NextResponse.json({
       ok: false,
       error: formatEsbuildError(error),
-      durationMs: performance.now() - start,
+      durationMs: Math.round(performance.now() - startedAt),
       cacheHit: false,
-      cacheSource: "none",
-      cacheLookupMs,
-      ensureMs,
+      cacheSource: "server-none",
+      cacheLookupMs: Math.round(cacheLookupMs),
+      ensureMs: 0,
       ...inputStats,
       outputJsBytes: 0,
       outputCssBytes: 0,
+    });
+  }
+}
+
+function normalizeTailwindOptions(value: unknown) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const cacheKey =
+    typeof (value as { cacheKey?: unknown }).cacheKey === "string"
+      ? (value as { cacheKey: string }).cacheKey
+      : "";
+  const candidates = (value as { candidates?: unknown }).candidates;
+
+  return cacheKey ? { cacheKey, candidates } : null;
+}
+
+async function startTailwindPrecompile(cacheKey: string, candidates: unknown) {
+  try {
+    return await precompilePreviewTailwindCss(cacheKey, candidates);
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : String(error),
+      durationMs: 0,
     };
   }
+}
+
+function formatTailwindResult(
+  result: Awaited<ReturnType<typeof startTailwindPrecompile>> | null,
+) {
+  if (!result) return null;
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      durationMs: result.durationMs,
+    };
+  }
+
+  return {
+    ok: true,
+    css: result.css,
+    cacheHit: result.cacheHit,
+    durationMs: result.durationMs,
+  };
+}
+
+function normalizeFiles(value: unknown) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const files: Record<string, string> = {};
+  for (const [path, content] of Object.entries(value)) {
+    if (typeof content === "string") files[path] = content;
+  }
+  return files;
+}
+
+function normalizeOptions(value: unknown): BundleOptions {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {};
+  }
+
+  return {
+    externalBaseuiComponents:
+      (value as BundleOptions).externalBaseuiComponents === true,
+    bundleBareDependencies:
+      (value as BundleOptions).bundleBareDependencies === true,
+    externalReactDependencies:
+      (value as BundleOptions).externalReactDependencies === true,
+    inlineBaseuiComponentPaths: Array.isArray(
+      (value as BundleOptions).inlineBaseuiComponentPaths,
+    )
+      ? (value as BundleOptions).inlineBaseuiComponentPaths?.filter(
+          (path): path is string => typeof path === "string",
+        )
+      : undefined,
+  };
 }
 
 function getInputStats(files: Record<string, string>, cacheKey: string) {
@@ -192,119 +228,39 @@ function getInputStats(files: Record<string, string>, cacheKey: string) {
   };
 }
 
-async function getPersistentCachedBundle(
-  key: string,
-): Promise<CachedBundle | null> {
-  const db = await openBundleCacheDb();
-  if (!db) return null;
-
-  return new Promise((resolve) => {
-    const transaction = db.transaction(BUNDLE_STORE_NAME, "readonly");
-    const request = transaction.objectStore(BUNDLE_STORE_NAME).get(key);
-
-    request.onsuccess = () => {
-      const value = request.result;
-      resolve(isCachedBundleRecord(value) ? value : null);
-    };
-    request.onerror = () => resolve(null);
-    transaction.oncomplete = () => db.close();
-    transaction.onerror = () => db.close();
-  });
-}
-
-async function setPersistentCachedBundle(key: string, value: CachedBundle) {
-  const db = await openBundleCacheDb();
-  if (!db) return;
-
-  await new Promise<void>((resolve) => {
-    const transaction = db.transaction(BUNDLE_STORE_NAME, "readwrite");
-    transaction.objectStore(BUNDLE_STORE_NAME).put({
-      ...value,
-      key,
-      updatedAt: Date.now(),
-    });
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => resolve();
-  });
-  db.close();
-}
-
-function openBundleCacheDb(): Promise<IDBDatabase | null> {
-  if (typeof indexedDB === "undefined") return Promise.resolve(null);
-
-  return new Promise((resolve) => {
-    const request = indexedDB.open(BUNDLE_DB_NAME, BUNDLE_DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(BUNDLE_STORE_NAME)) {
-        db.createObjectStore(BUNDLE_STORE_NAME, { keyPath: "key" });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
-    request.onblocked = () => resolve(null);
-  });
-}
-
-function isCachedBundleRecord(value: unknown): value is CachedBundle {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as CachedBundle).code === "string" &&
-    typeof (value as CachedBundle).css === "string"
-  );
-}
-
-function getBundleCache() {
-  globalThis.__llamacoderPreviewBundleCache ??= new Map();
-  return globalThis.__llamacoderPreviewBundleCache;
-}
-
 function getCachedBundle(key: string) {
-  const cache = getBundleCache();
-  const cached = cache.get(key);
+  const cached = bundleCache.get(key);
   if (!cached) return null;
 
-  cache.delete(key);
-  cache.set(key, cached);
+  bundleCache.delete(key);
+  bundleCache.set(key, cached);
   return cached;
 }
 
 function setCachedBundle(key: string, value: CachedBundle) {
-  const cache = getBundleCache();
-  cache.set(key, value);
+  bundleCache.set(key, value);
 
-  while (cache.size > BUNDLE_CACHE_LIMIT) {
-    const oldestKey = cache.keys().next().value;
+  while (bundleCache.size > BUNDLE_CACHE_LIMIT) {
+    const oldestKey = bundleCache.keys().next().value;
     if (!oldestKey) break;
-    cache.delete(oldestKey);
+    bundleCache.delete(oldestKey);
   }
 }
 
 function stableFilesKey(files: Record<string, string>, options: BundleOptions) {
-  const keyFiles = getCacheKeyFiles(files, options);
+  const keyFiles = getBundleFiles(files, options);
 
-  return JSON.stringify(
-    {
-      files: Object.keys(keyFiles)
-        .sort()
-        .map((path) => [path, keyFiles[path]]),
+  return JSON.stringify({
+    files: Object.keys(keyFiles)
+      .sort()
+      .map((path) => [path, keyFiles[path]]),
       options: {
         externalBaseuiComponents: options.externalBaseuiComponents === true,
         bundleBareDependencies: options.bundleBareDependencies === true,
         externalReactDependencies: options.externalReactDependencies === true,
         inlineBaseuiComponentPaths: [...getInlineBaseuiComponentPaths(options)].sort(),
       },
-    },
-  );
-}
-
-function getCacheKeyFiles(
-  files: Record<string, string>,
-  options: BundleOptions,
-) {
-  return getBundleFiles(files, options);
+  });
 }
 
 function getBundleFiles(
@@ -346,7 +302,7 @@ function virtualFs(
   files: Record<string, string>,
   resolveFiles: Record<string, string>,
   options: BundleOptions,
-): esbuild.Plugin {
+): EsbuildPlugin {
   return {
     name: "virtual-fs",
     setup(build) {
@@ -420,7 +376,7 @@ function virtualFs(
       build.onLoad({ filter: /.*/, namespace: "vfs" }, (args) => ({
         contents: files[args.path],
         loader: getLoader(args.path),
-        resolveDir: "/",
+        resolveDir: process.cwd(),
       }));
     },
   };
@@ -547,11 +503,11 @@ function dirname(path: string): string {
   return index === -1 ? "" : normalized.slice(0, index);
 }
 
-function joinVirtual(basePath: string, path: string): string {
+function joinVirtual(basePath: string, path: string) {
   return normalizeVirtualPath(basePath ? `${basePath}/${path}` : path);
 }
 
-function normalizeVirtualPath(path: string): string {
+function normalizeVirtualPath(path: string) {
   const parts: Array<string> = [];
 
   for (const part of path.replace(/^\/+/, "").split("/")) {
@@ -566,7 +522,7 @@ function normalizeVirtualPath(path: string): string {
   return parts.join("/");
 }
 
-function getLoader(path: string): esbuild.Loader {
+function getLoader(path: string): EsbuildLoader {
   if (path.endsWith(".tsx")) return "tsx";
   if (path.endsWith(".ts")) return "ts";
   if (path.endsWith(".jsx")) return "jsx";
@@ -591,7 +547,7 @@ function joinJavaScriptOutput(outputFiles: Array<OutputFile>) {
     .join("\n");
 }
 
-function formatEsbuildError(error: unknown): string {
+function formatEsbuildError(error: unknown) {
   if (isEsbuildFailure(error) && error.errors.length > 0) {
     return error.errors.map(formatMessage).join("\n\n");
   }
@@ -601,7 +557,7 @@ function formatEsbuildError(error: unknown): string {
 
 function isEsbuildFailure(
   error: unknown,
-): error is { errors: Array<esbuild.Message> } {
+): error is { errors: Array<EsbuildMessage> } {
   return (
     typeof error === "object" &&
     error !== null &&
@@ -610,7 +566,7 @@ function isEsbuildFailure(
   );
 }
 
-function formatMessage(message: esbuild.Message): string {
+function formatMessage(message: EsbuildMessage) {
   const location = message.location;
 
   if (!location) {
@@ -618,4 +574,8 @@ function formatMessage(message: esbuild.Message): string {
   }
 
   return `${location.file}:${location.line}:${location.column}: ${message.text}`;
+}
+
+function getNativeEsbuild() {
+  return nativeRequire(`es${"build"}`) as Esbuild;
 }

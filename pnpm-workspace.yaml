@@ -7,3 +7,5 @@ allowBuilds:
   sharp: true
 minimumReleaseAgeExclude:
   - '@types/node@26.1.0'
+  - react-resizable-panels@4.12.1
+  - recharts@3.9.2

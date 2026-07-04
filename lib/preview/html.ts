@@ -1,4 +1,6 @@
-import { PREVIEW_DEPS, buildImportMap } from "./deps";
+import { PREVIEW_DEPS, buildImportMapObject } from "./deps";
+import { previewStyleAssetCss } from "./generated/style-assets";
+import { previewVendorPreloadGraph } from "./generated/vendor-preloads";
 
 const ERROR_BRIDGE = `
 function memoryStorageShim() {
@@ -13,6 +15,7 @@ function memoryStorageShim() {
   };
 }
 try {
+  performance.setResourceTimingBufferSize(2000);
   Object.defineProperty(window, "localStorage", { value: memoryStorageShim(), configurable: true });
   Object.defineProperty(window, "sessionStorage", { value: memoryStorageShim(), configurable: true });
 } catch (_) {}
@@ -79,11 +82,27 @@ function collectPreviewMetrics() {
   return {
     elapsedMs: Math.round(performance.now()),
     resourceCount: resources.length,
-    slowResources: resources.slice(0, 8),
+    esmResourceCount: resources.filter((resource) => resource.name.includes("https://esm.sh/")).length,
+    jsdelivrResourceCount: resources.filter((resource) => resource.name.includes("cdn.jsdelivr.net")).length,
+    slowResources: resources.slice(0, 10),
     stylesheetRules: stylesheets.reduce((count, sheet) => count + (sheet.rules || 0), 0),
     stylesheets,
     tailwindProbe,
   };
+}
+function collectCompiledCss() {
+  return Array.from(document.styleSheets)
+    .map((sheet) => {
+      try {
+        return Array.from(sheet.cssRules || [])
+          .map((rule) => rule.cssText)
+          .join("\\n");
+      } catch (_) {
+        return "";
+      }
+    })
+    .filter(Boolean)
+    .join("\\n");
 }
 function postPreviewMetric(type, extra = {}) {
   parent.postMessage({
@@ -95,6 +114,7 @@ function postPreviewMetric(type, extra = {}) {
   }, "*");
 }
 window.__previewCollectMetrics = collectPreviewMetrics;
+window.__previewCollectCompiledCss = collectCompiledCss;
 window.__previewPostMetric = postPreviewMetric;
 function waitForTailwindReady() {
   const startedAt = performance.now();
@@ -113,9 +133,11 @@ function waitForTailwindReady() {
     probe.remove();
 
     if (isReady || performance.now() - startedAt > timeoutMs) {
-      postPreviewMetric("tailwind-ready", {
+      const readyPayload = {
         tailwindWaitMs: Math.round(performance.now() - startedAt),
-      });
+        compiledCss: collectCompiledCss(),
+      };
+      postPreviewMetric("tailwind-ready", readyPayload);
       return;
     }
 
@@ -136,11 +158,20 @@ export function buildSrcdoc(
   bundledCode: string,
   bundledCss = "",
   deps: Record<string, string> = PREVIEW_DEPS,
+  options: {
+    localVendor?: boolean;
+    vendor?: "local" | "cdn" | "flat";
+    precompiledTailwindCss?: string;
+  } = {},
 ): string {
   const safeCode = escapeScriptContents(`${bundledCode}
 requestAnimationFrame(() => {
   if (window.__previewPostMetric) {
-    window.__previewPostMetric("ready");
+    window.__previewPostMetric("ready", {
+      compiledCss: window.__previewCollectCompiledCss
+        ? window.__previewCollectCompiledCss()
+        : "",
+    });
   } else {
     parent.postMessage({ source: "preview", type: "ready" }, "*");
   }
@@ -148,20 +179,31 @@ requestAnimationFrame(() => {
 `);
   const safeBridge = escapeScriptContents(ERROR_BRIDGE);
   const safeCss = bundledCss.replace(/<\/style/gi, "<\\/style");
-  const safeTailwindCss = buildPreviewTailwindCss(deps).replace(
+  const safePrecompiledTailwindCss = options.precompiledTailwindCss?.replace(
     /<\/style/gi,
     "<\\/style",
   );
+  const styleAssets = getPreviewStyleAssets(deps, options);
+  const safeTailwindCss = buildPreviewTailwindCss(deps, styleAssets).replace(
+    /<\/style/gi,
+    "<\\/style",
+  );
+  const importMap = buildImportMapObject(deps, options);
+  const modulePreloads = buildModulePreloads(bundledCode, importMap.imports);
 
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script type="importmap">${buildImportMap(deps)}</script>
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-<style type="text/tailwindcss">${safeTailwindCss}</style>
-<style type="text/tailwindcss">${safeCss}</style>
+<script type="importmap">${JSON.stringify(importMap)}</script>
+${modulePreloads}
+${buildStyleTags({
+  bundledCss: safeCss,
+  precompiledTailwindCss: safePrecompiledTailwindCss,
+  tailwindBrowser: styleAssets.tailwindBrowser,
+  tailwindCss: safeTailwindCss,
+})}
 <script>${safeBridge}</script>
 </head>
 <body>
@@ -171,16 +213,30 @@ requestAnimationFrame(() => {
 </html>`;
 }
 
-function buildPreviewTailwindCss(deps: Record<string, string>): string {
-  if (!deps.shadcn) return "";
+function buildStyleTags(options: {
+  bundledCss: string;
+  precompiledTailwindCss?: string;
+  tailwindBrowser: string;
+  tailwindCss: string;
+}) {
+  if (options.precompiledTailwindCss) {
+    return `<style>${options.precompiledTailwindCss}</style>`;
+  }
 
-  const shadcnVersion = deps.shadcn;
-  const animateVersion = deps["tw-animate-css"] ?? "1.4.0";
+  return `<script src="${escapeHtmlAttribute(options.tailwindBrowser)}"></script>
+<style type="text/tailwindcss">${options.tailwindCss}</style>
+<style type="text/tailwindcss">${options.bundledCss}</style>`;
+}
+
+export function buildPreviewTailwindCss(
+  deps: Record<string, string>,
+  assets: PreviewStyleAssets,
+): string {
+  if (!deps.shadcn) return "";
 
   return `
 @import "tailwindcss";
-@import "https://cdn.jsdelivr.net/npm/tw-animate-css@${animateVersion}/dist/tw-animate.css";
-@import "https://cdn.jsdelivr.net/npm/shadcn@${shadcnVersion}/dist/tailwind.css";
+${assets.tailwindCss}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -304,6 +360,103 @@ function buildPreviewTailwindCss(deps: Record<string, string>): string {
   }
 }
 `;
+}
+
+type PreviewStyleAssets = {
+  tailwindBrowser: string;
+  tailwindCss: string;
+};
+
+function getPreviewStyleAssets(
+  deps: Record<string, string>,
+  options: { localVendor?: boolean; vendor?: "local" | "cdn" | "flat" },
+): PreviewStyleAssets {
+  const vendor =
+    options.vendor ?? (options.localVendor === false ? "cdn" : "local");
+
+  if (vendor === "local" || vendor === "flat") {
+    return {
+      tailwindBrowser: "/preview-vendor/styles/tailwind-browser.js",
+      tailwindCss: `${previewStyleAssetCss.twAnimateCss}\n${previewStyleAssetCss.shadcnTailwindCss}`,
+    };
+  }
+
+  return {
+    tailwindBrowser: "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
+    tailwindCss: `@import "https://cdn.jsdelivr.net/npm/tw-animate-css@${deps["tw-animate-css"] ?? "1.4.0"}/dist/tw-animate.css";
+@import "https://cdn.jsdelivr.net/npm/shadcn@${deps.shadcn ?? "4.13.0"}/dist/tailwind.css";`,
+  };
+}
+
+function buildModulePreloads(
+  bundledCode: string,
+  imports: Record<string, string>,
+) {
+  const hrefs = new Set<string>();
+  const importPattern =
+    /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = importPattern.exec(bundledCode))) {
+    const specifier = match[1];
+    const href = specifier ? resolvePreviewModuleHref(specifier, "", imports) : "";
+
+    if (href) {
+      hrefs.add(href);
+    }
+  }
+
+  for (const href of [...hrefs]) {
+    collectTransitiveModulePreloads(href, imports, hrefs);
+  }
+
+  return [...hrefs]
+    .map(
+      (href) =>
+        `<link rel="modulepreload" href="${escapeHtmlAttribute(href)}" crossorigin>`,
+    )
+    .join("\n");
+}
+
+function collectTransitiveModulePreloads(
+  href: string,
+  imports: Record<string, string>,
+  seen: Set<string>,
+) {
+  const dependencies =
+    previewVendorPreloadGraph[href as keyof typeof previewVendorPreloadGraph];
+
+  if (!dependencies) return;
+
+  for (const specifier of dependencies) {
+    const dependencyHref = resolvePreviewModuleHref(specifier, href, imports);
+
+    if (!dependencyHref || seen.has(dependencyHref)) continue;
+
+    seen.add(dependencyHref);
+    collectTransitiveModulePreloads(dependencyHref, imports, seen);
+  }
+}
+
+function resolvePreviewModuleHref(
+  specifier: string,
+  importerHref: string,
+  imports: Record<string, string>,
+) {
+  if (imports[specifier]) return imports[specifier];
+  if (specifier.startsWith("/")) return specifier;
+  if (specifier.startsWith(".") && importerHref) {
+    return new URL(specifier, `http://preview.local${importerHref}`).pathname;
+  }
+
+  return "";
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
 }
 
 function escapeScriptContents(value: string): string {

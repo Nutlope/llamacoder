@@ -4,6 +4,220 @@ import SourceInspector from "../preview-poc/source-inspector";
 
 export const dynamic = "force-dynamic";
 
+type PreviewBaseuiScenario = "gauntlet" | "minimal" | "typical" | "heavy";
+type PreviewBaseuiParams = {
+  scenario?: string;
+  debug?: string;
+  debounce?: string;
+  vendor?: string;
+  copy?: string;
+  bundle?: string;
+};
+
+const minimalBaseuiFiles = [
+  {
+    path: "src/App.tsx",
+    content: `import React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+export default function App() {
+  const [name, setName] = React.useState("LlamaCoder");
+
+  return (
+    <main className="min-h-screen bg-zinc-50 p-6 text-zinc-950">
+      <Card className="mx-auto max-w-md">
+        <CardHeader>
+          <CardTitle>Minimal preview</CardTitle>
+          <CardDescription>Button, card, input, and Tailwind styles.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Input value={name} onChange={(event) => setName(event.target.value)} />
+          <Button>Generate {name || "app"}</Button>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+`,
+  },
+];
+
+const typicalBaseuiFiles = [
+  {
+    path: "src/App.tsx",
+    content: `import React from "react";
+import { Bell, MoreHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner";
+
+const rows = [
+  { name: "Counter app", status: "ready" },
+  { name: "Dashboard", status: "review" },
+  { name: "Settings", status: "queued" },
+];
+
+export default function App() {
+  return (
+    <main className="min-h-screen bg-zinc-50 p-6 text-zinc-950">
+      <SonnerToaster />
+      <Card className="mx-auto max-w-4xl">
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Typical generated app</CardTitle>
+            <CardDescription>Common form, menu, dialog, toast, and table imports.</CardDescription>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" />}>
+              <MoreHorizontal className="size-4" />
+              Actions
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => toast.success("Action fired")}>Toast</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input placeholder="Project name" />
+            <Select defaultValue="app">
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="app">App</SelectItem>
+                <SelectItem value="site">Site</SelectItem>
+              </SelectContent>
+            </Select>
+            <Textarea className="md:col-span-2" placeholder="Prompt notes" />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => toast("Saved draft")}>Save draft</Button>
+            <Dialog>
+              <DialogTrigger render={<Button variant="outline" />}>
+                <Bell className="size-4" />
+                Open dialog
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Dialog rendered</DialogTitle>
+                  <DialogDescription>Typical modal path is working.</DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <Table>
+            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell>{row.name}</TableCell>
+                  <TableCell><Badge variant="secondary">{row.status}</Badge></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+`,
+  },
+];
+
+const heavyBaseuiFiles = [
+  {
+    path: "src/App.tsx",
+    content: `import React from "react";
+import { Line, LineChart, CartesianGrid, XAxis } from "recharts";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner";
+
+const chartData = [
+  { day: "Mon", value: 8 },
+  { day: "Tue", value: 14 },
+  { day: "Wed", value: 11 },
+  { day: "Thu", value: 22 },
+  { day: "Fri", value: 18 },
+];
+
+export default function App() {
+  return (
+    <main className="min-h-screen bg-zinc-50 p-6 text-zinc-950">
+      <SonnerToaster />
+      <Card className="mx-auto max-w-5xl">
+        <CardHeader>
+          <CardTitle>Heavy generated app</CardTitle>
+          <CardDescription>Chart, scroll area, tabs, accordion, dialog, popover, and toast.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <Tabs defaultValue="chart">
+            <TabsList>
+              <TabsTrigger value="chart">Chart</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+            </TabsList>
+            <TabsContent value="chart">
+              <ChartContainer config={{ value: { label: "Builds", color: "#2563eb" } }} className="h-56">
+                <LineChart data={chartData} margin={{ left: 12, right: 12 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line dataKey="value" type="monotone" stroke="#2563eb" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ChartContainer>
+            </TabsContent>
+            <TabsContent value="activity">
+              <ScrollArea className="h-44 rounded-md border border-zinc-200">
+                <div className="space-y-2 p-3">
+                  {Array.from({ length: 18 }).map((_, index) => (
+                    <div key={index} className="rounded-md bg-zinc-100 px-3 py-2 text-sm">Activity row {index + 1}</div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+          <Accordion type="single" collapsible>
+            <AccordionItem value="one">
+              <AccordionTrigger>Renderer contract</AccordionTrigger>
+              <AccordionContent>All imports stay under @/components/ui/*.</AccordionContent>
+            </AccordionItem>
+          </Accordion>
+          <div className="flex gap-2">
+            <Button onClick={() => toast.success("Heavy app toast")}>Fire toast</Button>
+            <Dialog>
+              <DialogTrigger render={<Button variant="outline" />}>Open dialog</DialogTrigger>
+              <DialogContent><DialogHeader><DialogTitle>Dialog</DialogTitle><DialogDescription>Dialog rendered.</DialogDescription></DialogHeader></DialogContent>
+            </Dialog>
+            <Popover>
+              <PopoverTrigger render={<Button variant="outline" />}>Open popover</PopoverTrigger>
+              <PopoverContent>Popover rendered.</PopoverContent>
+            </Popover>
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+`,
+  },
+];
+
 export const baseuiDemoFiles = [
   {
     path: "src/App.tsx",
@@ -771,26 +985,219 @@ export default function OfficialCoverage() {
   },
 ];
 
-export default async function PreviewBaseuiPage() {
+const baseuiScenarios: Record<PreviewBaseuiScenario, typeof baseuiDemoFiles> = {
+  gauntlet: baseuiDemoFiles,
+  minimal: minimalBaseuiFiles,
+  typical: typicalBaseuiFiles,
+  heavy: heavyBaseuiFiles,
+};
+
+const scenarioLabels: Record<PreviewBaseuiScenario, string> = {
+  gauntlet: "Gauntlet",
+  minimal: "Minimal",
+  typical: "Typical",
+  heavy: "Heavy",
+};
+
+export default async function PreviewBaseuiPage({
+  searchParams,
+}: {
+  searchParams: Promise<PreviewBaseuiParams>;
+}) {
+  const params = await searchParams;
+  const activeScenario = isPreviewBaseuiScenario(params.scenario)
+    ? params.scenario
+    : "gauntlet";
+  const debounceMs = params.debounce === "300" ? 300 : 0;
+  const vendor =
+    params.vendor === "cdn" || params.vendor === "local"
+      ? params.vendor
+      : "flat";
+  const bundleMode =
+    params.bundle === "inline-components" ||
+    params.bundle === "inline-leaf" ||
+    params.bundle === "inline-used" ||
+    params.bundle === "single-file" ||
+    params.bundle === "app-bare"
+      ? params.bundle
+      : "external";
+  const files = withCopyVariant(baseuiScenarios[activeScenario], params.copy);
   const assembledFiles = toSortedFiles(
-    assemblePreviewFiles(baseuiDemoFiles, { uiLibrary: "baseui" }),
+    assemblePreviewFiles(files, { uiLibrary: "baseui" }),
   );
 
   return (
     <div className="h-screen w-screen">
+      <PreviewBaseuiSwitcher
+        activeScenario={activeScenario}
+        debounceMs={debounceMs}
+        vendor={vendor}
+        bundleMode={bundleMode}
+        params={params}
+      />
+      <SourceInspector
+        generatedFiles={files}
+        assembledFiles={assembledFiles}
+      />
+      <CodeRunner
+        files={files}
+        previewKit="baseui"
+        previewDebounceMs={debounceMs}
+        previewVendor={vendor}
+        previewBundleMode={bundleMode}
+      />
+    </div>
+  );
+}
+
+function PreviewBaseuiSwitcher({
+  activeScenario,
+  debounceMs,
+  vendor,
+  bundleMode,
+  params,
+}: {
+  activeScenario: PreviewBaseuiScenario;
+  debounceMs: number;
+  vendor: "local" | "cdn" | "flat";
+  bundleMode:
+    | "external"
+    | "inline-components"
+    | "inline-used"
+    | "inline-leaf"
+    | "single-file"
+    | "app-bare";
+  params: PreviewBaseuiParams;
+}) {
+  return (
+    <nav className="fixed right-4 top-4 z-50 flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2">
       <a
         href="/preview-baseui/compare?debug=1"
-        className="fixed right-4 top-4 z-50 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 shadow-sm transition hover:bg-zinc-50"
+        className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-zinc-900 shadow-sm transition hover:bg-zinc-50"
       >
         Compare native
       </a>
-      <SourceInspector
-        generatedFiles={baseuiDemoFiles}
-        assembledFiles={assembledFiles}
-      />
-      <CodeRunner files={baseuiDemoFiles} previewKit="baseui" />
-    </div>
+      <div className="flex overflow-hidden rounded-md border border-zinc-300 bg-white shadow-sm">
+        {Object.entries(scenarioLabels).map(([scenario, label]) => (
+          <a
+            key={scenario}
+            href={buildPreviewBaseuiHref(params, { scenario })}
+            className={`px-3 py-2 text-xs font-medium ${
+              activeScenario === scenario
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-800 hover:bg-zinc-50"
+            }`}
+          >
+            {label}
+          </a>
+        ))}
+      </div>
+      <div className="flex overflow-hidden rounded-md border border-zinc-300 bg-white shadow-sm">
+        {[0, 300].map((value) => (
+          <a
+            key={value}
+            href={buildPreviewBaseuiHref(params, {
+              debounce: value === 0 ? "0" : "300",
+            })}
+            className={`px-3 py-2 text-xs font-medium ${
+              debounceMs === value
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-800 hover:bg-zinc-50"
+            }`}
+          >
+            {value}ms
+          </a>
+        ))}
+      </div>
+      <div className="flex overflow-hidden rounded-md border border-zinc-300 bg-white shadow-sm">
+        {(["flat", "local", "cdn"] as const).map((value) => (
+          <a
+            key={value}
+            href={buildPreviewBaseuiHref(params, {
+              vendor: value === "flat" ? undefined : value,
+            })}
+            className={`px-3 py-2 text-xs font-medium ${
+              vendor === value
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-800 hover:bg-zinc-50"
+            }`}
+          >
+            {value}
+          </a>
+        ))}
+      </div>
+      <div className="flex overflow-hidden rounded-md border border-zinc-300 bg-white shadow-sm">
+        {(["external", "app-bare", "inline-used", "inline-leaf", "inline-components", "single-file"] as const).map((value) => (
+          <a
+            key={value}
+            href={buildPreviewBaseuiHref(params, {
+              bundle: value === "external" ? undefined : value,
+            })}
+            className={`px-3 py-2 text-xs font-medium ${
+              bundleMode === value
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-800 hover:bg-zinc-50"
+            }`}
+          >
+            {value === "inline-components" ? "inline all" : value}
+          </a>
+        ))}
+      </div>
+    </nav>
   );
+}
+
+function isPreviewBaseuiScenario(
+  value: string | undefined,
+): value is PreviewBaseuiScenario {
+  return (
+    value === "gauntlet" ||
+    value === "minimal" ||
+    value === "typical" ||
+    value === "heavy"
+  );
+}
+
+function buildPreviewBaseuiHref(
+  params: PreviewBaseuiParams,
+  updates: Partial<PreviewBaseuiParams>,
+) {
+  const query = new URLSearchParams();
+  if (params.scenario) query.set("scenario", params.scenario);
+  if (params.debug) query.set("debug", params.debug);
+  if (params.debounce) query.set("debounce", params.debounce);
+  if (params.vendor) query.set("vendor", params.vendor);
+  if (params.copy) query.set("copy", params.copy);
+  if (params.bundle) query.set("bundle", params.bundle);
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value) query.set(key, value);
+    else query.delete(key);
+  }
+
+  if (query.get("scenario") === "gauntlet") query.delete("scenario");
+  if (query.get("debounce") === "0") query.delete("debounce");
+  if (query.get("vendor") === "flat") query.delete("vendor");
+  if (query.get("bundle") === "external") query.delete("bundle");
+
+  const queryString = query.toString();
+  return `/preview-baseui${queryString ? `?${queryString}` : ""}`;
+}
+
+function withCopyVariant(
+  files: typeof baseuiDemoFiles,
+  copyVariant: string | undefined,
+) {
+  if (!copyVariant) return files;
+
+  return files.map((file) => ({
+    ...file,
+    content: file.content
+      .replaceAll("Minimal preview", `Minimal preview ${copyVariant}`)
+      .replaceAll("Typical generated app", `Typical generated app ${copyVariant}`)
+      .replaceAll("Heavy generated app", `Heavy generated app ${copyVariant}`)
+      .replaceAll("Component coverage gauntlet", `Component coverage gauntlet ${copyVariant}`),
+  }));
 }
 
 function toSortedFiles(fileMap: Record<string, string>) {
