@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
+    "preview-kits",
     "scripts",
     "tmp",
     "test-results"

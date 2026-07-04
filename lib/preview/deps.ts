@@ -40,15 +40,17 @@ export const PREVIEW_DEPS: Record<string, string> = {
   vaul: "0.9.1",
 };
 
-export function buildImportMapObject() {
+export function buildImportMapObject(
+  deps: Record<string, string> = PREVIEW_DEPS,
+) {
   const imports: Record<string, string> = {
-    react: `https://esm.sh/react@${PREVIEW_DEPS.react}`,
-    "react/jsx-runtime": `https://esm.sh/react@${PREVIEW_DEPS.react}/jsx-runtime`,
-    "react-dom": `https://esm.sh/react-dom@${PREVIEW_DEPS["react-dom"]}`,
-    "react-dom/client": `https://esm.sh/react-dom@${PREVIEW_DEPS["react-dom"]}/client`,
+    react: `https://esm.sh/react@${deps.react}`,
+    "react/jsx-runtime": `https://esm.sh/react@${deps.react}/jsx-runtime`,
+    "react-dom": `https://esm.sh/react-dom@${deps["react-dom"]}`,
+    "react-dom/client": `https://esm.sh/react-dom@${deps["react-dom"]}/client`,
   };
 
-  for (const [name, version] of Object.entries(PREVIEW_DEPS)) {
+  for (const [name, version] of Object.entries(deps)) {
     if (name === "react" || name === "react-dom") continue;
 
     imports[name] =
@@ -58,21 +60,70 @@ export function buildImportMapObject() {
     imports[`${name}/`] = `https://esm.sh/${name}@${version}/`;
   }
 
+  if (deps["@base-ui/react"]) {
+    for (const subpath of BASE_UI_SUBPATHS) {
+      imports[`@base-ui/react/${subpath}`] =
+        `https://esm.sh/@base-ui/react@${deps["@base-ui/react"]}/${subpath}?external=react,react-dom`;
+    }
+  }
+
+  if (deps["@shadcn/react"]) {
+    imports["@shadcn/react/message-scroller"] =
+      `https://esm.sh/@shadcn/react@${deps["@shadcn/react"]}/message-scroller?external=react,react-dom`;
+  }
+
   return { imports };
 }
 
-export function buildImportMap(): string {
-  return JSON.stringify(buildImportMapObject());
+const BASE_UI_SUBPATHS = [
+  "accordion",
+  "alert-dialog",
+  "avatar",
+  "button",
+  "checkbox",
+  "collapsible",
+  "context-menu",
+  "direction-provider",
+  "dialog",
+  "drawer",
+  "field",
+  "input",
+  "merge-props",
+  "menu",
+  "menubar",
+  "navigation-menu",
+  "popover",
+  "preview-card",
+  "progress",
+  "radio",
+  "radio-group",
+  "scroll-area",
+  "select",
+  "separator",
+  "slider",
+  "switch",
+  "tabs",
+  "textarea",
+  "toggle",
+  "toggle-group",
+  "tooltip",
+  "use-render",
+];
+
+export function buildImportMap(deps?: Record<string, string>): string {
+  return JSON.stringify(buildImportMapObject(deps));
 }
 
-export function buildPreviewPackageJson(): string {
+export function buildPreviewPackageJson(
+  deps: Record<string, string> = PREVIEW_DEPS,
+): string {
   return JSON.stringify(
     {
       private: true,
       type: "module",
       previewResolution:
         "The browser preview resolves these dependencies via import-map.json, not node_modules.",
-      dependencies: PREVIEW_DEPS,
+      dependencies: deps,
     },
     null,
     2,

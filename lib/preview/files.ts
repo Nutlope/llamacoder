@@ -1,20 +1,33 @@
 import * as shadcnComponents from "@/lib/shadcn";
-import { buildImportMapObject, buildPreviewPackageJson } from "./deps";
+import {
+  baseuiPreviewDependencies,
+  baseuiPreviewFiles,
+} from "./generated/baseui-files";
+import {
+  PREVIEW_DEPS,
+  buildImportMapObject,
+  buildPreviewPackageJson,
+} from "./deps";
 
 export type PreviewInputFile = { path: string; content: string };
+export type PreviewUiLibrary = "radix" | "baseui";
 
 export function assemblePreviewFiles(
   files: Array<PreviewInputFile>,
+  options: { uiLibrary?: PreviewUiLibrary } = {},
 ): Record<string, string> {
+  const injectedFiles =
+    options.uiLibrary === "baseui" ? baseuiPreviewFiles : shadcnFiles;
+  const deps = getPreviewDependencies(options.uiLibrary);
   const previewFiles: Record<string, string> = {
-    "package.json": buildPreviewPackageJson(),
-    "import-map.json": JSON.stringify(buildImportMapObject(), null, 2),
-    ...shadcnFiles,
+    "package.json": buildPreviewPackageJson(deps),
+    "import-map.json": JSON.stringify(buildImportMapObject(deps), null, 2),
+    ...injectedFiles,
   };
 
   for (const file of files) {
     const normalized = normalizeModelPath(file.path);
-    if (normalized in shadcnFiles) continue;
+    if (normalized in injectedFiles) continue;
     previewFiles[normalized] = file.content;
   }
 
@@ -45,6 +58,12 @@ createRoot(document.getElementById("root")!).render(
 );`;
 
   return previewFiles;
+}
+
+export function getPreviewDependencies(
+  uiLibrary: PreviewUiLibrary = "radix",
+): Record<string, string> {
+  return uiLibrary === "baseui" ? baseuiPreviewDependencies : PREVIEW_DEPS;
 }
 
 function normalizeModelPath(path: string): string {

@@ -9,12 +9,17 @@ import { CheckIcon, CopyIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getSandpackConfig } from "@/lib/sandpack-config";
 import { bundle, ensureEsbuild } from "@/lib/preview/bundle";
-import { assemblePreviewFiles } from "@/lib/preview/files";
+import {
+  assemblePreviewFiles,
+  getPreviewDependencies,
+  type PreviewUiLibrary,
+} from "@/lib/preview/files";
 import { buildSrcdoc } from "@/lib/preview/html";
 
 type RunnerProps = {
   files: Array<{ path: string; content: string }>;
   onRequestFix?: (e: string) => void;
+  previewKit?: PreviewUiLibrary;
 };
 
 type PreviewState =
@@ -28,15 +33,40 @@ type PreviewMetrics = {
   prepareMs?: number;
   runtimeMs?: number;
   totalMs?: number;
+  documentMs?: number;
+  styledMs?: number;
+  iframeReadyMs?: number;
+  resourceCount?: number;
+  stylesheetRules?: number;
+  slowResources?: Array<PreviewResource>;
+  tailwindProbe?: Record<string, string>;
+};
+
+type PreviewResource = {
+  name: string;
+  duration: number;
+  initiatorType?: string;
+  transferSize?: number;
+  decodedBodySize?: number;
 };
 
 const PREVIEW_WATCHDOG_MS = 15_000;
 
-export default function ReactCodeRunner({ files, onRequestFix }: RunnerProps) {
+export default function ReactCodeRunner({
+  files,
+  onRequestFix,
+  previewKit = "radix",
+}: RunnerProps) {
   const useWasmPreview = useWasmPreviewFlag();
 
-  if (useWasmPreview) {
-    return <WasmReactCodeRunner files={files} onRequestFix={onRequestFix} />;
+  if (useWasmPreview || previewKit === "baseui") {
+    return (
+      <WasmReactCodeRunner
+        files={files}
+        onRequestFix={onRequestFix}
+        previewKit={previewKit}
+      />
+    );
   }
 
   return <SandpackReactCodeRunner files={files} onRequestFix={onRequestFix} />;
@@ -63,7 +93,11 @@ function SandpackReactCodeRunner({ files, onRequestFix }: RunnerProps) {
   );
 }
 
-function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
+function WasmReactCodeRunner({
+  files,
+  onRequestFix,
+  previewKit = "radix",
+}: RunnerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const runStartedAtRef = useRef<number>(0);
   const iframeStartedAtRef = useRef<number | null>(null);
@@ -103,7 +137,9 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
     transitionState({ phase: "bundling" });
 
     const timeout = window.setTimeout(async () => {
-      const result = await bundle(assemblePreviewFiles(files));
+      const result = await bundle(
+        assemblePreviewFiles(files, { uiLibrary: previewKit }),
+      );
 
       if (didCancel) return;
 
@@ -113,7 +149,13 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
       }
 
       iframeStartedAtRef.current = performance.now();
-      setSrcdoc(buildSrcdoc(result.code, result.css));
+      setSrcdoc(
+        buildSrcdoc(
+          result.code,
+          result.css,
+          getPreviewDependencies(previewKit),
+        ),
+      );
       setMetrics({
         bundleMs: result.durationMs,
         prepareMs: performance.now() - runStartedAtRef.current,
@@ -137,7 +179,7 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
       window.clearTimeout(timeout);
       window.clearTimeout(watchdog);
     };
-  }, [filesKey]);
+  }, [filesKey, previewKit]);
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -152,14 +194,35 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
         if (stateRef.current.phase === "error") return;
 
         const readyAt = performance.now();
+        const iframeMetrics = parseIframeMetrics(event.data);
         setMetrics((current) => ({
           ...current,
           runtimeMs: iframeStartedAtRef.current
             ? readyAt - iframeStartedAtRef.current
             : undefined,
           totalMs: readyAt - runStartedAtRef.current,
+          iframeReadyMs: toNumber(event.data.elapsedMs),
+          ...iframeMetrics,
         }));
         transitionState({ phase: "ready" });
+        return;
+      }
+
+      if (event.data.type === "document-loaded") {
+        setMetrics((current) => ({
+          ...current,
+          documentMs: toNumber(event.data.elapsedMs),
+          ...parseIframeMetrics(event.data),
+        }));
+        return;
+      }
+
+      if (event.data.type === "tailwind-ready") {
+        setMetrics((current) => ({
+          ...current,
+          styledMs: toNumber(event.data.elapsedMs),
+          ...parseIframeMetrics(event.data),
+        }));
         return;
       }
 
@@ -195,6 +258,12 @@ function WasmReactCodeRunner({ files, onRequestFix }: RunnerProps) {
       data-preview-prepare-ms={formatMetricValue(metrics.prepareMs)}
       data-preview-runtime-ms={formatMetricValue(metrics.runtimeMs)}
       data-preview-total-ms={formatMetricValue(metrics.totalMs)}
+      data-preview-document-ms={formatMetricValue(metrics.documentMs)}
+      data-preview-styled-ms={formatMetricValue(metrics.styledMs)}
+      data-preview-iframe-ready-ms={formatMetricValue(metrics.iframeReadyMs)}
+      data-preview-resource-count={metrics.resourceCount ?? ""}
+      data-preview-stylesheet-rules={metrics.stylesheetRules ?? ""}
+      data-preview-slow-resources={JSON.stringify(metrics.slowResources ?? [])}
       data-preview-console-errors={JSON.stringify(consoleErrors)}
     >
       <iframe
@@ -225,13 +294,25 @@ function PreviewMetricsBadge({
   metrics: PreviewMetrics;
 }) {
   return (
-    <div className="absolute bottom-3 left-3 z-20 rounded-md border border-zinc-300 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-zinc-700 shadow-sm backdrop-blur">
-      <span className="mr-2 text-zinc-500">wasm</span>
-      <span className="mr-2">phase {state.phase}</span>
-      <span className="mr-2">prep {formatMs(metrics.prepareMs)}</span>
-      <span className="mr-2">bundle {formatMs(metrics.bundleMs)}</span>
-      <span className="mr-2">runtime {formatMs(metrics.runtimeMs)}</span>
-      <span>total {formatMs(metrics.totalMs)}</span>
+    <div className="absolute bottom-3 left-3 z-20 max-w-[min(680px,calc(100%-1.5rem))] rounded-md border border-zinc-300 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-zinc-700 shadow-sm backdrop-blur">
+      <div className="flex flex-wrap gap-x-2 gap-y-1">
+        <span className="text-zinc-500">wasm</span>
+        <span>phase {state.phase}</span>
+        <span>prep {formatMs(metrics.prepareMs)}</span>
+        <span>bundle {formatMs(metrics.bundleMs)}</span>
+        <span>iframe {formatMs(metrics.iframeReadyMs)}</span>
+        <span>load {formatMs(metrics.documentMs)}</span>
+        <span>style {formatMs(metrics.styledMs)}</span>
+        <span>total {formatMs(metrics.totalMs)}</span>
+        <span>resources {metrics.resourceCount ?? "--"}</span>
+        <span>css rules {metrics.stylesheetRules ?? "--"}</span>
+      </div>
+      {metrics.slowResources?.[0] && (
+        <div className="mt-1 truncate text-zinc-500">
+          slowest {formatMs(metrics.slowResources[0].duration)}{" "}
+          {formatResourceName(metrics.slowResources[0].name)}
+        </div>
+      )}
     </div>
   );
 }
@@ -326,6 +407,62 @@ function formatMs(value: number | undefined) {
 
 function formatMetricValue(value: number | undefined) {
   return typeof value === "number" ? String(Math.round(value)) : "";
+}
+
+function toNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function parseIframeMetrics(data: unknown): Partial<PreviewMetrics> {
+  if (!isPreviewMetricMessage(data)) return {};
+
+  return {
+    resourceCount: toNumber(data.metrics.resourceCount),
+    stylesheetRules: toNumber(data.metrics.stylesheetRules),
+    slowResources: Array.isArray(data.metrics.slowResources)
+      ? data.metrics.slowResources.filter(isPreviewResource).slice(0, 8)
+      : undefined,
+    tailwindProbe:
+      typeof data.metrics.tailwindProbe === "object" &&
+      data.metrics.tailwindProbe !== null
+        ? (data.metrics.tailwindProbe as Record<string, string>)
+        : undefined,
+  };
+}
+
+function isPreviewMetricMessage(data: unknown): data is {
+  metrics: {
+    resourceCount?: number;
+    stylesheetRules?: number;
+    slowResources?: unknown;
+    tailwindProbe?: unknown;
+  };
+} {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "metrics" in data &&
+    typeof (data as { metrics?: unknown }).metrics === "object" &&
+    (data as { metrics?: unknown }).metrics !== null
+  );
+}
+
+function isPreviewResource(value: unknown): value is PreviewResource {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as PreviewResource).name === "string" &&
+    typeof (value as PreviewResource).duration === "number"
+  );
+}
+
+function formatResourceName(value: string) {
+  try {
+    const url = new URL(value);
+    return `${url.hostname}${url.pathname}`;
+  } catch {
+    return value;
+  }
 }
 
 function formatErrorForFixPayload(error: string, consoleErrors: string[]) {
