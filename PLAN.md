@@ -382,7 +382,9 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 | **v6** | +Self-check section | 19/24 | 8.16 | 10.6 | 2984 | ✗ shelved — helped K2.6, but badly destabilized GLM. |
 | **v7** | +Output-contract section | 23/24 | 7.78 | 18.8 | 3290 | ~ reliability win, quality/speed loss — **not promoted**; possible Kimi reliability follow-up. |
 
-**v3 detail (design rubric):** net a slight wash at k=1, but *polarizing* and worth remembering:
+**v3b — GLM-only trimmed rubric, tested at k=3 (2026-07-04, `rank-v3b-glm`):** hypothesis was that v3's big k=1 GLM lift (+0.8) would survive with a shorter rubric. **It did not.** GLM `minimal-v1` k=3 = 19/24 · **q8.05** · 18.6s; GLM `minimal-v3b` k=3 = 21/25 · **q7.48** · 18.1s · +19% tokens. Quality went **down 0.57**, most prompts flat-or-down (todo 7.0→5.8, quiz 6.3→5.3, calculator 9.0→7.5). **Conclusion: the v3 k=1 GLM lift was noise — the design rubric does not reliably help GLM when measured at k=3, and the trimmed version hurts.** Not wired to production; GLM keeps the plain `minimal-v1`. (Caveat: this tested the *trimmed* rubric; a full-v3 k=3 GLM run could differ, but the prior is now strongly against it — every quality tweak that looked good at k=1 has failed to replicate at higher n.)
+
+**v3 detail (design rubric, k=1):** net a slight wash at k=1, but *polarizing* and worth remembering — and now known to be **k=1 noise** (see v3b above):
 - **Helped GLM 5.2 notably** (q 7.63→**8.43**) and lifted visually-weak prompts hard (calculator 6.5→9.0, quiz 7.0→9.0, chart 9.3→9.7).
 - **Hurt Kimi K2.7-Code** (q 8.43→7.33, −1 pass) and some prompts (todo 7.7→6.3, settings 6.0→5.3).
 - Costs **+28% output tokens** (3005→3832) — the rubric makes models write more styling code.
