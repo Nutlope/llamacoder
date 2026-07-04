@@ -12,9 +12,12 @@ export type PromptConfig = {
    * default config stays implicitly v1. When `"v2"`, `buildMinimalCodingPrompt`
    * makes exactly two changes vs v1: omits the arbitrary-Tailwind-bracket-values
    * forbidden bullet, and adds a phantom-import self-check bullet under File
-   * Format. No other differences.
+   * Format. No other differences. When `"v3"`,
+   * `buildMinimalCodingPrompt` appends a `## Design quality` section after
+   * the Reasoning section (before any component-docs/examples sections) and
+   * does NOT apply the v2 tweaks. No other differences.
    */
-  promptVariant?: "v1" | "v2";
+  promptVariant?: "v1" | "v2" | "v3";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -136,6 +139,14 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV2Tweaks(prompt);
   }
 
+  // Variant v3 = v1 + a `## Design quality` section appended after the
+  // Reasoning section (and before any component-docs/examples sections). It
+  // does NOT apply the v2 tweaks, so the v1/undefined/v2 outputs stay
+  // byte-identical to today; only the v3 path appends this block.
+  if (config.promptVariant === "v3") {
+    prompt = applyMinimalV3Tweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -184,6 +195,31 @@ function applyMinimalV2Tweaks(prompt: string): string {
   result = result.replace(lastFormatBullet, lastFormatBullet + phantomImportBullet);
 
   return result;
+}
+
+/**
+ * Apply the minimal-v3-only difference to an already-rendered v1 prompt:
+ * append a `## Design quality` section, preceded by two newlines, to the end
+ * of the prompt. Unlike v2, this changes nothing else in the v1 template — the
+ * forbidden bullet, File Format bullets, etc. all stay verbatim. It is called
+ * after the base prompt is rendered (and before any component-docs / examples
+ * sections are appended), so the Design quality section lands right after the
+ * `## Reasoning` section.
+ */
+function applyMinimalV3Tweaks(prompt: string): string {
+  const designQualitySection = dedent`
+    ## Design quality
+
+    Aim for a distinctive, polished interface — never generic 'AI-generated' defaults. Apply:
+    - Type hierarchy: a clear size/weight ladder readable at a glance; use font-serif or font-mono deliberately for headings when it suits the app's genre, not everywhere. Avoid flat, single-weight text.
+    - Restrained color: pick ONE anchor hue; keep the accent under ~5% of the surface; use solid, softly-tinted neutral backgrounds (warm or cool grays, not pure white) — never purple/blue gradient backgrounds.
+    - Spacing rhythm: use Tailwind's spacing scale consistently (p-4, gap-6, etc.); never arbitrary pixel values.
+    - Intentional layout: bias the composition (asymmetric margins, a dominant column) instead of centering everything; vary card sizes and alignment rather than a uniform grid of identical rounded rectangles.
+    - Real states: implement hover, focus, empty, and loading states — not just the happy path.
+    - Subtle motion: quick, purposeful ease-out transitions on interactive elements; respect prefers-reduced-motion.
+    - Polish over quantity: better one refined feature than three rough ones. If a detail would look unfinished, cut it.
+  `;
+  return prompt + "\n\n" + designQualitySection;
 }
 
 /**
