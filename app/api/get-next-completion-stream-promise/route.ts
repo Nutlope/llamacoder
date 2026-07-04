@@ -94,7 +94,10 @@ export async function POST(req: Request) {
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     stream: true,
     temperature: 0.4,
-    max_tokens: 9000,
+    // 13000 matches the inline-mode budget the winning config was benchmarked at
+    // (the <thinking> plan shares the output budget with the code). Streams in
+    // well under the 300s maxDuration.
+    max_tokens: 13000,
   });
 
   return new Response(res.toReadableStream());
