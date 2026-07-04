@@ -368,6 +368,22 @@ Each is a hypothesis grounded in the 744-cell campaign, to be run as an explore-
 
 Sequencing: **1 and 4 first** (highest confidence; one shortens the prompt, one closes a live failure class, neither risks scope creep) as `minimal-v2`. Tweaks 2/3/5 each trade one axis against another — run isolated, not bundled, or attribution is lost.
 
+### 6.1a Experiment results log (`minimal-vN`)
+
+Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts, k=1, judged) = `explore-min-inline` → **22/24 pass · q8.18 · 13.8s · 3005 out-tok**. All variants run against it. **Caveat: k=1 detects only large effects; ±0.2 quality / ±1 cell is noise.** Only a big, consistent win justifies promoting a variant over `minimal-v1`.
+
+| Variant | Change | Pass | Quality | Gen s | Out-tok | Verdict |
+|---|---|---|---|---|---|---|
+| **v1** (champion, shipped) | clean minimal prompt + inline | 22/24 | 8.18 | 13.8 | 3005 | **live in prod** |
+| **v2** | +phantom-import rule, −Tailwind ban | 21/24 | 7.86 | (confounded) | 2953 | ✗ shelved — no gain; phantom rule didn't fix its target; dropping ban raised flagged violations |
+| **v3** | +Hallmark design-quality section | 20/24 | 8.00 | 13.5 | 3832 | ~ mixed — **not promoted**. See below. |
+
+**v3 detail (design rubric):** net a slight wash at k=1, but *polarizing* and worth remembering:
+- **Helped GLM 5.2 notably** (q 7.63→**8.43**) and lifted visually-weak prompts hard (calculator 6.5→9.0, quiz 7.0→9.0, chart 9.3→9.7).
+- **Hurt Kimi K2.7-Code** (q 8.43→7.33, −1 pass) and some prompts (todo 7.7→6.3, settings 6.0→5.3).
+- Costs **+28% output tokens** (3005→3832) — the rubric makes models write more styling code.
+- Takeaway: design guidance is *model-dependent* — a clear win for GLM (the launch default), a loss for Kimi. If GLM is locked as the production model, a **trimmed** design rubric is worth a k=3 re-test on GLM alone. As a universal prompt addition it doesn't pay for its tokens. Not promoted; revisit if the model choice narrows to GLM.
+
 ### 6.2 Fast-iteration recipe for prompt tweaks
 
 The full 3-model × 8-prompt × judged explore run is the *confirmation* pass, not the iteration loop. For a ~1–2 minute smoke signal per tweak:
