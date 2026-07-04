@@ -380,6 +380,7 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 | **v4** | +Modern-patterns section | 21/24 | 8.00 | 13.4 | 3020 | ✗ shelved — fewer policy violations, but no quality/pass gain and GLM regressed. |
 | **v5** | +Scope-discipline section | 20/24 | 8.10 | 11.4 | 3194 | ✗ shelved — fast and good for K2.7 only; reliability regressed elsewhere. |
 | **v6** | +Self-check section | 19/24 | 8.16 | 10.6 | 2984 | ✗ shelved — helped K2.6, but badly destabilized GLM. |
+| **v7** | +Output-contract section | 23/24 | 7.78 | 18.8 | 3290 | ~ reliability win, quality/speed loss — **not promoted**; possible Kimi reliability follow-up. |
 
 **v3 detail (design rubric):** net a slight wash at k=1, but *polarizing* and worth remembering:
 - **Helped GLM 5.2 notably** (q 7.63→**8.43**) and lifted visually-weak prompts hard (calculator 6.5→9.0, quiz 7.0→9.0, chart 9.3→9.7).
@@ -406,6 +407,13 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 - **GLM 5.2 collapsed to 4/8**, adding failures the baseline did not have: unresolved `./App`, bad default export import, missing `scroll-area`, and a runtime failure on tic-tac-toe.
 - Kimi K2.7 stayed 7/8 but quality fell (q `8.43`→`7.86`), so even the stable model did not benefit.
 - Takeaway: asking for an explicit risk check may consume attention or disturb output discipline. Do not promote; if we revisit, make it a hidden harness-side retry/fix step rather than prompt text.
+
+**v7 detail (stricter output contract):** the first variant to beat baseline reliability, but not the champion:
+- Overall pass improved to `23/24` vs baseline `22/24`; both Kimi models went **8/8**.
+- The cost was visible: judged quality dropped (`8.18`→`7.78`), generation slowed (`13.8s`→`18.8s`), and output tokens rose (`3005`→`3290`).
+- **GLM 5.2 regressed from 8/8 to 7/8**, still failing calculator with missing emitted files (`HistoryPanel`, `calc`).
+- **Kimi K2.7 improved reliability** (7/8→8/8) while quality only softened (q `8.43`→`8.13`), so this may be worth a Kimi-only k=3 confirmation if reliability is the product priority.
+- Takeaway: stricter output contract reduces format/path weirdness for Kimi, but the k=1 effect is not large enough and the quality/speed trade-off is too high for a universal prompt promotion. Keep `minimal-v1 × inline` as champion.
 
 ### 6.2 Fast-iteration recipe for prompt tweaks
 

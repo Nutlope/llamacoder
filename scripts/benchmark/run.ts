@@ -326,7 +326,8 @@ function parseCliArgs() {
     values["prompt-version"] !== "minimal-v3" &&
     values["prompt-version"] !== "minimal-v4" &&
     values["prompt-version"] !== "minimal-v5" &&
-    values["prompt-version"] !== "minimal-v6"
+    values["prompt-version"] !== "minimal-v6" &&
+    values["prompt-version"] !== "minimal-v7"
   ) {
     throw new Error(`Unsupported --prompt-version ${values["prompt-version"]}`);
   }

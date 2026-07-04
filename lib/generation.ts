@@ -27,7 +27,8 @@ export type PromptVersion =
   | "minimal-v3"
   | "minimal-v4"
   | "minimal-v5"
-  | "minimal-v6";
+  | "minimal-v6"
+  | "minimal-v7";
 
 export type GenerateAppConfig = {
   promptVersion?: PromptVersion;
@@ -84,7 +85,8 @@ export async function generateApp(
     promptVersion !== "minimal-v3" &&
     promptVersion !== "minimal-v4" &&
     promptVersion !== "minimal-v5" &&
-    promptVersion !== "minimal-v6"
+    promptVersion !== "minimal-v6" &&
+    promptVersion !== "minimal-v7"
   ) {
     throw new Error(`Unsupported promptVersion: ${promptVersion}`);
   }
@@ -134,10 +136,10 @@ export async function generateApp(
 
   // Resolve the minimal-prompt variant (if any) for the current promptVersion.
   // `minimal-v1` uses the caller's config as-is (no variant); `minimal-v2`,
-  // `minimal-v3`, `minimal-v4`, `minimal-v5`, and `minimal-v6` force their `promptVariant`
+  // `minimal-v3`, `minimal-v4`, `minimal-v5`, `minimal-v6`, and `minimal-v7` force their `promptVariant`
   // onto the spread config. Anything else falls back to the legacy
   // `getMainCodingPrompt`.
-  const minimalVariant: "v2" | "v3" | "v4" | "v5" | "v6" | null =
+  const minimalVariant: "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | null =
     promptVersion === "minimal-v2"
       ? "v2"
       : promptVersion === "minimal-v3"
@@ -148,7 +150,9 @@ export async function generateApp(
             ? "v5"
             : promptVersion === "minimal-v6"
               ? "v6"
-              : null;
+              : promptVersion === "minimal-v7"
+                ? "v7"
+                : null;
 
   let systemPrompt =
     promptVersion === "minimal-v1" ||
@@ -156,7 +160,8 @@ export async function generateApp(
     promptVersion === "minimal-v3" ||
     promptVersion === "minimal-v4" ||
     promptVersion === "minimal-v5" ||
-    promptVersion === "minimal-v6"
+    promptVersion === "minimal-v6" ||
+    promptVersion === "minimal-v7"
       ? buildMinimalCodingPrompt(
           minimalVariant
             ? {

@@ -20,9 +20,10 @@ export type PromptConfig = {
    * component-docs/examples sections) and does NOT apply the v2 or v3 tweaks.
    * When `"v5"`, it appends a `## Scope discipline` section and does NOT apply
    * the v2, v3, or v4 tweaks. When `"v6"`, it appends a `## Self-check`
-   * section and does NOT apply the earlier tweaks. No other differences.
+   * section. When `"v7"`, it appends a `## Output contract` section. These
+   * variants do NOT apply the earlier tweaks. No other differences.
    */
-  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6";
+  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -172,6 +173,11 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV6Tweaks(prompt);
   }
 
+  // Variant v7 = v1 + a stricter `## Output contract` section only.
+  if (config.promptVariant === "v7") {
+    prompt = applyMinimalV7Tweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -298,6 +304,22 @@ function applyMinimalV6Tweaks(prompt: string): string {
     Do not mention the risk check outside <thinking>; after </thinking>, output only code fences.
   `;
   return prompt + "\n\n" + selfCheckSection;
+}
+
+/**
+ * Apply the minimal-v7-only difference to an already-rendered v1 prompt.
+ */
+function applyMinimalV7Tweaks(prompt: string): string {
+  const outputContractSection = dedent`
+    ## Output contract
+
+    Follow this contract exactly after </thinking>:
+    - The first emitted file MUST be \`src/App.tsx\`. Do not emit \`src/main.tsx\`, \`main.tsx\`, \`index.tsx\`, or any custom React bootstrapping file; the renderer already mounts App.
+    - Emit one fenced block per file, using exactly \`\`\`tsx{path=src/SomeFile.tsx}\` as the fence header. No markdown headings, bullets, filenames, explanations, or summaries outside fences.
+    - Keep every emitted file path under \`src/\`. Do not emit duplicate paths or two files with the same component.
+    - Every relative import (\`./\` or \`../\`) must resolve to another file you emit in the same response. If a component is tiny, keep it in the importing file instead of creating an import edge.
+  `;
+  return prompt + "\n\n" + outputContractSection;
 }
 
 /**
