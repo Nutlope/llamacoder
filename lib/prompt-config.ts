@@ -19,9 +19,10 @@ export type PromptConfig = {
    * `## Modern patterns` section after the Reasoning section (before any
    * component-docs/examples sections) and does NOT apply the v2 or v3 tweaks.
    * When `"v5"`, it appends a `## Scope discipline` section and does NOT apply
-   * the v2, v3, or v4 tweaks. No other differences.
+   * the v2, v3, or v4 tweaks. When `"v6"`, it appends a `## Self-check`
+   * section and does NOT apply the earlier tweaks. No other differences.
    */
-  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5";
+  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -165,6 +166,12 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV5Tweaks(prompt);
   }
 
+  // Variant v6 = v1 + a `## Self-check` section. It does NOT apply earlier
+  // variant tweaks.
+  if (config.promptVariant === "v6") {
+    prompt = applyMinimalV6Tweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -275,6 +282,22 @@ function applyMinimalV5Tweaks(prompt: string): string {
     - Keep state local and simple; avoid over-engineered abstractions, duplicated derived state, and helper files for tiny logic.
   `;
   return prompt + "\n\n" + scopeDisciplineSection;
+}
+
+/**
+ * Apply the minimal-v6-only difference to an already-rendered v1 prompt.
+ */
+function applyMinimalV6Tweaks(prompt: string): string {
+  const selfCheckSection = dedent`
+    ## Self-check
+
+    Inside the single <thinking> block, after the implementation plan, add a short "Risk check" with exactly two bullets:
+    - Missing imports/files: verify every relative import resolves to a file you emit, and every @/components/ui or @/hooks import exists in the injected renderer. If unsure, use plain React and Tailwind instead.
+    - Runtime states: identify the one interaction, empty state, or disabled state most likely to break, then handle it before emitting code.
+
+    Do not mention the risk check outside <thinking>; after </thinking>, output only code fences.
+  `;
+  return prompt + "\n\n" + selfCheckSection;
 }
 
 /**

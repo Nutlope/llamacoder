@@ -379,6 +379,7 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 | **v3** | +Hallmark design-quality section | 20/24 | 8.00 | 13.5 | 3832 | ~ mixed — **not promoted**. See below. |
 | **v4** | +Modern-patterns section | 21/24 | 8.00 | 13.4 | 3020 | ✗ shelved — fewer policy violations, but no quality/pass gain and GLM regressed. |
 | **v5** | +Scope-discipline section | 20/24 | 8.10 | 11.4 | 3194 | ✗ shelved — fast and good for K2.7 only; reliability regressed elsewhere. |
+| **v6** | +Self-check section | 19/24 | 8.16 | 10.6 | 2984 | ✗ shelved — helped K2.6, but badly destabilized GLM. |
 
 **v3 detail (design rubric):** net a slight wash at k=1, but *polarizing* and worth remembering:
 - **Helped GLM 5.2 notably** (q 7.63→**8.43**) and lifted visually-weak prompts hard (calculator 6.5→9.0, quiz 7.0→9.0, chart 9.3→9.7).
@@ -398,6 +399,13 @@ Baseline for all: `minimal-v1 × inline`, explore profile (3 models × 8 prompts
 - **GLM 5.2 and Kimi K2.6 both fell to 6/8**. GLM introduced unterminated strings and a missing emitted component; K2.6 still hit missing `scroll-area`/`use-toast`.
 - Output tokens rose slightly overall (3005→3194) because K2.6 got longer, so the scope wording did not reliably shrink generated code.
 - Takeaway: keep in mind if product defaults to Kimi K2.7, but do not promote as the shared production prompt.
+
+**v6 detail (self-check inside `<thinking>`):** the intended reliability guard did not generalize:
+- Overall pass regressed hardest so far: `19/24` vs baseline `22/24`, with judged quality basically flat (`8.16` vs `8.18`).
+- **Kimi K2.6 improved to 8/8** with q `8.50` and reasonable tokens, so the risk-check wording can help a model that follows it calmly.
+- **GLM 5.2 collapsed to 4/8**, adding failures the baseline did not have: unresolved `./App`, bad default export import, missing `scroll-area`, and a runtime failure on tic-tac-toe.
+- Kimi K2.7 stayed 7/8 but quality fell (q `8.43`→`7.86`), so even the stable model did not benefit.
+- Takeaway: asking for an explicit risk check may consume attention or disturb output discipline. Do not promote; if we revisit, make it a hidden harness-side retry/fix step rather than prompt text.
 
 ### 6.2 Fast-iteration recipe for prompt tweaks
 
