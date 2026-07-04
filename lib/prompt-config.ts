@@ -1,5 +1,6 @@
 import dedent from "dedent";
 import { PREVIEW_DEPS } from "./preview/deps";
+import { listInjectedComponentNames } from "./preview/files";
 import shadcnDocs from "./shadcn-docs";
 import { examples } from "./shadcn-examples";
 
@@ -21,9 +22,12 @@ export type PromptConfig = {
    * When `"v5"`, it appends a `## Scope discipline` section and does NOT apply
    * the v2, v3, or v4 tweaks. When `"v6"`, it appends a `## Self-check`
    * section. When `"v7"`, it appends a `## Output contract` section. These
-   * variants do NOT apply the earlier tweaks. No other differences.
+   * variants do NOT apply the earlier tweaks. When `"v8"`, it appends a
+   * `## Available components` section listing the renderer's actual injected UI
+   * components (auto-generated via `listInjectedComponentNames`). It does NOT
+   * apply earlier variant tweaks. No other differences.
    */
-  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v3b";
+  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v3b" | "v8";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -183,6 +187,14 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
   // the v3b path appends this block.
   if (config.promptVariant === "v3b") {
     prompt = applyMinimalV3bTweaks(prompt);
+  }
+
+  // Variant v8 = v1 + a `## Available components` section listing the
+  // renderer's actual injected UI components (auto-generated from
+  // listInjectedComponentNames, so it can never drift from the injected set).
+  // It does NOT apply earlier variant tweaks.
+  if (config.promptVariant === "v8") {
+    prompt = applyMinimalV8Tweaks(prompt);
   }
 
   if (config.includeComponentDocs) {
@@ -348,6 +360,28 @@ function applyMinimalV7Tweaks(prompt: string): string {
     - Every relative import (\`./\` or \`../\`) must resolve to another file you emit in the same response. If a component is tiny, keep it in the importing file instead of creating an import edge.
   `;
   return prompt + "\n\n" + outputContractSection;
+}
+
+/**
+ * Apply the minimal-v8-only difference to an already-rendered v1 prompt:
+ * append a `## Available components` section listing the renderer's actual
+ * injected UI components (auto-generated via listInjectedComponentNames), so
+ * the list can never drift from the injected set. Changes nothing else in the
+ * v1 template. Called after the base prompt is rendered (and before any
+ * component-docs / examples sections are appended), so the section lands
+ * right after the `## Reasoning` section.
+ */
+function applyMinimalV8Tweaks(prompt: string): string {
+  const components = listInjectedComponentNames("radix").join(", ");
+  const availableComponentsSection = dedent`
+    ## Available components
+
+    These UI components already exist under \`@/components/ui\` — import and compose them; NEVER recreate or redefine them:
+    ${components}
+
+    Import them by name, e.g. \`import { Button } from "@/components/ui/button"\`. If you need a component that is NOT in this list, build it yourself with plain React + Tailwind (do not import a non-listed component).
+  `;
+  return prompt + "\n\n" + availableComponentsSection;
 }
 
 /**

@@ -255,6 +255,28 @@ export function getPreviewDependencies(
   return uiLibrary === "baseui" ? baseuiPreviewDependencies : PREVIEW_DEPS;
 }
 
+// Sorted, de-duplicated component base names derived from the same injected
+// file map the renderer uses (radix=shadcnFiles, baseui=baseuiPreviewFiles).
+// Pure Object.keys enumeration — no filesystem reads. Excludes the non-component
+// utility entries (index, use-toast, toaster).
+export function listInjectedComponentNames(
+  uiLibrary: PreviewUiLibrary = "radix",
+): string[] {
+  const fileMap = uiLibrary === "baseui" ? baseuiPreviewFiles : shadcnFiles;
+  const excluded = new Set(["index", "use-toast", "toaster"]);
+  const names = new Set<string>();
+
+  for (const file of Object.keys(fileMap)) {
+    const match = file.match(/^\/?components\/ui\/([^/]+)\.tsx$/);
+    if (!match) continue;
+    const name = match[1];
+    if (excluded.has(name)) continue;
+    names.add(name);
+  }
+
+  return [...names].sort();
+}
+
 function normalizeModelPath(path: string): string {
   let normalizedPath = path.replace(/^\/+/, "");
 
