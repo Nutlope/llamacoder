@@ -28,11 +28,15 @@ export type PreviewHarnessSession = {
 export async function createPreviewHarnessSession(options: {
   baseUrl?: string;
   browser?: Browser;
+  uiLibrary?: "radix" | "baseui";
 }): Promise<PreviewHarnessSession> {
   const browser = options.browser ?? (await chromium.launch());
   const ownsBrowser = !options.browser;
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  await page.goto(`${options.baseUrl ?? "http://localhost:3000"}/preview-harness`);
+  const uiParam = options.uiLibrary === "baseui" ? "?ui=baseui" : "";
+  await page.goto(
+    `${options.baseUrl ?? "http://localhost:3000"}/preview-harness${uiParam}`,
+  );
   await page.waitForFunction(() => typeof window.renderFiles === "function");
 
   return {

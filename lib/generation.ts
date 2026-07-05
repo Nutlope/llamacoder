@@ -30,7 +30,8 @@ export type PromptVersion =
   | "minimal-v6"
   | "minimal-v7"
   | "minimal-v3b"
-  | "minimal-v8";
+  | "minimal-v8"
+  | "minimal-v9";
 
 export type GenerateAppConfig = {
   promptVersion?: PromptVersion;
@@ -88,9 +89,10 @@ export async function generateApp(
     promptVersion !== "minimal-v4" &&
     promptVersion !== "minimal-v5" &&
     promptVersion !== "minimal-v6" &&
-    promptVersion !== "minimal-v7" &&
-    promptVersion !== "minimal-v3b" &&
-    promptVersion !== "minimal-v8"
+   promptVersion !== "minimal-v7" &&
+   promptVersion !== "minimal-v3b" &&
+   promptVersion !== "minimal-v8" &&
+   promptVersion !== "minimal-v9"
   ) {
     throw new Error(`Unsupported promptVersion: ${promptVersion}`);
   }
@@ -152,6 +154,7 @@ export async function generateApp(
     | "v7"
     | "v3b"
     | "v8"
+    | "v9"
     | null =
     promptVersion === "minimal-v2"
       ? "v2"
@@ -169,7 +172,9 @@ export async function generateApp(
                   ? "v3b"
                   : promptVersion === "minimal-v8"
                     ? "v8"
-                    : null;
+                    : promptVersion === "minimal-v9"
+                      ? "v9"
+                      : null;
 
   let systemPrompt =
     promptVersion === "minimal-v1" ||
@@ -180,7 +185,8 @@ export async function generateApp(
     promptVersion === "minimal-v6" ||
     promptVersion === "minimal-v7" ||
     promptVersion === "minimal-v3b" ||
-    promptVersion === "minimal-v8"
+    promptVersion === "minimal-v8" ||
+    promptVersion === "minimal-v9"
       ? buildMinimalCodingPrompt(
           minimalVariant
             ? {

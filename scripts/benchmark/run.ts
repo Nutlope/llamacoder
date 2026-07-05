@@ -98,7 +98,10 @@ async function main() {
   );
 
   const server = await ensurePreviewHarnessServer(baseUrl);
-  const session = await createPreviewHarnessSession({ baseUrl });
+  const session = await createPreviewHarnessSession({
+    baseUrl,
+    uiLibrary: args.uiLibrary,
+  });
   const results: EvalResult[] = [];
 
   try {
@@ -307,6 +310,7 @@ function parseCliArgs() {
       prompts: { type: "string" },
       repetitions: { type: "string" },
       "base-url": { type: "string" },
+      ui: { type: "string" },
       "run-id": { type: "string" },
       "skip-judge": { type: "boolean", default: false },
       "include-examples": { type: "boolean", default: false },
@@ -328,8 +332,9 @@ function parseCliArgs() {
     values["prompt-version"] !== "minimal-v5" &&
     values["prompt-version"] !== "minimal-v6" &&
     values["prompt-version"] !== "minimal-v7" &&
-    values["prompt-version"] !== "minimal-v3b" &&
-    values["prompt-version"] !== "minimal-v8"
+   values["prompt-version"] !== "minimal-v3b" &&
+   values["prompt-version"] !== "minimal-v8" &&
+   values["prompt-version"] !== "minimal-v9"
   ) {
     throw new Error(`Unsupported --prompt-version ${values["prompt-version"]}`);
   }
@@ -355,6 +360,7 @@ function parseCliArgs() {
       ? Number.parseInt(values.repetitions, 10)
       : undefined,
     baseUrl: values["base-url"],
+    uiLibrary: values.ui === "baseui" ? ("baseui" as const) : undefined,
     runId: values["run-id"],
     skipJudge: values["skip-judge"],
     includeExamples: values["include-examples"],

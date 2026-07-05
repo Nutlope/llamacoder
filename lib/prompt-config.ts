@@ -22,12 +22,26 @@ export type PromptConfig = {
    * When `"v5"`, it appends a `## Scope discipline` section and does NOT apply
    * the v2, v3, or v4 tweaks. When `"v6"`, it appends a `## Self-check`
    * section. When `"v7"`, it appends a `## Output contract` section. These
-   * variants do NOT apply the earlier tweaks. When `"v8"`, it appends a
-   * `## Available components` section listing the renderer's actual injected UI
-   * components (auto-generated via `listInjectedComponentNames`). It does NOT
-   * apply earlier variant tweaks. No other differences.
-   */
-  promptVariant?: "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v3b" | "v8";
+  * variants do NOT apply the earlier tweaks. When `"v8"`, it appends a
+  * `## Available components` section listing the renderer's actual injected UI
+  * components (auto-generated via `listInjectedComponentNames`). It does NOT
+  * apply earlier variant tweaks. No other differences. When `"v9"`, it appends
+  * the same `## Available components` section as v8 but sourced from the Base
+  * UI component set (`listInjectedComponentNames("baseui")`) instead of the
+  * Radix/shadcn set. Only the component list content differs; surrounding
+  * wording is byte-identical to v8.
+  */
+  promptVariant?:
+    | "v1"
+    | "v2"
+    | "v3"
+    | "v4"
+    | "v5"
+    | "v6"
+    | "v7"
+    | "v3b"
+    | "v8"
+    | "v9";
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -195,6 +209,13 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
   // It does NOT apply earlier variant tweaks.
   if (config.promptVariant === "v8") {
     prompt = applyMinimalV8Tweaks(prompt);
+  }
+
+  // Variant v9 = v8's `## Available components` section but sourced from the
+  // Base UI component set instead of the Radix/shadcn set. Only the component
+  // list content differs from v8; the surrounding wording is byte-identical.
+  if (config.promptVariant === "v9") {
+    prompt = applyMinimalV9Tweaks(prompt);
   }
 
   if (config.includeComponentDocs) {
@@ -373,6 +394,25 @@ function applyMinimalV7Tweaks(prompt: string): string {
  */
 function applyMinimalV8Tweaks(prompt: string): string {
   const components = listInjectedComponentNames("radix").join(", ");
+  const availableComponentsSection = dedent`
+    ## Available components
+
+    These UI components already exist under \`@/components/ui\` — import and compose them; NEVER recreate or redefine them:
+    ${components}
+
+    Import them by name, e.g. \`import { Button } from "@/components/ui/button"\`. If you need a component that is NOT in this list, build it yourself with plain React + Tailwind (do not import a non-listed component).
+  `;
+  return prompt + "\n\n" + availableComponentsSection;
+}
+
+/**
+ * Variant v9 = v8's `## Available components` section but with the Base UI
+ * component set instead of the Radix/shadcn set. The surrounding wording is
+ * byte-identical to `applyMinimalV8Tweaks`; only the component list source
+ * changes (baseui instead of radix).
+ */
+function applyMinimalV9Tweaks(prompt: string): string {
+  const components = listInjectedComponentNames("baseui").join(", ");
   const availableComponentsSection = dedent`
     ## Available components
 
