@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { bundle } from "@/lib/preview/bundle";
-import { assemblePreviewFiles } from "@/lib/preview/files";
+import {
+  assemblePreviewFiles,
+  getPreviewDependencies,
+} from "@/lib/preview/files";
 import { buildSrcdoc } from "@/lib/preview/html";
 
 type GeneratedFile = {
@@ -65,7 +68,14 @@ export default function PreviewHarnessClient() {
       updatePhase("bundling");
       updateResult(() => emptyResult);
 
-      const buildResult = await bundle(assemblePreviewFiles(files));
+      // Benchmark harness can request the Base UI component set via ?ui=baseui.
+      const uiLibrary =
+        new URLSearchParams(window.location.search).get("ui") === "baseui"
+          ? ("baseui" as const)
+          : ("radix" as const);
+      const buildResult = await bundle(
+        assemblePreviewFiles(files, { uiLibrary }),
+      );
 
       if (!buildResult.ok) {
         updatePhase("error");
@@ -91,7 +101,14 @@ export default function PreviewHarnessClient() {
       }));
 
       iframeStartedAtRef.current = performance.now();
-      setSrcdoc(buildSrcdoc(buildResult.code, buildResult.css));
+      setSrcdoc(
+        buildSrcdoc(
+          buildResult.code,
+          buildResult.css,
+          getPreviewDependencies(uiLibrary),
+          { vendor: uiLibrary === "baseui" ? "flat" : "local" },
+        ),
+      );
       updatePhase("running");
 
       watchdogRef.current = window.setTimeout(() => {
