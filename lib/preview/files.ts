@@ -252,7 +252,18 @@ function isExternalizedBaseuiPreviewFile(path: string) {
 export function getPreviewDependencies(
   uiLibrary: PreviewUiLibrary = "radix",
 ): Record<string, string> {
-  return uiLibrary === "baseui" ? baseuiPreviewDependencies : PREVIEW_DEPS;
+  if (uiLibrary !== "baseui") return PREVIEW_DEPS;
+  // Base UI replaces the @radix-ui/* primitives, but generated apps still use
+  // the general-purpose libraries the prompt advertises (framer-motion, vaul,
+  // recharts, date-fns, …). Merge those in — they resolve via the esm.sh
+  // import-map fallback when not in the local vendor. baseui's own pins win.
+  const generalDeps = Object.fromEntries(
+    Object.entries(PREVIEW_DEPS).filter(
+      ([name]) =>
+        !name.startsWith("@radix-ui/") && name !== "react-router-dom",
+    ),
+  );
+  return { ...generalDeps, ...baseuiPreviewDependencies };
 }
 
 // Sorted, de-duplicated component base names derived from the same injected
