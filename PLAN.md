@@ -8,6 +8,17 @@ The plan is written around agreed data structures so the implementation has clea
 
 ---
 
+## Base UI shipped (2026-07-05)
+
+Production now ships the Base UI direction (commit `fe29f90`), validated by the `minimal-v9 × inline × baseui` benchmark (GLM k=3: quality parity, −22% latency, missing-component failures eliminated):
+- **Renderer default flipped radix → baseui** (`code-runner-react.tsx`) — all chat/share previews render Base UI's 64 modern components (scroll-area, combobox, command, data-table, date-picker, sidebar, …).
+- **Production prompt is Base UI-aware** (`buildProductionCodingPrompt`): allowed-stack generated from the Base UI deps, full Base UI component inventory listed, inline plan retained. `v1` and all benchmark variants stay byte-identical (`uiLibrary` defaults radix).
+- **Supporting fixes:** harness renders Base UI (`a9528d7`); Base UI import map completed with general libs like framer-motion (`5e7d6a6`); harness error bridge records uncaught runtime/module errors (`fe29f90`).
+- **Verified:** production `next build` passes; `/preview-poc` (now baseui default) smoke-renders to `ready`.
+- **Remaining:** (1) production deploy verification (owner: Riccardo); (2) old stored chats were radix-generated — some may break under Base UI per the accepted-breakage decision (§0.2); (3) the production `code-runner` "Try to fix" error capture could get the same `pageerror` fix the harness got.
+
+---
+
 ## Launch scope — Monday 2026-07-06, GLM 5.2 default
 
 The company launch does **not** wait for this plan. Launch-critical vs. deferred:
