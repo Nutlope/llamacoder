@@ -162,6 +162,13 @@ export default function PreviewHarnessClient() {
           runtime: {
             ...current.runtime,
             ok: false,
+            // Record the uncaught error / rejection message so runtime failures
+            // are diagnosable (previously "error" only flipped phase, leaving
+            // consoleErrors empty — the "runtime, no msg" mystery).
+            consoleErrors: [
+              ...current.runtime.consoleErrors,
+              String(event.data.message || "Unknown runtime error"),
+            ],
             durationMs: elapsedRuntimeMs(),
           },
         }));

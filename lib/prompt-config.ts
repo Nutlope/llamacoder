@@ -1,6 +1,9 @@
 import dedent from "dedent";
-import { PREVIEW_DEPS } from "./preview/deps";
-import { listInjectedComponentNames } from "./preview/files";
+import {
+  getPreviewDependencies,
+  listInjectedComponentNames,
+  type PreviewUiLibrary,
+} from "./preview/files";
 import shadcnDocs from "./shadcn-docs";
 import { examples } from "./shadcn-examples";
 
@@ -42,6 +45,12 @@ export type PromptConfig = {
     | "v3b"
     | "v8"
     | "v9";
+  /**
+   * Which injected component library the prompt targets. Controls the
+   * allowed-stack list (generated from that library's deps). Defaults to
+   * "radix" so every existing variant stays byte-identical.
+   */
+  uiLibrary?: PreviewUiLibrary;
 };
 
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
@@ -66,7 +75,21 @@ export const INLINE_PLAN_INSTRUCTION =
  * (`minimal-v1` × `inline`) from the 2026-07-03 benchmark campaign.
  */
 export function buildProductionCodingPrompt(): string {
-  return buildMinimalCodingPrompt(DEFAULT_PROMPT_CONFIG) + "\n\n" + INLINE_PLAN_INSTRUCTION;
+  // Ships the Base UI direction: allowed-stack generated from the Base UI deps,
+  // the full Base UI component inventory listed, plus the inline plan-first
+  // instruction. Benchmarked (minimal-v9 × inline × baseui, 2026-07-05): quality
+  // parity with Radix, ~22% faster, and the missing-component failure class gone.
+  const base = buildMinimalCodingPrompt({
+    ...DEFAULT_PROMPT_CONFIG,
+    uiLibrary: "baseui",
+  });
+  return (
+    base +
+    "\n\n" +
+    buildAvailableComponentsSection("baseui") +
+    "\n\n" +
+    INLINE_PLAN_INSTRUCTION
+  );
 }
 
 /**
@@ -83,7 +106,7 @@ export function buildProductionCodingPrompt(): string {
  * so existing parsing keeps working unchanged.
  */
 export function buildMinimalCodingPrompt(config: PromptConfig): string {
-  const allowedStack = buildAllowedStack();
+  const allowedStack = buildAllowedStack(config.uiLibrary ?? "radix");
 
   let prompt = dedent`
     # LlamaCoder
@@ -393,16 +416,7 @@ function applyMinimalV7Tweaks(prompt: string): string {
  * right after the `## Reasoning` section.
  */
 function applyMinimalV8Tweaks(prompt: string): string {
-  const components = listInjectedComponentNames("radix").join(", ");
-  const availableComponentsSection = dedent`
-    ## Available components
-
-    These UI components already exist under \`@/components/ui\` — import and compose them; NEVER recreate or redefine them:
-    ${components}
-
-    Import them by name, e.g. \`import { Button } from "@/components/ui/button"\`. If you need a component that is NOT in this list, build it yourself with plain React + Tailwind (do not import a non-listed component).
-  `;
-  return prompt + "\n\n" + availableComponentsSection;
+  return prompt + "\n\n" + buildAvailableComponentsSection("radix");
 }
 
 /**
@@ -412,16 +426,7 @@ function applyMinimalV8Tweaks(prompt: string): string {
  * changes (baseui instead of radix).
  */
 function applyMinimalV9Tweaks(prompt: string): string {
-  const components = listInjectedComponentNames("baseui").join(", ");
-  const availableComponentsSection = dedent`
-    ## Available components
-
-    These UI components already exist under \`@/components/ui\` — import and compose them; NEVER recreate or redefine them:
-    ${components}
-
-    Import them by name, e.g. \`import { Button } from "@/components/ui/button"\`. If you need a component that is NOT in this list, build it yourself with plain React + Tailwind (do not import a non-listed component).
-  `;
-  return prompt + "\n\n" + availableComponentsSection;
+  return prompt + "\n\n" + buildAvailableComponentsSection("baseui");
 }
 
 /**
@@ -429,10 +434,30 @@ function applyMinimalV9Tweaks(prompt: string): string {
  * iterating `PREVIEW_DEPS`. This keeps the prompt and the renderer's import map
  * in sync by construction.
  */
-function buildAllowedStack(): string {
-  return Object.entries(PREVIEW_DEPS)
+function buildAllowedStack(uiLibrary: PreviewUiLibrary = "radix"): string {
+  return Object.entries(getPreviewDependencies(uiLibrary))
     .map(([name, version]) => `- ${name}@${version}`)
     .join("\n");
+}
+
+/**
+ * The `## Available components` section: an auto-generated inventory of the
+ * components the renderer actually injects for `uiLibrary`, so the model
+ * composes from them instead of reinventing or guessing. Shared by the v8/v9
+ * variants and the production prompt.
+ */
+function buildAvailableComponentsSection(
+  uiLibrary: PreviewUiLibrary,
+): string {
+  const components = listInjectedComponentNames(uiLibrary).join(", ");
+  return dedent`
+    ## Available components
+
+    These UI components already exist under \`@/components/ui\` — import and compose them; NEVER recreate or redefine them:
+    ${components}
+
+    Import them by name, e.g. \`import { Button } from "@/components/ui/button"\`. If you need a component that is NOT in this list, build it yourself with plain React + Tailwind (do not import a non-listed component).
+  `;
 }
 
 /**

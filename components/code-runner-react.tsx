@@ -110,7 +110,7 @@ const LEAF_INLINE_BASEUI_COMPONENT_PATHS = [
 export default function ReactCodeRunner({
   files,
   onRequestFix,
-  previewKit = "radix",
+  previewKit = "baseui",
   previewDebounceMs,
   previewVendor,
   previewBundleMode = "external",
@@ -159,7 +159,7 @@ function SandpackReactCodeRunner({ files, onRequestFix }: RunnerProps) {
 function WasmReactCodeRunner({
   files,
   onRequestFix,
-  previewKit = "radix",
+  previewKit = "baseui",
   previewDebounceMs = 0,
   previewVendor,
   previewBundleMode = "external",
