@@ -64,7 +64,10 @@ function isLikelyTailwindToken(token: string) {
   if (token.startsWith("@/") || token.startsWith("./")) return false;
 
   const utility = token.split(":").pop()?.replace(/^!?-?/, "") ?? token;
-  return /^(bg|text|border|ring|shadow|rounded|flex|grid|inline|block|hidden|items|justify|content|gap|space|p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|w|h|min|max|size|overflow|relative|absolute|fixed|sticky|inset|top|right|bottom|left|z|opacity|transition|duration|ease|animate|cursor|select|pointer|font|leading|tracking|whitespace|truncate|sr-only|container|aspect|object|scale|translate|rotate|origin|isolate|columns|col|row|auto|place|self|grow|shrink|basis|order|divide|outline|resize|scroll|overscroll|snap|touch|will|transform|decoration|underline|uppercase|lowercase|capitalize|normal|italic|not-italic|tabular|align|break|list|backdrop|blur|brightness|contrast|drop|grayscale|hue|invert|saturate|sepia|filter|fill|stroke|accent|caret|scheme|visible|invisible|collapse|static|float|clear|box|table|caption|no-scrollbar|scrollbar|shimmer)(-|$)/.test(
+  // `from-*`/`via-*`/`to-*` are gradient color-stops — without them the compiler
+  // never sees the stops, `--tw-gradient-stops` stays empty, the gradient resolves
+  // to `none`, and `bg-clip-text text-transparent` text becomes invisible.
+  return /^(bg|from|via|to|text|border|ring|shadow|rounded|flex|grid|inline|block|hidden|items|justify|content|gap|space|p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|w|h|min|max|size|overflow|relative|absolute|fixed|sticky|inset|top|right|bottom|left|z|opacity|transition|duration|ease|animate|cursor|select|pointer|font|leading|tracking|whitespace|truncate|sr-only|container|aspect|object|scale|translate|rotate|origin|isolate|columns|col|row|auto|place|self|grow|shrink|basis|order|divide|outline|resize|scroll|overscroll|snap|touch|will|transform|decoration|underline|uppercase|lowercase|capitalize|normal|italic|not-italic|tabular|align|break|list|backdrop|blur|brightness|contrast|drop|grayscale|hue|invert|saturate|sepia|filter|fill|stroke|accent|caret|scheme|visible|invisible|collapse|static|float|clear|box|table|caption|no-scrollbar|scrollbar|shimmer)(-|$)/.test(
     utility,
   );
 }
