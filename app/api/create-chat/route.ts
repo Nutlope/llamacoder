@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
-import {
-  screenshotToCodePrompt,
-  softwareArchitectPrompt,
-} from "@/lib/prompts";
+import { screenshotToCodePrompt } from "@/lib/prompts";
 import { buildProductionCodingPrompt } from "@/lib/prompt-config";
 import Together from "together-ai";
-import { resolveModel, PLANNING_MODEL } from "@/lib/constants";
+import { resolveModel } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, model, quality, screenshotUrl } = await request.json();
+    const { prompt, model, screenshotUrl } = await request.json();
     const resolvedModel = resolveModel(model);
 
     const prisma = getPrisma();
     const chat = await prisma.chat.create({
       data: {
         model: resolvedModel,
-        quality,
+        // The High-quality toggle was removed (benchmark: worse reliability, no
+        // quality gain). All generations use the single minimal-v1 × inline path.
+        quality: "low",
         prompt,
         title: "",
         shadcn: true,
@@ -90,29 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     let userMessage: string;
-    if (quality === "high") {
-      let initialRes = await together.chat.completions.create({
-        model: PLANNING_MODEL,
-        messages: [
-          {
-            role: "system",
-            content: softwareArchitectPrompt,
-          },
-          {
-            role: "user",
-            content: fullScreenshotDescription
-              ? fullScreenshotDescription + prompt
-              : prompt,
-          },
-        ],
-        temperature: 0.4,
-        max_tokens: 3000,
-      });
-
-      console.log("PLAN:", initialRes.choices[0].message?.content);
-
-      userMessage = initialRes.choices[0].message?.content ?? prompt;
-    } else if (fullScreenshotDescription) {
+    if (fullScreenshotDescription) {
       userMessage =
         prompt +
         "RECREATE THIS APP AS CLOSELY AS POSSIBLE: " +
