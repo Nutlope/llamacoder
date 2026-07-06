@@ -12,6 +12,8 @@ export default function CodeRunner({
   previewDebounceMs,
   previewVendor,
   previewBundleMode,
+  isFixPending,
+  allowAutoFix,
 }: {
   language?: string;
   code?: string;
@@ -21,6 +23,8 @@ export default function CodeRunner({
   previewDebounceMs?: number;
   previewVendor?: PreviewVendorMode;
   previewBundleMode?: PreviewBundleMode;
+  isFixPending?: boolean;
+  allowAutoFix?: boolean;
 }) {
   const actualFiles =
     files || (code ? [{ path: "App.tsx", content: code }] : []);
@@ -32,6 +36,8 @@ export default function CodeRunner({
       previewDebounceMs={previewDebounceMs}
       previewVendor={previewVendor}
       previewBundleMode={previewBundleMode}
+      isFixPending={isFixPending}
+      allowAutoFix={allowAutoFix}
     />
   );
 }

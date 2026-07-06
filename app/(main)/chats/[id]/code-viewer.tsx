@@ -44,6 +44,8 @@ export default function CodeViewer({
   onClose,
   onRequestFix,
   onRestore,
+  isFixPending,
+  allowAutoFix,
 }: {
   chat: Chat;
   streamText: string;
@@ -58,6 +60,8 @@ export default function CodeViewer({
     oldVersion: number,
     newVersion: number,
   ) => void;
+  isFixPending?: boolean;
+  allowAutoFix?: boolean;
 }) {
   const streamAllFiles = extractAllCodeBlocks(streamText);
 
@@ -424,6 +428,8 @@ export default function CodeViewer({
                   language={language}
                   files={files.map((f) => ({ path: f.path, content: f.code }))}
                   key={refresh}
+                  isFixPending={isFixPending}
+                  allowAutoFix={allowAutoFix}
                 />
               </div>
             )}

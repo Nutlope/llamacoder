@@ -8,7 +8,7 @@ import {
   extractAllCodeBlocks,
 } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { memo, startTransition, use, useEffect, useRef, useState } from "react";
+import { memo, startTransition, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
@@ -45,6 +45,33 @@ export default function PageClient({ chat }: { chat: Chat }) {
       .filter((m) => m.role === "assistant" && extractFirstCodeBlock(m.content))
       .at(-1),
   );
+
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [isFixPending, setIsFixPending] = useState(false);
+  const autoFixMessageIdsRef = useRef<Set<string>>(new Set());
+  const FIX_REQUEST_PREFIX = "The code is not working. Can you fix it? Here's the error:";
+
+  function previousUserMessageFor(
+    chat: Chat,
+    message: Message,
+  ): Message | undefined {
+    const idx = chat.messages.findIndex((m) => m.id === message.id);
+    if (idx <= 0) return undefined;
+    for (let i = idx - 1; i >= 0; i--) {
+      if (chat.messages[i].role === "user") return chat.messages[i];
+    }
+    return undefined;
+  }
+
+  const allowAutoFix = useMemo(() => {
+    if (streamText) return false;
+    if (!activeMessage) return false;
+    const prev = previousUserMessageFor(chat, activeMessage);
+    if (!prev) return false;
+    if (autoFixMessageIdsRef.current.has(prev.id)) return false;
+    if (prev.content.trimStart().startsWith(FIX_REQUEST_PREFIX)) return false;
+    return true;
+  }, [chat, activeMessage, streamText]);
 
   useEffect(() => {
     async function f() {
@@ -127,6 +154,74 @@ export default function PageClient({ chat }: { chat: Chat }) {
     f();
   }, [chat.id, router, streamPromise, context]);
 
+  const submitFix = useCallback(
+    async (error: string) => {
+      if (isFixPending) return;
+
+      setIsFixPending(true);
+      const newMessageText = `${FIX_REQUEST_PREFIX}\n\n${error.trimStart()}`;
+      const optimistic: Message = {
+        id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        role: "user",
+        content: newMessageText,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        chatId: chat.id,
+        position: Number.MAX_SAFE_INTEGER,
+        files: null,
+      } as Message;
+      setOptimisticMessages((prev) => [...prev, optimistic]);
+
+      startTransition(async () => {
+        const message = await createMessage(chat.id, newMessageText, "user");
+        autoFixMessageIdsRef.current.add(message.id);
+        setOptimisticMessages((prev) =>
+          prev.filter((m) => m.id !== optimistic.id),
+        );
+
+        const nextStreamPromise = fetch(
+          "/api/get-next-completion-stream-promise",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              messageId: message.id,
+              model: chat.model,
+            }),
+          },
+        ).then((res) => {
+          if (!res.body) {
+            throw new Error("No body on response");
+          }
+          return res.body;
+        });
+
+        setStreamPromise(nextStreamPromise);
+        router.refresh();
+      });
+    },
+    [chat, isFixPending, router],
+  );
+
+  useEffect(() => {
+    if (!streamPromise) {
+      setIsFixPending(false);
+      setOptimisticMessages([]);
+    }
+  }, [streamPromise]);
+
+  const chatForChatLog = useMemo<Chat>(() => {
+    const existingUserContents = new Set(
+      chat.messages.filter((m) => m.role === "user").map((m) => m.content),
+    );
+    const missingOptimistic = optimisticMessages.filter(
+      (m) => !existingUserContents.has(m.content),
+    );
+    return {
+      ...chat,
+      messages: [...chat.messages, ...missingOptimistic],
+    } as Chat;
+  }, [chat, optimisticMessages]);
+
   return (
     <div className="h-dvh">
       <div className="flex h-full">
@@ -136,7 +231,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
           <HeaderChat chat={chat} />
 
           <ChatLog
-            chat={chat}
+            chat={chatForChatLog}
             streamText={streamText}
             activeMessage={activeMessage}
             onMessageClick={(message) => {
@@ -176,35 +271,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
                 setActiveMessage(undefined);
                 setIsShowingCodeViewer(false);
               }}
-              onRequestFix={(error: string) => {
-                startTransition(async () => {
-                  let newMessageText = `The code is not working. Can you fix it? Here's the error:\n\n`;
-                  newMessageText += error.trimStart();
-                  const message = await createMessage(
-                    chat.id,
-                    newMessageText,
-                    "user",
-                  );
-
-                  const streamPromise = fetch(
-                    "/api/get-next-completion-stream-promise",
-                    {
-                      method: "POST",
-                      body: JSON.stringify({
-                        messageId: message.id,
-                        model: chat.model,
-                      }),
-                    },
-                  ).then((res) => {
-                    if (!res.body) {
-                      throw new Error("No body on response");
-                    }
-                    return res.body;
-                  });
-                  setStreamPromise(streamPromise);
-                  router.refresh();
-                });
-              }}
+              onRequestFix={submitFix}
+              isFixPending={isFixPending}
+              allowAutoFix={allowAutoFix}
               onRestore={async (
                 message: Message | undefined,
                 oldVersion: number,

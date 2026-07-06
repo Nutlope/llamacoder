@@ -37,6 +37,8 @@ type RunnerProps = {
   previewDebounceMs?: number;
   previewVendor?: PreviewVendorMode;
   previewBundleMode?: PreviewBundleMode;
+  isFixPending?: boolean;
+  allowAutoFix?: boolean;
 };
 
 type PreviewState =
@@ -114,6 +116,8 @@ export default function ReactCodeRunner({
   previewDebounceMs,
   previewVendor,
   previewBundleMode = "external",
+  isFixPending,
+  allowAutoFix,
 }: RunnerProps) {
   const useWasmPreview = useWasmPreviewFlag();
   const effectivePreviewVendor =
@@ -128,14 +132,16 @@ export default function ReactCodeRunner({
         previewDebounceMs={previewDebounceMs}
         previewVendor={effectivePreviewVendor}
         previewBundleMode={previewBundleMode}
+        isFixPending={isFixPending}
+        allowAutoFix={allowAutoFix}
       />
     );
   }
 
-  return <SandpackReactCodeRunner files={files} onRequestFix={onRequestFix} />;
+  return <SandpackReactCodeRunner files={files} onRequestFix={onRequestFix} isFixPending={isFixPending} allowAutoFix={allowAutoFix} />;
 }
 
-function SandpackReactCodeRunner({ files, onRequestFix }: RunnerProps) {
+function SandpackReactCodeRunner({ files, onRequestFix, isFixPending }: RunnerProps) {
   const filesKey = files.map((f) => f.path + f.content).join("");
   return (
     <SandpackProvider
@@ -151,7 +157,7 @@ function SandpackReactCodeRunner({ files, onRequestFix }: RunnerProps) {
         showOpenNewtab={false}
         className="h-full w-full"
       />
-      {onRequestFix && <SandpackErrorMessage onRequestFix={onRequestFix} />}
+      {onRequestFix && <SandpackErrorMessage onRequestFix={onRequestFix} isFixPending={isFixPending} />}
     </SandpackProvider>
   );
 }
@@ -159,6 +165,8 @@ function SandpackReactCodeRunner({ files, onRequestFix }: RunnerProps) {
 function WasmReactCodeRunner({
   files,
   onRequestFix,
+  isFixPending,
+  allowAutoFix,
   previewKit = "baseui",
   previewDebounceMs = 0,
   previewVendor,
@@ -453,6 +461,19 @@ function WasmReactCodeRunner({
       ? formatErrorForFixPayload(state.error, consoleErrors)
       : undefined;
 
+  const autoFixSentForFilesRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!allowAutoFix || !onRequestFix || isFixPending || !error || !filesKey) {
+      return;
+    }
+    if (autoFixSentForFilesRef.current === filesKey) {
+      return;
+    }
+    autoFixSentForFilesRef.current = filesKey;
+    onRequestFix(error);
+  }, [allowAutoFix, error, filesKey, isFixPending, onRequestFix]);
+
   return (
     <div
       className="relative h-full w-full"
@@ -513,7 +534,7 @@ function WasmReactCodeRunner({
           {state.phase === "bundling" ? "Bundling preview..." : "Running..."}
         </div>
       )}
-      {error && <ErrorMessage error={error} onRequestFix={onRequestFix} />}
+      {error && <ErrorMessage error={error} onRequestFix={onRequestFix} disabled={isFixPending} />}
       {showDebugMetrics && (
         <PreviewMetricsBadge state={state} metrics={metrics} />
       )}
@@ -560,8 +581,10 @@ function PreviewMetricsBadge({
 
 function SandpackErrorMessage({
   onRequestFix,
+  isFixPending,
 }: {
   onRequestFix: (e: string) => void;
+  isFixPending?: boolean;
 }) {
   const { sandpack } = useSandpack();
 
@@ -575,9 +598,11 @@ function SandpackErrorMessage({
 function ErrorMessage({
   error,
   onRequestFix,
+  disabled,
 }: {
   error: string;
   onRequestFix?: (e: string) => void;
+  disabled?: boolean;
 }) {
   const [didCopy, setDidCopy] = useState(false);
 
@@ -607,7 +632,8 @@ function ErrorMessage({
               onClick={() => {
                 onRequestFix(error);
               }}
-              className="rounded bg-white px-2.5 py-1.5 text-sm font-medium text-black"
+              disabled={disabled}
+              className="rounded bg-white px-2.5 py-1.5 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
             >
               Try to fix
             </button>

@@ -48,7 +48,10 @@ function collectStyleTokens(content: string) {
 
   while ((match = stringPattern.exec(content))) {
     for (const token of match[2].split(/\s+/)) {
-      const normalized = token.trim().replace(/[{}()[\],;]+$/g, "");
+      // Keep `[`/`]` so Tailwind arbitrary-value utilities survive normalization
+      // (e.g. `bg-[#06060a]`, `text-[14px]`). Stripping the trailing `]` corrupts
+      // the candidate and the compiler silently drops it — white-on-white preview.
+      const normalized = token.trim().replace(/[{}(),;]+$/g, "");
       if (isLikelyTailwindToken(normalized)) tokens.add(normalized);
     }
   }
