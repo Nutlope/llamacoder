@@ -13,6 +13,9 @@ Current state: working tree clean; Base UI shipped as production default (`fe29f
 
 - [ ] **[C] Verify a spread of prompts actually render in the Base UI preview**, not just counter: todo, chart-dashboard (recharts), settings-page (dialog/tabs), calculator, tic-tac-toe. Some may hit the same timeout or Base-UI-API-vs-Radix-habit runtime errors seen in the v9 benchmark.
 
+- [x] **[C] Design rubric shipped in production prompt (`560853a`).** GLM 5.2 apps looked barebone. Added a 4-bullet `## Design` section (whitespace, type hierarchy, one accent color, soft depth) to `buildProductionCodingPrompt`, shared with the `minimal-v10` variant via `PRODUCTION_DESIGN_SECTION` (no drift). **Visual A/B on GLM 5.2 (post padding-fix), dashboard + todo:** clear prettiness win — sparklines, accent-colored chips, status pills, avatar badges, roomier padding, stronger headers vs the flat baseline. (Earlier v3/v3b rubric tests were confounded by pre-fix cramped CSS; this is the fair re-test.)
+  - Follow-up (optional): judge-scored GLM v9-vs-v10 regression check (k=3) to confirm the rubric doesn't regress functional quality. Low risk — the rubric is additive design guidance.
+
 ---
 
 ## 🟡 P1 — Test before ship
