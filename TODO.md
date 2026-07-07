@@ -17,16 +17,18 @@ Current state: working tree clean; Base UI shipped as production default (`fe29f
 
 ## 🟡 P1 — Test before ship
 
-- [ ] **[C] Smoke-test the new auto-fix + fix-pending controls** (`2f984ff`) — do they trigger on a real preview error and successfully re-generate? The preview error above is a perfect test case.
-- [ ] **[C] Old-chat compatibility spot-check.** Existing stored chats were Radix-generated; opening them now renders through Base UI. Per accepted-breakage (§0.2) some will break — confirm the failure is *graceful* (error overlay + Try to fix), not a hard crash, and gauge how many break.
-- [ ] **[C] Full new-chat happy path** on 2–3 models (GLM 5.2, Kimi K2.6): homepage → submit → redirect (measure) → generate → preview renders. Confirm redirect isn't slow (live test showed redirect < ~3s; AI generation is fast — the bottleneck is preview, not AI).
+- [x] **[C] Prompt-spread renders in Base UI (no more waterfalls) — CONFIRMED.** The sign-off benchmark renders all 8 prompts; early cells: counter 3/3, todo 2/3, chart-dashboard (recharts) rendering, **zero 15s timeouts**. The `?bundle` fix holds across the spread.
+- [x] **[C] Production error-capture — already handled** (no fix needed). `code-runner-react` line 443 already stores the postMessage error message; the harness bug (only flipping phase) was harness-only. The watchdog "no visible error" was a genuine *timeout* (slow, not erroring), now fixed at the source.
+- [ ] **[C] Smoke-test the new auto-fix + fix-pending controls** (`2f984ff`) — do they trigger on a real preview error and successfully re-generate?
+- [ ] **[C] Old-chat compatibility spot-check.** Existing stored chats were Radix-generated; opening them now renders through Base UI. Per accepted-breakage (§0.2) some will break — confirm the failure is *graceful* (error overlay + Try to fix), not a hard crash.
+- [ ] **[C] Full new-chat happy path** on 2–3 models — homepage → submit → redirect (< ~3s, verified) → generate → preview renders. (AI is fast; preview timeout was the only bottleneck, now fixed.)
 - [ ] **[R] Production deploy verification** (PLAN launch gate, still open): deploy, then smoke-test the deployed app — generate, preview renders, `?preview=sandpack` escape hatch, `/preview-harness` 404s in prod.
 
 ---
 
 ## 📊 Benchmark — what to re-run
 
-- [ ] **[C] One confirmation rank run on the ACTUAL shipped config** — Base UI + production prompt (`buildProductionCodingPrompt`) × `inline`, all 5 visible models, k=3, `--ui baseui`. Every prior run tested pieces; nothing has benchmarked the exact production config end-to-end. This is the release-signoff number (pass rate + quality + speed). ~2h background.
+- [~] **[C] Sign-off rank run — RUNNING** (`rank-signoff-baseui`, task started 2026-07-06). `minimal-v9` (now aligned to production: Base UI allowed-stack + component list, commit `c70a8ca`) × `inline` × `--ui baseui`, all 5 visible models, k=3 = 120 cells. Early cells healthy, zero timeouts. Final pass/quality/speed numbers pending (~2h).
   - Prereq: the P0 preview timeout must be fixed first, or the benchmark will show spurious failures (same watchdog).
 - [ ] **[C] (optional) Re-confirm model default.** Data says Kimi K2.6 = most reliable + fast; GLM 5.2 = current default, now credible post-Base-UI. **[R]** product call on which ships as default.
 
