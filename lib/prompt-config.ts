@@ -44,7 +44,8 @@ export type PromptConfig = {
     | "v7"
     | "v3b"
     | "v8"
-    | "v9";
+    | "v9"
+    | "v10";
   /**
    * Which injected component library the prompt targets. Controls the
    * allowed-stack list (generated from that library's deps). Defaults to
@@ -241,6 +242,13 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV9Tweaks(prompt);
   }
 
+  // Variant v10 = v9 (Base UI component list) + a small, sharp `## Design`
+  // section. Re-tested after the preview padding fix, which the earlier v3/v3b
+  // rubric tests were confounded by.
+  if (config.promptVariant === "v10") {
+    prompt = applyMinimalV10Tweaks(prompt);
+  }
+
   if (config.includeComponentDocs) {
     prompt += "\n\n" + buildComponentDocsSection();
   }
@@ -427,6 +435,26 @@ function applyMinimalV8Tweaks(prompt: string): string {
  */
 function applyMinimalV9Tweaks(prompt: string): string {
   return prompt + "\n\n" + buildAvailableComponentsSection("baseui");
+}
+
+/**
+ * Variant v10 = v9 (Base UI component list) + a small, sharp `## Design`
+ * section — the highest-impact visual levers, kept to four punchy bullets so it
+ * stays cheap. Aimed at making GLM's apps look intentionally designed.
+ */
+function applyMinimalV10Tweaks(prompt: string): string {
+  const design = dedent`
+    ## Design
+
+    Make it look intentionally designed, not a default prototype:
+    - Generous whitespace and padding so the UI breathes — roomy card/section padding (p-6/p-8) and clear spacing between elements (gap-4/gap-6).
+    - Strong type hierarchy: large, bold headings (text-2xl/text-3xl, font-semibold) with clear contrast to smaller muted body text (text-muted-foreground).
+    - Pick ONE accent color and use it purposefully for primary actions and highlights; keep everything else neutral. Never use default-looking unstyled elements.
+    - Soft depth and polish: subtle shadows (shadow-sm/shadow-md), rounded corners (rounded-lg/rounded-xl), clear card boundaries, and hover states on interactive elements.
+  `;
+  return (
+    prompt + "\n\n" + buildAvailableComponentsSection("baseui") + "\n\n" + design
+  );
 }
 
 /**

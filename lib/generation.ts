@@ -31,7 +31,8 @@ export type PromptVersion =
   | "minimal-v7"
   | "minimal-v3b"
   | "minimal-v8"
-  | "minimal-v9";
+  | "minimal-v9"
+  | "minimal-v10";
 
 export type GenerateAppConfig = {
   promptVersion?: PromptVersion;
@@ -92,7 +93,8 @@ export async function generateApp(
    promptVersion !== "minimal-v7" &&
    promptVersion !== "minimal-v3b" &&
    promptVersion !== "minimal-v8" &&
-   promptVersion !== "minimal-v9"
+   promptVersion !== "minimal-v9" &&
+   promptVersion !== "minimal-v10"
   ) {
     throw new Error(`Unsupported promptVersion: ${promptVersion}`);
   }
@@ -155,6 +157,7 @@ export async function generateApp(
     | "v3b"
     | "v8"
     | "v9"
+    | "v10"
     | null =
     promptVersion === "minimal-v2"
       ? "v2"
@@ -174,7 +177,9 @@ export async function generateApp(
                     ? "v8"
                     : promptVersion === "minimal-v9"
                       ? "v9"
-                      : null;
+                      : promptVersion === "minimal-v10"
+                        ? "v10"
+                        : null;
 
   let systemPrompt =
     promptVersion === "minimal-v1" ||
@@ -186,7 +191,8 @@ export async function generateApp(
     promptVersion === "minimal-v7" ||
     promptVersion === "minimal-v3b" ||
     promptVersion === "minimal-v8" ||
-    promptVersion === "minimal-v9"
+    promptVersion === "minimal-v9" ||
+    promptVersion === "minimal-v10"
       ? buildMinimalCodingPrompt(
           minimalVariant
             ? {
@@ -195,7 +201,8 @@ export async function generateApp(
                 // v9 is the Base UI variant — generate the allowed-stack from
                 // the Base UI deps too (not just the component list), so it
                 // matches the shipped production prompt exactly.
-                ...(promptVersion === "minimal-v9"
+                ...(promptVersion === "minimal-v9" ||
+                promptVersion === "minimal-v10"
                   ? { uiLibrary: "baseui" as const }
                   : {}),
               }
