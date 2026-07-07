@@ -86,7 +86,10 @@ type PreviewResource = {
   decodedBodySize?: number;
 };
 
-const PREVIEW_WATCHDOG_MS = 15_000;
+// Safety net for a preview that never posts back `ready`/`error` (e.g. a cold
+// bundle of a heavy dep like recharts+d3). 60s leaves generous headroom while
+// still surfacing a genuine hang rather than spinning forever.
+const PREVIEW_WATCHDOG_MS = 60_000;
 const previewTailwindCssCache = new Map<string, string>();
 const staticPreviewTailwindCandidatesCache = new Map<
   PreviewUiLibrary,

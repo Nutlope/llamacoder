@@ -60,6 +60,7 @@ export function extractAllCodeBlocks(input: string): Array<{
   path: string;
   fullMatch: string;
 }> {
+  input = normalizeFenceOpeners(input);
   const codeBlockRegex = /```([^\n]*)\n([\s\S]*?)\n```/g;
   const files: Array<{
     code: string;
@@ -109,7 +110,26 @@ export type ReplySegment =
       isPartial: boolean;
     };
 
+// GLM (and other models) sometimes glue an opening code fence onto the end of
+// the preceding prose line, e.g. "...for the form elements.```tsx{path=src/types.ts}",
+// and occasionally put the first line of code on that same line too. The
+// line-anchored fence detection below only recognizes a fence alone on its own
+// line, so a glued opener makes it silently drop that file — the code renders as
+// inline text and the preview breaks (a missing @/types module → 15s watchdog).
+// Normalize path-tagged opening fences onto their own line, with code starting
+// on the next line, before parsing. Targets only `{path=...}` openers, so bare
+// closing fences and ordinary inline code are untouched.
+export function normalizeFenceOpeners(markdown: string): string {
+  const pathFence = String.raw`\x60\x60\x60[^\n\x60]*\{path=[^}\n]*\}`;
+  return markdown
+    // Newline before a glued opener (prose directly before the fence).
+    .replace(new RegExp(String.raw`([^\n])(${pathFence})`, "g"), "$1\n$2")
+    // Newline after the opener tag when code is glued onto the same line.
+    .replace(new RegExp(String.raw`(${pathFence})[ \t]+(?=\S)`, "g"), "$1\n");
+}
+
 export function parseReplySegments(markdown: string): ReplySegment[] {
+  markdown = normalizeFenceOpeners(markdown);
   const segments: ReplySegment[] = [];
   const lines = markdown.split("\n");
   const fenceRegex = /^```([^\n]*)$/; // opening or closing fence line

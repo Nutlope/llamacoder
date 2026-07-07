@@ -20,7 +20,9 @@ type HarnessResult = {
   runtime: { ok: boolean; consoleErrors: string[]; durationMs: number };
 };
 
-const WATCHDOG_MS = 15_000;
+// Match the app runner's watchdog (see code-runner-react.tsx): 60s of headroom
+// for cold heavy-dep bundles, still bounded so a true hang surfaces an error.
+const WATCHDOG_MS = 60_000;
 
 declare global {
   interface Window {
