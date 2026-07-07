@@ -14,7 +14,8 @@ import {
 import {
   extractAllCodeBlocks,
   generateIntelligentFilename,
-  getExtensionForLanguage,
+  getFilesFromMessage,
+  parseReplySegments,
   toTitleCase,
 } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -70,54 +71,12 @@ export default function CodeViewer({
     input: string,
   ): { code: string; language: string; path: string } | undefined {
     if (!input) return undefined;
-    const lines = input.split("\n");
-    const codeFenceRegex = /^```([^\n]*)$/;
-
-    let openTag: string | null = null;
-    let codeBuffer: string[] = [];
-    let latestComplete:
-      | { code: string; language: string; path: string }
-      | undefined;
-
-    for (const line of lines) {
-      const match = line.match(codeFenceRegex);
-      if (match && !openTag) {
-        // Opening a fence
-        openTag = match[1] || "";
-        codeBuffer = [];
-      } else if (match && openTag) {
-        // Closing the fence
-        const { language, path } = parseTag(openTag);
-        latestComplete = { code: codeBuffer.join("\n"), language, path };
-        openTag = null;
-        codeBuffer = [];
-      } else if (openTag) {
-        codeBuffer.push(line);
-      }
-    }
-
-    // If an open fence remains at end, return it as partial; else return latest complete
-    if (openTag) {
-      const { language, path } = parseTag(openTag);
-      return { code: codeBuffer.join("\n"), language, path };
-    }
-    return latestComplete;
-  }
-
-  function parseTag(tag: string) {
-    const raw = tag || "";
-    const langMatch = raw.match(/^([A-Za-z0-9]+)/);
-    const language = langMatch ? langMatch[1] : "text";
-    const pathMatch = raw.match(/(?:\{\s*)?path\s*=\s*([^}\s]+)(?:\s*\})?/);
-    const filenameMatch = raw.match(
-      /(?:\{\s*)?filename\s*=\s*([^}\s]+)(?:\s*\})?/,
+    // Reuse the shared parser so the streaming view agrees with the stored
+    // result (handles GLM's next-line `{path=...}` attribute, dedupe, etc.).
+    const fileSegments = parseReplySegments(input).filter(
+      (s): s is Extract<typeof s, { type: "file" }> => s.type === "file",
     );
-    const path = pathMatch
-      ? pathMatch[1]
-      : filenameMatch
-        ? filenameMatch[1]
-        : `file.${getExtensionForLanguage(language)}`;
-    return { language, path };
+    return fileSegments.at(-1);
   }
 
   const latestStreamBlock = extractLatestStreamBlock(streamText);
@@ -168,12 +127,6 @@ export default function CodeViewer({
     overlay.forEach((f) => map.set(f.path, f));
     return Array.from(map.values());
   }
-
-  // Helper to get files from a message (JSON field or extract from content)
-  const getFilesFromMessage = (msg: Message) => {
-    // extractAllCodeBlocks is needed for legacy 1 file apps
-    return (msg.files as any[]) || extractAllCodeBlocks(msg.content);
-  };
 
   // Since each message now contains cumulative files, simplify the logic
   const assistantMessages = chat.messages.filter(

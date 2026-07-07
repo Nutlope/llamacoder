@@ -6,6 +6,7 @@ import {
   parseReplySegments,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
+  getFilesFromMessage,
 } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { memo, startTransition, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -281,13 +282,6 @@ export default function PageClient({ chat }: { chat: Chat }) {
               ) => {
                 startTransition(async () => {
                   if (!message) return;
-
-                  // Helper to get files from a message (JSON field or extract from content)
-                  const getFilesFromMessage = (msg: Message) => {
-                    return (
-                      (msg.files as any[]) || extractAllCodeBlocks(msg.content)
-                    );
-                  };
 
                   const restoredFiles = getFilesFromMessage(message);
                   if (restoredFiles.length === 0) return;
