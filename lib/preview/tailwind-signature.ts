@@ -48,10 +48,12 @@ function collectStyleTokens(content: string) {
 
   while ((match = stringPattern.exec(content))) {
     for (const token of match[2].split(/\s+/)) {
-      // Keep `[`/`]` so Tailwind arbitrary-value utilities survive normalization
-      // (e.g. `bg-[#06060a]`, `text-[14px]`). Stripping the trailing `]` corrupts
-      // the candidate and the compiler silently drops it — white-on-white preview.
-      const normalized = token.trim().replace(/[{}(),;]+$/g, "");
+      // Keep `[`/`]` AND `(`/`)` so modern Tailwind v4 utilities survive
+      // normalization — arbitrary values (`bg-[#06060a]`, `text-[14px]`) AND
+      // CSS-variable shorthand (`py-(--card-spacing)`, `gap-(--card-spacing)`).
+      // Stripping the trailing `)` corrupts the candidate and the compiler
+      // silently drops it — e.g. Base UI cards lose all their padding.
+      const normalized = token.trim().replace(/[{},;]+$/g, "");
       if (isLikelyTailwindToken(normalized)) tokens.add(normalized);
     }
   }
@@ -62,6 +64,14 @@ function collectStyleTokens(content: string) {
 function isLikelyTailwindToken(token: string) {
   if (token.length < 2 || token.length > 160) return false;
   if (token.startsWith("@/") || token.startsWith("./")) return false;
+
+  // Arbitrary-value utilities and property setters — `w-[100px]`,
+  // `py-(--card-spacing)`, `[--card-spacing:--spacing(4)]`, `data-[open]:...`.
+  // Don't try to allowlist these (the set is open-ended and Base UI leans on
+  // CSS-variable spacing); if a token carries `[` or `(` arbitrary syntax, hand
+  // it to Tailwind's `build()` and let the compiler be the judge. Prose words
+  // never contain these characters, so this stays safe against false positives.
+  if (token.includes("[") || token.includes("(")) return true;
 
   const utility = token.split(":").pop()?.replace(/^!?-?/, "") ?? token;
   // `from-*`/`via-*`/`to-*` are gradient color-stops — without them the compiler
