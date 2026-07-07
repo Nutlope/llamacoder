@@ -45,7 +45,8 @@ export type PromptConfig = {
     | "v3b"
     | "v8"
     | "v9"
-    | "v10";
+    | "v10"
+    | "v11";
   /**
    * Which injected component library the prompt targets. Controls the
    * allowed-stack list (generated from that library's deps). Defaults to
@@ -107,11 +108,37 @@ export function buildProductionCodingPrompt(): string {
     "\n\n" +
     buildAvailableComponentsSection("baseui") +
     "\n\n" +
-    PRODUCTION_DESIGN_SECTION +
+    // Ships the stronger Hallmark-informed rubric (minimal-v11). The gentler
+    // PRODUCTION_DESIGN_SECTION (minimal-v10) still produced flat/white output
+    // — its "keep everything neutral" line suppressed color. Visual A/B on GLM
+    // 5.2 (dashboard + todo, 2026-07-07) showed HALLMARK_DESIGN_SECTION is a
+    // dramatic win: real palettes, serif display type, depth, biased layouts.
+    HALLMARK_DESIGN_SECTION +
     "\n\n" +
     INLINE_PLAN_INSTRUCTION
   );
 }
+
+/**
+ * A stronger, color-forward design rubric informed by the Hallmark design skill
+ * (usehallmark.com): commit to a real palette instead of grayscale, layer depth
+ * and tinted surfaces, pair a display face with a body face, bias the layout,
+ * and actively dodge the recognizable "AI-generated" tells (purple-gradient
+ * heroes, centered-everything, generic icon-tile grids). Aimed at fixing the
+ * flat/white/barebone output the v10 rubric still produced ("keep everything
+ * neutral" was actively suppressing color). Under A/B evaluation as `minimal-v11`.
+ */
+export const HALLMARK_DESIGN_SECTION = dedent`
+  ## Design
+
+  Ship a distinctive, intentionally-designed interface — never a flat white wireframe or a generic "AI-generated" page. A screen that is only black text on a white background is a failure.
+
+  - COMMIT TO COLOR. Choose a real palette anchored on one rich hue (e.g. deep indigo, emerald, teal, amber, rose) and actually use it: tinted surfaces (bg-slate-50, bg-indigo-50), colored stat/icon chips, colored primary buttons, a colored or subtly gradient header band. Do NOT default to the cliché purple→blue hero gradient — that reads as AI-generated; pick a less obvious color story.
+  - BUILD DEPTH. Layer the UI so cards read as real objects: soft shadows (shadow-sm/shadow-md), generous rounding (rounded-xl/rounded-2xl), hairline borders, and gently tinted section backgrounds — never bare panels floating on pure white.
+  - STRONG TYPE HIERARCHY. A clear size/weight ladder (large bold display headings text-2xl/text-3xl/font-bold → muted text-sm body via text-muted-foreground). Use font-serif for a display heading when it fits the app's character, so headings and body don't share one flat voice.
+  - BIAS THE LAYOUT. Don't center one narrow column on an empty page. Use a real header/toolbar, an asymmetric or dominant content column, and varied card sizes. "Centered everything" and a uniform grid of identical rounded rectangles are AI tells — break them up.
+  - POLISH. Generous spacing on the 4-scale (p-6/p-8, gap-4/gap-6), hover/active states on every interactive element, and considered empty/loading states — not just the happy path.
+`;
 
 /**
  * Build a compact, section-structured system prompt from `config`.
@@ -267,6 +294,12 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
   // rubric tests were confounded by.
   if (config.promptVariant === "v10") {
     prompt = applyMinimalV10Tweaks(prompt);
+  }
+
+  // Variant v11 = v9 (Base UI component list) + the stronger, color-forward
+  // HALLMARK_DESIGN_SECTION. Under A/B evaluation vs v10.
+  if (config.promptVariant === "v11") {
+    prompt = applyMinimalV11Tweaks(prompt);
   }
 
   if (config.includeComponentDocs) {
@@ -469,6 +502,20 @@ function applyMinimalV10Tweaks(prompt: string): string {
     buildAvailableComponentsSection("baseui") +
     "\n\n" +
     PRODUCTION_DESIGN_SECTION
+  );
+}
+
+/**
+ * Variant v11 = v9 (Base UI component list) + the stronger, color-forward
+ * HALLMARK_DESIGN_SECTION (vs v10's gentler PRODUCTION_DESIGN_SECTION).
+ */
+function applyMinimalV11Tweaks(prompt: string): string {
+  return (
+    prompt +
+    "\n\n" +
+    buildAvailableComponentsSection("baseui") +
+    "\n\n" +
+    HALLMARK_DESIGN_SECTION
   );
 }
 
