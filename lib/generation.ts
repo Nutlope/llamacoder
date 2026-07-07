@@ -192,6 +192,12 @@ export async function generateApp(
             ? {
                 ...(config.promptConfig ?? DEFAULT_PROMPT_CONFIG),
                 promptVariant: minimalVariant,
+                // v9 is the Base UI variant — generate the allowed-stack from
+                // the Base UI deps too (not just the component list), so it
+                // matches the shipped production prompt exactly.
+                ...(promptVersion === "minimal-v9"
+                  ? { uiLibrary: "baseui" as const }
+                  : {}),
               }
             : config.promptConfig ?? DEFAULT_PROMPT_CONFIG,
         )
