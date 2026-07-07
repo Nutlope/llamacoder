@@ -88,3 +88,96 @@ test("bare closing fences and inline code are untouched", () => {
   assert.equal(normalizeFenceOpeners(md), md);
   assert.equal(files(md).length, 0);
 });
+
+// GLM (chat 4LsLa0R0L9b64Ng6) put the `{path=...}` attribute on the line AFTER
+// the bare ```tsx opener (inside the code body) instead of on the fence header.
+// The old header-only parser missed it, so every block fell back to `file.tsx`
+// and the cumulative merge collapsed all files into one.
+test("next-line {path=...} attribute is parsed and stripped from code", () => {
+  const md = [
+    `${B}tsx`,
+    "{path=src/App.tsx}",
+    `import { Hero } from "@/components/landing/hero";`,
+    `export default function App() { return null; }`,
+    B,
+  ].join("\n");
+
+  const got = files(md);
+  assert.equal(got.length, 1);
+  assert.equal(got[0].path, "src/App.tsx");
+  // the attribute line must not leak into the rendered code
+  assert.doesNotMatch(got[0].code, /\{path=/);
+  assert.match(got[0].code, /import \{ Hero \}/);
+});
+
+// The exact production regression: eight bare ```tsx blocks each carrying a
+// next-line {path=...}. They must stay eight distinct files, not collapse.
+test("multiple next-line path blocks never collapse into one", () => {
+  const paths = [
+    "src/App.tsx",
+    "src/components/landing/navbar.tsx",
+    "src/components/landing/hero.tsx",
+    "src/components/landing/features.tsx",
+    "src/components/landing/pricing.tsx",
+    "src/components/landing/testimonials.tsx",
+    "src/components/landing/waitlist.tsx",
+    "src/components/landing/footer.tsx",
+  ];
+  const md = paths
+    .map(
+      (p) =>
+        `${B}tsx\n{path=${p}}\nexport default function X() { return null; }\n${B}`,
+    )
+    .join("\n\n");
+
+  const ui = files(md).map((f) => f.path);
+  const backend = extractAllCodeBlocks(md).map((f) => f.path);
+  assert.equal(ui.length, paths.length);
+  assert.deepEqual(ui, paths);
+  assert.deepEqual(ui, backend);
+});
+
+// Two blocks that genuinely declare the same explicit path must not silently
+// drop one; dedupe keeps both with a numeric suffix.
+test("duplicate explicit paths are disambiguated, not dropped", () => {
+  const md = [
+    `${B}tsx{path=src/App.tsx}`,
+    `export default function App() { return 1; }`,
+    B,
+    `${B}tsx{path=src/App.tsx}`,
+    `export default function App() { return 2; }`,
+    B,
+  ].join("\n");
+
+  const got = files(md);
+  assert.equal(got.length, 2);
+  assert.deepEqual(
+    got.map((f) => f.path),
+    ["src/App.tsx", "src/App-2.tsx"],
+  );
+  assert.match(got[0].code, /return 1/);
+  assert.match(got[1].code, /return 2/);
+});
+
+// Bare tagless blocks with distinct content get distinct intelligent names
+// instead of all collapsing to the generic `file.tsx`.
+test("tagless blocks get distinct intelligent names", () => {
+  const md = [
+    `${B}tsx`,
+    `export default function Navbar() { return null; }`,
+    B,
+    `${B}tsx`,
+    `export default function Hero() { return null; }`,
+    B,
+    `${B}tsx`,
+    `export default function Navbar() { return null; }`,
+    B,
+  ].join("\n");
+
+  const got = files(md);
+  assert.equal(got.length, 3);
+  const names = got.map((f) => f.path);
+  // first and second differ by content; third collides with first and is suffixed
+  assert.notEqual(names[0], names[1]);
+  assert.deepEqual(names, ["navbar.tsx", "hero.tsx", "navbar-2.tsx"]);
+});
