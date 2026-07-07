@@ -119,6 +119,10 @@ function buildEsmUrl(
   if (options.externalReact) {
     url.searchParams.set("external", "react,react-dom");
   }
+  // Collapse the package's whole module graph into ONE bundled file. Without
+  // this, esm.sh serves deep-graph libs (framer-motion has ~90 sub-modules) as
+  // a request waterfall that blows past the 15s preview watchdog on cold load.
+  url.searchParams.set("bundle", "");
   return url.toString();
 }
 
