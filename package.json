@@ -8,6 +8,7 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "tsc --noEmit --noUnusedLocals",
+    "test": "tsx --test \"lib/**/*.test.ts\"",
     "generate:baseui-preview": "tsx scripts/preview/generate-baseui-files.ts",
     "generate:baseui-vendor": "tsx scripts/preview/generate-baseui-vendor.ts",
     "benchmark:preview-baseui": "tsx scripts/preview/benchmark-baseui-preview.ts"
