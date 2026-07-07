@@ -61,6 +61,24 @@ export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
 };
 
 /**
+ * The production design rubric: four punchy bullets covering the highest-impact
+ * visual levers (whitespace, type hierarchy, one accent color, soft depth). Kept
+ * short so it stays cheap. Shared verbatim by the shipped production prompt and
+ * the `minimal-v10` benchmark variant so the two can never drift. Visual A/B
+ * (GLM 5.2, dashboard + todo, 2026-07-07) showed a clear prettiness win over the
+ * rubric-less baseline once the preview padding fix was in place.
+ */
+export const PRODUCTION_DESIGN_SECTION = dedent`
+  ## Design
+
+  Make it look intentionally designed, not a default prototype:
+  - Generous whitespace and padding so the UI breathes — roomy card/section padding (p-6/p-8) and clear spacing between elements (gap-4/gap-6).
+  - Strong type hierarchy: large, bold headings (text-2xl/text-3xl, font-semibold) with clear contrast to smaller muted body text (text-muted-foreground).
+  - Pick ONE accent color and use it purposefully for primary actions and highlights; keep everything else neutral. Never use default-looking unstyled elements.
+  - Soft depth and polish: subtle shadows (shadow-sm/shadow-md), rounded corners (rounded-lg/rounded-xl), clear card boundaries, and hover states on interactive elements.
+`;
+
+/**
  * The "inline" architecture-mode instruction: the model writes a brief plan in
  * a <thinking> block, then the code — all in one response, no separate planning
  * API call. Shared verbatim by the benchmark harness (lib/generation.ts) and
@@ -88,6 +106,8 @@ export function buildProductionCodingPrompt(): string {
     base +
     "\n\n" +
     buildAvailableComponentsSection("baseui") +
+    "\n\n" +
+    PRODUCTION_DESIGN_SECTION +
     "\n\n" +
     INLINE_PLAN_INSTRUCTION
   );
@@ -443,17 +463,12 @@ function applyMinimalV9Tweaks(prompt: string): string {
  * stays cheap. Aimed at making GLM's apps look intentionally designed.
  */
 function applyMinimalV10Tweaks(prompt: string): string {
-  const design = dedent`
-    ## Design
-
-    Make it look intentionally designed, not a default prototype:
-    - Generous whitespace and padding so the UI breathes — roomy card/section padding (p-6/p-8) and clear spacing between elements (gap-4/gap-6).
-    - Strong type hierarchy: large, bold headings (text-2xl/text-3xl, font-semibold) with clear contrast to smaller muted body text (text-muted-foreground).
-    - Pick ONE accent color and use it purposefully for primary actions and highlights; keep everything else neutral. Never use default-looking unstyled elements.
-    - Soft depth and polish: subtle shadows (shadow-sm/shadow-md), rounded corners (rounded-lg/rounded-xl), clear card boundaries, and hover states on interactive elements.
-  `;
   return (
-    prompt + "\n\n" + buildAvailableComponentsSection("baseui") + "\n\n" + design
+    prompt +
+    "\n\n" +
+    buildAvailableComponentsSection("baseui") +
+    "\n\n" +
+    PRODUCTION_DESIGN_SECTION
   );
 }
 
