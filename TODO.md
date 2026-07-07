@@ -8,11 +8,8 @@ Current state: working tree clean; Base UI shipped as production default (`fe29f
 
 ## 🔴 P0 — Release blockers (must fix before ship)
 
-- [ ] **[C] Base UI preview times out in production (15s watchdog).** Live Chrome test 2026-07-06: generated a simple counter app via GLM 5.2 → generation was fast and correct (inline plan rendered, references preloaded components), but the **preview showed "Preview did not report ready or error within 15s"**. A counter app must render. Investigate, in order:
-  1. Is it cold-start vendor loading (first Base UI render pulls heavy `flat` vendor bundles) vs a real render failure? Re-run the same chat after warm-up and time it.
-  2. Apply the **production error-capture fix** (was "cleanup #4"): `code-runner-react` should record uncaught `pageerror`/module-resolution errors into `consoleErrors` (the harness got this in `fe29f90`; production still has the blind spot — which is exactly why the watchdog fired with no visible error).
-  3. Confirm whether `/api/preview-bundle` (server prebundle) is fast enough, or if the watchdog needs raising / the vendor needs warming.
-  - **This is the #1 thing — a release where generated apps don't preview cannot ship.**
+- [x] **[C] Base UI preview 15s-watchdog timeout — FIXED (`d1bc2cc`).** Diagnosed: esm.sh serves deep-graph libs as a **request waterfall** — framer-motion = ~90 sub-modules loaded sequentially on cold render → blew past the 15s watchdog. (framer-motion resolved via the esm.sh *fallback*, not the local vendor.) Fix: added esm.sh's `?bundle` flag to fallback URLs → each package collapses to one file. Verified: a framer-motion Base UI app renders in **~1.6s** (was timing out). **AI generation was never the bottleneck — it was the preview's runtime module loading.**
+  - Follow-up (lower priority): production **error-capture fix** — `code-runner-react` should record uncaught `pageerror`/module errors into `consoleErrors` (harness got this in `fe29f90`) so future preview failures show a real message, not a blank watchdog.
 
 - [ ] **[C] Verify a spread of prompts actually render in the Base UI preview**, not just counter: todo, chart-dashboard (recharts), settings-page (dialog/tabs), calculator, tic-tac-toe. Some may hit the same timeout or Base-UI-API-vs-Radix-habit runtime errors seen in the v9 benchmark.
 
