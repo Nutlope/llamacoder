@@ -61,33 +61,33 @@ export const MODELS = [
 
 export const SUGGESTED_PROMPTS = [
   {
-    title: "Kanban Board",
+    title: "Calculator",
     description:
-      "Create a Kanban-style project board with columns for To Do, In Progress, and Done. Let users add, edit, and drag tasks between columns. Include task labels, due dates, and a clean minimal design.",
-  },
-  {
-    title: "Landing Page",
-    description:
-      "Build a modern landing page for an AI startup with a bold hero section, an animated feature grid, a pricing table with three tiers, a testimonials carousel, and a waitlist signup form. Use smooth scroll animations and a sleek dark theme.",
-  },
-  {
-    title: "Habit Tracker",
-    description:
-      "Build a daily habit tracker where I can add habits and check them off each day. Show a weekly streak view with a heatmap-style grid, track completion percentages, and celebrate streaks with animations.",
+      "Make a scientific calculator with a history panel showing past calculations. Support basic arithmetic, percentages, parentheses, and common functions like square root and exponents. Aesthetic: a tactile desk-calculator feel — one confident accent color, rounded keys with real press states, a clear readable display.",
   },
   {
     title: "Expense Tracker",
     description:
-      "Make a personal expense tracker where I can log expenses with categories like food, transport, and entertainment. Show a monthly breakdown with interactive pie and bar charts, and a running total.",
+      "Make a personal expense tracker where I can log expenses with categories like food, transport, and entertainment. Show a monthly breakdown with interactive pie and bar charts plus a running total. Aesthetic: a calm, cool financial-ledger feel — a serif display heading over a tight, gridded data layout.",
   },
   {
-    title: "Workout Timer",
+    title: "Sourdough Bakery",
     description:
-      "Make an interval workout timer for HIIT training. Let me configure work and rest durations, number of rounds, and exercises. Show a large countdown display with color changes for work vs rest, and play a sound when switching.",
+      "Build a one-page site for a sourdough bakery's signature loaf, 'Hum': a hero introducing the loaf, a fermentation timeline shown as a day-by-day horizontal sequence, and a 'today's bake' schedule. Aesthetic: warm, editorial, hand-made — like a small-press zine for bakers.",
   },
   {
-    title: "Calculator",
+    title: "Record Label EP",
     description:
-      "Make a beautiful scientific calculator with a history panel that shows past calculations. Support basic arithmetic, percentages, parentheses, and common functions like square root and exponents. Style it with a modern glassmorphism design.",
+      "Build a one-page release site for an indie record label's new EP: a big album hero, a tracklist of five or six tracks with their lengths, and a short artist blurb with the release date. Aesthetic: late-night and moody — a single bright accent over dark surfaces, tight, bold, narrow-set type.",
+  },
+  {
+    title: "Typographer Portfolio",
+    description:
+      "Build a one-page portfolio for a typographer: a huge display headline introducing them, a type-specimen section showing two or three type pairings (mix serif, sans, and mono), and a short list of selected projects. Aesthetic: minimal and type-led but asymmetrically laid out — lots of air, the typography is the whole page, one quiet accent.",
+  },
+  {
+    title: "Repair Café Poster",
+    description:
+      "Build a one-page poster site for a neighborhood repair café's open day: a bold event title with date and location, a short 'what we fix' list, and a how-to-find-us block. Aesthetic: a risograph print poster — two flat ink colors on paper, bold geometric type, high-contrast and playful, intentionally flat with no shadows or gradients.",
   },
 ];
