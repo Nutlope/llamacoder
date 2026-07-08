@@ -61,9 +61,9 @@ export const MODELS = [
 
 export const SUGGESTED_PROMPTS = [
   {
-    title: "Calculator",
+    title: "Sneaker Drop",
     description:
-      "Make a scientific calculator with a history panel showing past calculations. Support basic arithmetic, percentages, parentheses, and common functions like square root and exponents. Aesthetic: a tactile desk-calculator feel — one confident accent color, rounded keys with real press states, a clear readable display.",
+      "Build a one-page landing page for a limited sneaker drop: a bold hero with the drop name and release tagline, a short 'the drop' block listing the colorways with their release times, and a release-date call-to-action. Aesthetic: loud, athletic, and confident — a light background with one saturated accent, chunky bold display type, and tight, punchy spacing.",
   },
   {
     title: "Expense Tracker",
@@ -71,23 +71,23 @@ export const SUGGESTED_PROMPTS = [
       "Make a personal expense tracker where I can log expenses with categories like food, transport, and entertainment. Show a monthly breakdown with interactive pie and bar charts plus a running total. Aesthetic: a calm, cool financial-ledger feel — a serif display heading over a tight, gridded data layout.",
   },
   {
-    title: "Sourdough Bakery",
+    title: "Sourdough",
     description:
-      "Build a one-page site for a sourdough bakery's signature loaf, 'Hum': a hero introducing the loaf, a fermentation timeline shown as a day-by-day horizontal sequence, and a 'today's bake' schedule. Aesthetic: warm, editorial, hand-made — like a small-press zine for bakers.",
+      "Build a one-page site for a sourdough bakery: a hero introducing the bakery and its signature loaf, a fermentation timeline shown as a day-by-day horizontal sequence, and a 'today's bake' schedule. Aesthetic: warm, editorial, and hand-made — like a small bakery's own printed booklet.",
   },
   {
-    title: "Record Label EP",
+    title: "Team Chat",
     description:
-      "Build a one-page release site for an indie record label's new EP: a big album hero, a tracklist of five or six tracks with their lengths, and a short artist blurb with the release date. Aesthetic: late-night and moody — a single bright accent over dark surfaces, tight, bold, narrow-set type.",
+      "Build a one-page team chat app: a sidebar listing a few channels and direct messages, a main pane showing the selected channel's message thread, and a composer to send a message. Seed a few channels and messages, and append new messages locally. Aesthetic: a clean SaaS app shell — a sidebar plus a content area, a calm neutral base with one accent for the active channel and the send button.",
   },
   {
-    title: "Typographer Portfolio",
+    title: "Beat Maker",
     description:
-      "Build a one-page portfolio for a typographer: a huge display headline introducing them, a type-specimen section showing two or three type pairings (mix serif, sans, and mono), and a short list of selected projects. Aesthetic: minimal and type-led but asymmetrically laid out — lots of air, the typography is the whole page, one quiet accent.",
+      "Build a one-page beat maker: a step-sequencer grid of a few drum sounds across 8 or 16 steps, a play/stop button, and a tempo slider. Tapping a cell arms it, and play loops through the steps, triggering each sound with the Web Audio API (synthesize the sounds — no external samples). Aesthetic: a bold, playful grid — bright accent pads on a dark surface, chunky controls.",
   },
   {
-    title: "Repair Café Poster",
+    title: "Palette",
     description:
-      "Build a one-page poster site for a neighborhood repair café's open day: a bold event title with date and location, a short 'what we fix' list, and a how-to-find-us block. Aesthetic: a risograph print poster — two flat ink colors on paper, bold geometric type, high-contrast and playful, intentionally flat with no shadows or gradients.",
+      "Build a one-page color palette generator: a row of five swatches, a button to generate a new harmonious palette, and the ability to lock individual swatches so they survive regeneration. Show each color's hex value and copy it on click. Aesthetic: a clean design-tool feel — big full-bleed swatches with minimal chrome, the palette is the page.",
   },
 ];
