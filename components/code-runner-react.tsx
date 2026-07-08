@@ -141,6 +141,8 @@ function WasmReactCodeRunner({
   const consoleErrorsRef = useRef<string[]>([]);
   const tailwindCssCacheKeyRef = useRef("");
   const shouldStoreIframeCompiledCssRef = useRef(false);
+  const loadedSrcdocRef = useRef("");
+  const loadedSrcdocReadyRef = useRef(false);
   const showDebugMetrics = usePreviewDebugFlag();
   const [srcdoc, setSrcdoc] = useState("");
   const [state, setState] = useState<PreviewState>({ phase: "bundling" });
@@ -220,18 +222,48 @@ function WasmReactCodeRunner({
 
       shouldStoreIframeCompiledCssRef.current = cachedTailwindCss === undefined;
 
-      iframeStartedAtRef.current = performance.now();
-      setSrcdoc(
-        buildSrcdoc(
-          result.code,
-          result.css,
-          getPreviewDependencies(),
-          {
-            precompiledTailwindCss: cachedTailwindCss,
-            vendor: effectivePreviewVendor,
-          },
-        ),
+      const nextSrcdoc = buildSrcdoc(
+        result.code,
+        result.css,
+        getPreviewDependencies(),
+        {
+          precompiledTailwindCss: cachedTailwindCss,
+          vendor: effectivePreviewVendor,
+        },
       );
+
+      // React skips the srcdoc attribute write when the string is unchanged,
+      // so the iframe never reloads and never re-posts `ready` — the watchdog
+      // would then report a bogus 60s failure over a working preview.
+      if (nextSrcdoc === loadedSrcdocRef.current) {
+        if (loadedSrcdocReadyRef.current) {
+          setMetrics({
+            bundleMs: result.durationMs,
+            bundleCacheHit: result.cacheHit,
+            bundleCacheSource: result.cacheSource,
+            bundleCacheLookupMs: result.cacheLookupMs,
+            esbuildEnsureMs: result.ensureMs,
+            assemblyMs,
+            tailwindCacheReadMs,
+            tailwindCssCacheHit: cachedTailwindCss !== undefined,
+            prepareMs: performance.now() - runStartedAtRef.current,
+            totalMs: performance.now() - runStartedAtRef.current,
+          });
+          transitionState({ phase: "ready" });
+          return;
+        }
+      }
+
+      const runSrcdoc =
+        nextSrcdoc === loadedSrcdocRef.current
+          ? // Same document but it never reached ready — force a real reload.
+            nextSrcdoc.replace("<body>", `<body><!-- reload:${Date.now()} -->`)
+          : nextSrcdoc;
+      loadedSrcdocRef.current = runSrcdoc;
+      loadedSrcdocReadyRef.current = false;
+
+      iframeStartedAtRef.current = performance.now();
+      setSrcdoc(runSrcdoc);
       setMetrics({
         bundleMs: result.durationMs,
         bundleCacheHit: result.cacheHit,
@@ -293,6 +325,7 @@ function WasmReactCodeRunner({
       if (event.data.type === "ready") {
         if (stateRef.current.phase === "error") return;
 
+        loadedSrcdocReadyRef.current = true;
         if (shouldStoreIframeCompiledCssRef.current) {
           storeCompiledPreviewCss(
             tailwindCssCacheKeyRef.current,
@@ -647,7 +680,22 @@ function setCachedPreviewTailwindCss(key: string, css: string) {
   try {
     window.localStorage.setItem(key, css);
   } catch {
-    // Memory cache still covers same-page preview rerenders.
+    // Quota exceeded: these entries are up to 1MB each, so a few dozen app
+    // versions fill localStorage and every future write would silently fail.
+    // Drop all preview CSS entries (old cache versions included) and retry.
+    try {
+      const staleKeys: string[] = [];
+      for (let index = 0; index < window.localStorage.length; index++) {
+        const storedKey = window.localStorage.key(index);
+        if (storedKey?.startsWith(PREVIEW_TAILWIND_CSS_CACHE_PREFIX)) {
+          staleKeys.push(storedKey);
+        }
+      }
+      staleKeys.forEach((staleKey) => window.localStorage.removeItem(staleKey));
+      window.localStorage.setItem(key, css);
+    } catch {
+      // Memory cache still covers same-page preview rerenders.
+    }
   }
 }
 

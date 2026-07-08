@@ -104,13 +104,16 @@ export default function EvalHarnessClient() {
       }));
 
       iframeStartedAtRef.current = performance.now();
+      // Unique marker per run: rendering the same files twice would otherwise
+      // produce an identical srcdoc, React would skip the attribute write, and
+      // the iframe would never reload or re-post `ready` (60s watchdog).
       setSrcdoc(
         buildSrcdoc(
           buildResult.code,
           buildResult.css,
           getPreviewDependencies(),
           { vendor: "flat" },
-        ),
+        ).replace("<body>", `<body><!-- run:${Date.now()} -->`),
       );
       updatePhase("running");
 

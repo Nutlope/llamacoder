@@ -209,6 +209,15 @@ export default function CodeViewer({
     (chat.assistantMessagesCountBefore || 0) + currentVersionIndex;
 
   const [refresh, setRefresh] = useState(0);
+  // Once the preview has been opened, keep it mounted across tab switches:
+  // unmounting destroys the iframe, so every toggle back would pay a full
+  // rebundle + iframe boot (and show the loading overlay again).
+  const [hasOpenedPreview, setHasOpenedPreview] = useState(
+    activeTab === "preview",
+  );
+  useEffect(() => {
+    if (activeTab === "preview") setHasOpenedPreview(true);
+  }, [activeTab]);
   const disabledControls = !!streamText || files.length === 0;
   const selectValue = disabledControls
     ? undefined
@@ -352,7 +361,11 @@ export default function CodeViewer({
       </div>
 
       <div className="flex grow flex-col overflow-y-auto bg-white">
-        {activeTab === "code" ? (
+        <div
+          className={
+            activeTab === "code" ? "flex grow flex-col overflow-hidden" : "hidden"
+          }
+        >
           <StickToBottom
             className="relative grow overflow-hidden *:!h-[inherit]"
             resize="smooth"
@@ -375,21 +388,25 @@ export default function CodeViewer({
               />
             </StickToBottom.Content>
           </StickToBottom>
-        ) : (
-          <>
-            {files.length > 0 && (
-              <div className="flex h-full items-center justify-center">
-                <CodeRunner
-                  onRequestFix={onRequestFix}
-                  language={language}
-                  files={files.map((f) => ({ path: f.path, content: f.code }))}
-                  key={refresh}
-                  isFixPending={isFixPending}
-                  allowAutoFix={allowAutoFix}
-                />
-              </div>
-            )}
-          </>
+        </div>
+        {hasOpenedPreview && files.length > 0 && (
+          <div
+            className={
+              activeTab === "preview"
+                ? "flex h-full items-center justify-center"
+                : "hidden"
+            }
+          >
+            <CodeRunner
+              onRequestFix={onRequestFix}
+              language={language}
+              files={files.map((f) => ({ path: f.path, content: f.code }))}
+              key={refresh}
+              previewDebounceMs={streamText ? 400 : 0}
+              isFixPending={isFixPending}
+              allowAutoFix={allowAutoFix}
+            />
+          </div>
         )}
       </div>
 

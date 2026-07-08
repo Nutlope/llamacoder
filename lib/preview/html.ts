@@ -190,11 +190,19 @@ window.__previewMarkAppReady = (extra = {}) => {
 function startTailwindReadyWatch() {
   if (previewStyleWatchStarted) return;
   previewStyleWatchStarted = true;
+  if (window.__previewStylesPrecompiled) {
+    const readyPayload = { tailwindWaitMs: 0, compiledCss: collectCompiledCss() };
+    previewStyleReadyPayload = readyPayload;
+    postPreviewMetric("tailwind-ready", readyPayload);
+    maybePostPreviewReady();
+    return;
+  }
   waitForTailwindReady();
 }
 function waitForTailwindReady() {
   const startedAt = performance.now();
   const timeoutMs = 5000;
+  let probe = null;
 
   function check() {
     if (!document.body) {
@@ -202,18 +210,27 @@ function waitForTailwindReady() {
       return;
     }
 
-    const probe = document.createElement("div");
-    probe.className = "grid rounded-md bg-zinc-50 p-6";
-    document.body.appendChild(probe);
+    // The probe must stay attached across frames: Tailwind's browser compiler
+    // scans the DOM asynchronously, so an element added and removed within a
+    // single frame never gets its classes compiled and the check can't pass.
+    if (!probe || !probe.isConnected) {
+      probe = document.createElement("div");
+      probe.className = "grid rounded-md bg-zinc-50 p-6";
+      probe.style.position = "fixed";
+      probe.style.left = "-9999px";
+      probe.style.top = "0";
+      document.body.appendChild(probe);
+    }
+
     const style = getComputedStyle(probe);
     const isReady =
       style.display === "grid" &&
       style.paddingTop === "24px" &&
       style.borderRadius !== "0px" &&
       style.backgroundColor !== "rgba(0, 0, 0, 0)";
-    probe.remove();
 
     if (isReady || performance.now() - startedAt > timeoutMs) {
+      probe.remove();
       const readyPayload = {
         tailwindWaitMs: Math.round(performance.now() - startedAt),
         compiledCss: collectCompiledCss(),
@@ -283,6 +300,7 @@ ${buildStyleTags({
   tailwindBrowser: styleAssets.tailwindBrowser,
   tailwindCss: safeTailwindCss,
 })}
+${options.precompiledTailwindCss ? "<script>window.__previewStylesPrecompiled = true;</script>" : ""}
 <script>${safeBridge}</script>
 </head>
 <body>
