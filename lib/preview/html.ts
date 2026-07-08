@@ -20,15 +20,22 @@ try {
   Object.defineProperty(window, "sessionStorage", { value: memoryStorageShim(), configurable: true });
 } catch (_) {}
 function scrollPreviewHash(hash) {
-  const id = decodeURIComponent(String(hash || "").replace(/^#/, ""));
+  let id = String(hash || "").replace(/^#/, "");
+  try {
+    id = decodeURIComponent(id);
+  } catch (_) {}
   if (!id) {
     window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
 
+  const escapedId =
+    window.CSS && typeof window.CSS.escape === "function"
+      ? window.CSS.escape(id)
+      : id.replace(/"/g, '\\\\"');
   const target =
     document.getElementById(id) ||
-    document.querySelector('[name="' + CSS.escape(id) + '"]');
+    document.querySelector('[name="' + escapedId + '"]');
 
   if (target) {
     target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -243,7 +250,6 @@ requestAnimationFrame(() => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<base href="about:srcdoc">
 <script type="importmap">${JSON.stringify(importMap)}</script>
 ${modulePreloads}
 ${buildStyleTags({
