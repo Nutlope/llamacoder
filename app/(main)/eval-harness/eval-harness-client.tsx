@@ -6,7 +6,7 @@ import {
   assemblePreviewFiles,
   getPreviewDependencies,
 } from "@/lib/preview/files";
-import { buildSrcdoc } from "@/lib/preview/html";
+import { buildSrcdoc, findMissingPreviewModules } from "@/lib/preview/html";
 
 type GeneratedFile = {
   path: string;
@@ -87,6 +87,24 @@ export default function EvalHarnessClient() {
             ok: false,
             stdout: "",
             stderr: buildResult.error,
+            durationMs: buildResult.durationMs,
+          },
+          runtime: { ok: false, consoleErrors: [], durationMs: 0 },
+        }));
+      }
+
+      const missingModules = findMissingPreviewModules(
+        buildResult.code,
+        getPreviewDependencies(),
+        { vendor: "flat" },
+      );
+      if (missingModules.length > 0) {
+        updatePhase("error");
+        return updateResult(() => ({
+          build: {
+            ok: false,
+            stdout: "",
+            stderr: `App imports packages not available in the preview: ${missingModules.join(", ")}`,
             durationMs: buildResult.durationMs,
           },
           runtime: { ok: false, consoleErrors: [], durationMs: 0 },

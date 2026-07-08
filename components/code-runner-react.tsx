@@ -9,7 +9,7 @@ import {
   getPreviewDependencies,
   type PreviewUiLibrary,
 } from "@/lib/preview/files";
-import { buildSrcdoc } from "@/lib/preview/html";
+import { buildSrcdoc, findMissingPreviewModules } from "@/lib/preview/html";
 import { buildPreviewStyleSignature } from "@/lib/preview/tailwind-signature";
 
 export type PreviewVendorMode = "local" | "cdn" | "flat";
@@ -217,6 +217,23 @@ function WasmReactCodeRunner({
 
       if (!result.ok) {
         transitionState({ phase: "error", error: result.error });
+        return;
+      }
+
+      // Fail fast instead of hanging: a bare import the import map can't
+      // resolve kills the module script without firing any window error.
+      const missingModules = findMissingPreviewModules(
+        result.code,
+        getPreviewDependencies(),
+        { vendor: effectivePreviewVendor },
+      );
+      if (missingModules.length > 0) {
+        transitionState({
+          phase: "error",
+          error: `The app imports packages that are not available in the preview: ${missingModules.join(
+            ", ",
+          )}. Rewrite the app without these imports, using only the preview's bundled dependencies.`,
+        });
         return;
       }
 

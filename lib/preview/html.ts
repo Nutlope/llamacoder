@@ -305,7 +305,20 @@ ${options.precompiledTailwindCss ? "<script>window.__previewStylesPrecompiled = 
 </head>
 <body>
 <div id="root"></div>
-<script type="module">${safeCode}</script>
+<script type="module" id="__preview-app">${safeCode}</script>
+<script>
+// A module script whose fetch/instantiation fails fires "error" on the script
+// element only — never on window — so without this the preview hangs silently
+// until the parent watchdog. Error events dispatch in a later task, so this
+// parser-synchronous listener cannot attach too late.
+document.getElementById("__preview-app").addEventListener("error", function () {
+  parent.postMessage({
+    source: "preview",
+    type: "error",
+    message: "Preview app failed to load: a module import could not be fetched (network error or unavailable package).",
+  }, "*");
+});
+</script>
 </body>
 </html>`;
 }
@@ -483,6 +496,43 @@ function getPreviewStyleAssets(
     tailwindCss: `@import "https://cdn.jsdelivr.net/npm/tw-animate-css@${deps["tw-animate-css"] ?? "1.4.0"}/dist/tw-animate.css";
 @import "https://cdn.jsdelivr.net/npm/shadcn@${deps.shadcn ?? "4.13.0"}/dist/tailwind.css";`,
   };
+}
+
+// Bare specifiers the bundler marked external but the import map can't
+// resolve would kill the module script silently: no window error fires for a
+// failed module resolution, so the preview would hang until the watchdog.
+// Detect them up front so the runner can fail fast with a fixable message.
+export function findMissingPreviewModules(
+  bundledCode: string,
+  deps: Record<string, string> = PREVIEW_DEPS,
+  options: { localVendor?: boolean; vendor?: "local" | "cdn" | "flat" } = {},
+): string[] {
+  const imports = buildImportMapObject(deps, options).imports;
+  const missing = new Set<string>();
+  const importPattern =
+    /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = importPattern.exec(bundledCode))) {
+    const specifier = match[1];
+    if (!specifier || specifier.startsWith(".") || specifier.startsWith("/")) {
+      continue;
+    }
+    if (resolvePreviewModuleHref(specifier, "", imports)) continue;
+    if (matchesImportMapPrefix(specifier, imports)) continue;
+    missing.add(specifier);
+  }
+
+  return [...missing];
+}
+
+function matchesImportMapPrefix(
+  specifier: string,
+  imports: Record<string, string>,
+) {
+  return Object.keys(imports).some(
+    (key) => key.endsWith("/") && specifier.startsWith(key),
+  );
 }
 
 function buildModulePreloads(

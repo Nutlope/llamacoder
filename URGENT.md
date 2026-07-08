@@ -12,8 +12,13 @@ STATUS 2026-07-08: #0a, #0b, #1, #3 and #4 are FIXED on this branch and
 verified end-to-end in Chrome with a real GLM 5.2 generation (pomodoro app):
 cold preview ready in 883ms (was 5.4s+), warm page reload ready in 447ms,
 repeat render of identical files ready in ~160ms (was a 60s watchdog failure),
-Code<->Preview toggle causes zero iframe reloads. Still open: #2 (surface
-module-load failures / import-map validation) and #5 polish items.
+Code<->Preview toggle causes zero iframe reloads. #2 is also FIXED:
+`findMissingPreviewModules` (lib/preview/html.ts) validates every bare import
+in the bundle output against the import map before the srcdoc is written —
+an app importing e.g. `three` now errors in ~100ms with an actionable message
+instead of hanging 60s — plus a script-element error listener in the srcdoc
+catches module fetch failures (CDN/network) that never fire window errors.
+Still open: #5 polish items only.
 
 ## 0a. CONFIRMED: identical srcdoc never reloads the iframe → false "did not report ready within 60s"
 
