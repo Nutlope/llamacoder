@@ -42,3 +42,5 @@ next-env.d.ts
 benchmark-results/*
 
 public/preview-vendor/*
+
+*/node_modules
