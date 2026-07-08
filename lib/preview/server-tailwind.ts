@@ -79,7 +79,7 @@ async function createCompiler() {
   const { compile } = await import("tailwindcss-v4");
 
   return compile(
-    buildPreviewTailwindCss(getPreviewDependencies("baseui"), {
+    buildPreviewTailwindCss(getPreviewDependencies(), {
       tailwindBrowser: "",
       tailwindCss: `${previewStyleAssetCss.twAnimateCss}\n${previewStyleAssetCss.shadcnTailwindCss}`,
     }),

@@ -17,7 +17,7 @@ export type RunnerOutput = {
 
 type HarnessResult = Omit<RunnerOutput, "screenshot">;
 
-export type PreviewHarnessSession = {
+export type EvalHarnessSession = {
   renderFiles: (
     files: GeneratedFile[],
     options?: { screenshotPath?: string },
@@ -25,17 +25,16 @@ export type PreviewHarnessSession = {
   close: () => Promise<void>;
 };
 
-export async function createPreviewHarnessSession(options: {
+export async function createEvalHarnessSession(options: {
   baseUrl?: string;
   browser?: Browser;
-  uiLibrary?: "radix" | "baseui";
-}): Promise<PreviewHarnessSession> {
+  uiLibrary?: "baseui";
+}): Promise<EvalHarnessSession> {
   const browser = options.browser ?? (await chromium.launch());
   const ownsBrowser = !options.browser;
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  const uiParam = options.uiLibrary === "baseui" ? "?ui=baseui" : "";
   await page.goto(
-    `${options.baseUrl ?? "http://localhost:3000"}/preview-harness${uiParam}`,
+    `${options.baseUrl ?? "http://localhost:3000"}/eval-harness`,
   );
   await page.waitForFunction(() => typeof window.renderFiles === "function");
 
@@ -69,7 +68,7 @@ async function renderFilesInPage(
     { timeout: 20_000 },
   );
 
-  const result = await page.evaluate(() => window.getPreviewHarnessResult());
+  const result = await page.evaluate(() => window.getEvalHarnessResult());
   const phase = await page
     .locator("[data-preview-phase]")
     .getAttribute("data-preview-phase");
@@ -105,8 +104,8 @@ async function main() {
   }
 
   const files = JSON.parse(await fs.readFile(values.files, "utf8"));
-  const outDir = values.out ?? "tmp/benchmark/preview-runner";
-  const session = await createPreviewHarnessSession({
+  const outDir = values.out ?? "tmp/benchmark/eval-runner";
+  const session = await createEvalHarnessSession({
     baseUrl: values["base-url"],
   });
 

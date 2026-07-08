@@ -11,9 +11,9 @@ import {
   type PromptVersion,
 } from "../../lib/generation";
 import {
-  createPreviewHarnessSession,
+  createEvalHarnessSession,
   type RunnerOutput,
-} from "./preview-runner";
+} from "./eval-runner";
 import { findPolicyViolations } from "./policy";
 import { judgeScreenshot, type JudgeResult } from "./judge";
 
@@ -97,8 +97,8 @@ async function main() {
     ),
   );
 
-  const server = await ensurePreviewHarnessServer(baseUrl);
-  const session = await createPreviewHarnessSession({
+  const server = await ensureEvalHarnessServer(baseUrl);
+  const session = await createEvalHarnessSession({
     baseUrl,
     uiLibrary: args.uiLibrary,
   });
@@ -399,11 +399,11 @@ function selectModels(modelArg: string | undefined, manifestModels: string[]) {
   return modelArg.split(",").map((model) => model.trim());
 }
 
-async function ensurePreviewHarnessServer(baseUrl: string) {
-  if (await isPreviewHarnessUp(baseUrl)) return null;
+async function ensureEvalHarnessServer(baseUrl: string) {
+  if (await isEvalHarnessUp(baseUrl)) return null;
 
   await runCommand("pnpm", ["exec", "next", "build"], {
-    ENABLE_PREVIEW_HARNESS: "1",
+    ENABLE_EVAL_HARNESS: "1",
   });
 
   const url = new URL(baseUrl);
@@ -412,7 +412,7 @@ async function ensurePreviewHarnessServer(baseUrl: string) {
     ["exec", "next", "start", "-p", url.port || "3000"],
     {
       stdio: "inherit",
-      env: { ...process.env, ENABLE_PREVIEW_HARNESS: "1" },
+      env: { ...process.env, ENABLE_EVAL_HARNESS: "1" },
     },
   );
 
@@ -426,9 +426,9 @@ async function ensurePreviewHarnessServer(baseUrl: string) {
   };
 }
 
-async function isPreviewHarnessUp(baseUrl: string) {
+async function isEvalHarnessUp(baseUrl: string) {
   try {
-    const response = await fetch(`${baseUrl}/preview-harness`);
+    const response = await fetch(`${baseUrl}/eval-harness`);
     return response.ok;
   } catch {
     return false;
@@ -439,11 +439,11 @@ async function waitForServer(baseUrl: string) {
   const deadline = Date.now() + 30_000;
 
   while (Date.now() < deadline) {
-    if (await isPreviewHarnessUp(baseUrl)) return;
+    if (await isEvalHarnessUp(baseUrl)) return;
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  throw new Error(`Timed out waiting for ${baseUrl}/preview-harness`);
+  throw new Error(`Timed out waiting for ${baseUrl}/eval-harness`);
 }
 
 async function runCommand(

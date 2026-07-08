@@ -284,9 +284,12 @@ export default function CodeViewer({
           {!disabledControls && (
             <Select
               value={selectValue}
-              onValueChange={(value) =>
-                onMessageChange(reversedAllAssistantMessages[parseInt(value)])
-              }
+              onValueChange={(value) => {
+                if (value === null) return;
+                onMessageChange(
+                  reversedAllAssistantMessages[parseInt(value)],
+                );
+              }}
               disabled={disabledControls}
             >
               <SelectTrigger className="h-[38px] w-16 text-sm font-semibold !outline-none !ring-0 !ring-transparent">
@@ -295,7 +298,7 @@ export default function CodeViewer({
               <SelectContent>
                 {reversedAllAssistantMessages.map((msg, i) => (
                   <SelectItem key={i} value={i.toString()}>
-                    <div className="flex flex-col">
+                    <span className="flex flex-col">
                       <span className="font-semibold">
                         v
                         {(chat.assistantMessagesCountBefore || 0) +
@@ -305,7 +308,7 @@ export default function CodeViewer({
                       <span className="text-xs text-gray-500">
                         {timeAgo(msg.createdAt)}
                       </span>
-                    </div>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

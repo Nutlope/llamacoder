@@ -1,5 +1,5 @@
 import { PREVIEW_DEPS } from "../../lib/preview/deps";
-import type { GeneratedFile } from "./preview-runner";
+import type { GeneratedFile } from "./eval-runner";
 
 const FORBIDDEN_IMPORTS = [
   "@chakra-ui/react",

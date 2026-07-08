@@ -27,7 +27,7 @@ const WATCHDOG_MS = 60_000;
 declare global {
   interface Window {
     renderFiles: (files: GeneratedFile[]) => Promise<HarnessResult>;
-    getPreviewHarnessResult: () => HarnessResult;
+    getEvalHarnessResult: () => HarnessResult;
   }
 }
 
@@ -36,7 +36,7 @@ const emptyResult: HarnessResult = {
   runtime: { ok: false, consoleErrors: [], durationMs: 0 },
 };
 
-export default function PreviewHarnessClient() {
+export default function EvalHarnessClient() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeStartedAtRef = useRef<number | null>(null);
   const phaseRef = useRef<Phase>("idle");
@@ -61,7 +61,7 @@ export default function PreviewHarnessClient() {
   }
 
   useEffect(() => {
-    window.getPreviewHarnessResult = () => resultRef.current;
+    window.getEvalHarnessResult = () => resultRef.current;
     window.renderFiles = async (files: GeneratedFile[]) => {
       if (watchdogRef.current) window.clearTimeout(watchdogRef.current);
 
@@ -70,14 +70,7 @@ export default function PreviewHarnessClient() {
       updatePhase("bundling");
       updateResult(() => emptyResult);
 
-      // Benchmark harness can request the Base UI component set via ?ui=baseui.
-      const uiLibrary =
-        new URLSearchParams(window.location.search).get("ui") === "baseui"
-          ? ("baseui" as const)
-          : ("radix" as const);
-      const buildResult = await bundle(
-        assemblePreviewFiles(files, { uiLibrary }),
-      );
+      const buildResult = await bundle(assemblePreviewFiles(files));
 
       if (!buildResult.ok) {
         updatePhase("error");
@@ -107,8 +100,8 @@ export default function PreviewHarnessClient() {
         buildSrcdoc(
           buildResult.code,
           buildResult.css,
-          getPreviewDependencies(uiLibrary),
-          { vendor: uiLibrary === "baseui" ? "flat" : "local" },
+          getPreviewDependencies(),
+          { vendor: "flat" },
         ),
       );
       updatePhase("running");

@@ -4,18 +4,18 @@ This plan captures the current problems and proposes concrete fixes. The goal is
 
 The plan is written around agreed data structures so the implementation has clear interfaces and is not open to reinterpretation.
 
-**Status (2026-07-02):** the renderer migration (section 0) is implemented and wasm is now the default preview runner, with Sandpack still available via `?preview=sandpack` for one release. Chrome and real-device iOS Safari have been verified. The GLM 5.2 launch sweep and §0.3 hardening are complete. The benchmark harness exists through judge integration (§4 step 3.4), and the dataset is **reviewed and approved (§7)**. Local production build was repaired by pinning TypeScript back to the stable 5.9 line and excluding benchmark scratch output from app type-checking; production deploy verification is still an explicit launch gate. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
+**Status (2026-07-02):** the renderer migration (section 0) is implemented and wasm is now the only production preview runner. Chrome and real-device iOS Safari have been verified. The GLM 5.2 launch sweep and §0.3 hardening are complete. The eval harness exists through judge integration (§4 step 3.4), and the dataset is **reviewed and approved (§7)**. Local production build was repaired by pinning TypeScript back to the stable 5.9 line and excluding benchmark scratch output from app type-checking; production deploy verification is still an explicit launch gate. All open design decisions below were resolved in a grilling session on 2026-07-02; decisions are marked **[decided]**. Do not re-open [decided] items without flagging it — they were settled deliberately, with the trade-offs on the table.
 
 ---
 
 ## Base UI shipped (2026-07-05)
 
 Production now ships the Base UI direction (commit `fe29f90`), validated by the `minimal-v9 × inline × baseui` benchmark (GLM k=3: quality parity, −22% latency, missing-component failures eliminated):
-- **Renderer default flipped radix → baseui** (`code-runner-react.tsx`) — all chat/share previews render Base UI's 64 modern components (scroll-area, combobox, command, data-table, date-picker, sidebar, …).
-- **Production prompt is Base UI-aware** (`buildProductionCodingPrompt`): allowed-stack generated from the Base UI deps, full Base UI component inventory listed, inline plan retained. `v1` and all benchmark variants stay byte-identical (`uiLibrary` defaults radix).
+- **Renderer locked to Base UI** (`code-runner-react.tsx`) — all chat/share previews render Base UI's 64 modern components (scroll-area, combobox, command, data-table, date-picker, sidebar, …), with the old Sandpack/Radix fallback removed.
+- **Production prompt is Base UI-aware** (`buildProductionCodingPrompt`): allowed-stack generated from the Base UI deps, full Base UI component inventory listed, inline plan retained.
 - **Supporting fixes:** harness renders Base UI (`a9528d7`); Base UI import map completed with general libs like framer-motion (`5e7d6a6`); harness error bridge records uncaught runtime/module errors (`fe29f90`).
 - **Verified:** production `next build` passes; Base UI renders through the product preview path.
-- **Remaining:** (1) production deploy verification (owner: Riccardo); (2) old stored chats were radix-generated — some may break under Base UI per the accepted-breakage decision (§0.2); (3) the production `code-runner` "Try to fix" error capture could get the same `pageerror` fix the harness got.
+- **Remaining:** (1) production deploy verification (owner: Riccardo); (2) old stored chats were generated against the previous component/runtime assumptions — some may break under Base UI per the accepted-breakage decision (§0.2); (3) the production `code-runner` "Try to fix" error capture could get the same `pageerror` fix the harness got.
 
 ---
 
@@ -41,7 +41,7 @@ The company launch does **not** wait for this plan. Launch-critical vs. deferred
 
 - **What already exists:** the wasm renderer POC was built and committed (`d49406f`, `6637ec3`) and has since been absorbed into the product renderer path. `poc-wasm-esm.md` was the original build spec; where it and the code disagree, **the code + this plan win** (the POC deviated from the spec in reviewed, accepted ways).
 - **Try it:** `pnpm dev`, then generate through the app preview. Flags: `?preview=wasm|sandpack` per-page, `NEXT_PUBLIC_PREVIEW_RUNNER=wasm` globally, `?debug=1` shows the timing badge. Temporary fixture routes were used during validation and then deleted so they do not ship publicly.
-- **Environment:** generation needs `TOGETHER_API_KEY` (Helicone proxy is optional, auto-enabled via env). The benchmark harness needs no database — only the app's chat routes touch Prisma; `/preview-harness` must stay client-only precisely so the harness never needs one.
+- **Environment:** generation needs `TOGETHER_API_KEY` (Helicone proxy is optional, auto-enabled via env). The eval harness needs no database — only the app's chat routes touch Prisma; `/eval-harness` stays client-only precisely so the harness never needs one.
 - **Known bugs fixed in §0.3:** console-error overlay regression, the ready/error race, and the missing watchdog were fixed in `components/code-runner-react.tsx`.
 - **Content deliverables that don't exist yet** (design is specified, the artifact isn't — don't assume they're written somewhere):
   - [x] The 8 dataset prompt texts + static-screenshot-judgeable `expectedBehavior` lists (§1.1) — drafted in `scripts/benchmark/prompts.json` for Riccardo's review.
@@ -61,7 +61,7 @@ Sandpack is unmaintained (last release ~a year ago, maintainer gone, CodeSandbox
 - `lib/preview/bundle.ts` — esbuild-wasm singleton + virtual-filesystem plugin (resolves `@/` aliases and relative imports against the in-memory file map; bare specifiers stay external for the import map).
 - `lib/preview/files.ts` — file-map assembly: path normalization, shadcn source injection, synthesized `App.tsx`/`main.tsx` (ported from `lib/sandpack-config.ts`).
 - `lib/preview/html.ts` — srcdoc template: import map, Tailwind 4 CDN, error/console postMessage bridge, storage shim, inlined bundle with `</script>` escaping. Sandboxed iframe without `allow-same-origin`.
-- `components/code-runner-react.tsx` — both pipelines behind a flag (`NEXT_PUBLIC_PREVIEW_RUNNER=wasm` or `?preview=wasm|sandpack`), phase state machine, timing metrics exposed as `data-preview-*` attributes, debug badge behind `?debug=1`.
+- `components/code-runner-react.tsx` — wasm iframe pipeline, phase state machine, timing metrics exposed as `data-preview-*` attributes, debug badge behind `?debug=1`.
 - Product preview routes now exercise the Base UI preview kit through the wasm renderer; standalone fixture routes were removed before release.
 
 ### 0.2 Decisions
@@ -245,8 +245,8 @@ interface RunnerOutput {
 
 ### 2.2 How the runner works [decided]
 
-- **A dedicated `/preview-harness` route** — client-only, no DB, `notFound()` in production deployments. The page exposes `window.renderFiles(files)`, which runs `assemblePreviewFiles → bundle → srcdoc` and mirrors the `data-preview-phase` / `data-preview-*-ms` attributes the production runner already exposes.
-- Playwright does `page.goto("/preview-harness")` once per worker, then `page.evaluate(renderFiles, files)` per cell — no POST route, no server state, no re-navigation between cells.
+- **A dedicated `/eval-harness` route** — client-only, no DB, `notFound()` in production deployments unless `ENABLE_EVAL_HARNESS=1`. The page exposes `window.renderFiles(files)`, which runs `assemblePreviewFiles → bundle → srcdoc` and mirrors the `data-preview-phase` / `data-preview-*-ms` attributes the production runner already exposes.
+- Playwright does `page.goto("/eval-harness")` once per worker, then `page.evaluate(renderFiles, files)` per cell — no POST route, no server state, no re-navigation between cells.
 - **The run script spawns the app itself** (`next build` + `next start`) if it isn't already up. Production build, not dev mode — that's what we're measuring.
 - **Wait condition:** poll `data-preview-phase` until `"ready"` or `"error"`, bounded by the §0.3 watchdog. (Replaces the old `networkidle` idea — this observes the pipeline's own state machine.)
 - **Screenshot determinism:** fixed 1280×800 viewport crop, not full-page screenshots; after `ready`, wait ~800ms for framer-motion entrance animations to settle; disable animations via Playwright where possible. The judge scores pixels — mid-animation frames and variable-height screenshots make quality scores flaky for identical apps.
@@ -321,7 +321,7 @@ Winner chosen by mechanical pass rate, quality score, latency, and token cost. O
 2. [x] **Draft the dataset (§1.1)** — Claude drafts 7–9 prompts, Riccardo reviews. Draft exists in `scripts/benchmark/prompts.json`; **reviewed and approved 2026-07-02 (§7)**.
 3. [x] **Build the benchmark harness (§1 + §2)** — in dependency order, each sub-step testable before the next exists:
    1. [x] `lib/generation.ts` (`generateApp`) — prompt in, files out. Tested standalone against GLM 5.2.
-   2. [x] `/preview-harness` route + Playwright runner (§2.2) — files in, `RunnerOutput` + screenshot out. Tested with hand-written files, no model needed.
+   2. [x] `/eval-harness` route + Playwright runner (§2.2) — files in, `RunnerOutput` + screenshot out. Tested with hand-written files, no model needed.
    3. [x] Orchestration: CLI walks the manifest, chains 3.1 → 3.2, adds the static policy scan, writes `results.jsonl` with mechanical pass/fail. **The harness is useful from this point** even with `judge: null`.
    4. [x] Judge integration (§1.5) last — it consumes the screenshots 3.2 produces and fills `qualityScore`. Judge retries empty/unparseable output and records failures per cell. (Note: document order §1-then-§2 is problem-statement order, not build order; the judge depends on the runner, not the other way around.)
 4. [x] **Calibrate the judge** (§1.5, inspection-based): GLM 5.2 × 8 prompts judged run (`tmp/benchmark/calibration-glm52`), HTML report reviewed by Riccardo 2026-07-02 — **scoring approved as-is** (7/8 mechanical pass, mean quality 6.9; the one failure was a genuine model bug caught by the build gate). Judge locked: `moonshotai/Kimi-K2.7-Code` with the current judge prompt.
@@ -458,7 +458,7 @@ Smoke example: `minimal-v2 × inline`, Kimi K2.7-Code, 5 prompts, `--skip-judge`
 
 **Open gates, in order — this is the to-do list:**
 
-1. **Deploy verification** (launch item 5, the only unchecked launch item): push to the production host, smoke-test the deployed app — homepage generation with GLM 5.2, wasm preview renders, `?preview=sandpack` escape hatch works, `/preview-harness` returns 404. *Owner: Riccardo (needs deploy access). Before Monday.*
+1. **Deploy verification** (launch item 5, the only unchecked launch item): push to the production host, smoke-test the deployed app — homepage generation with GLM 5.2, wasm preview renders, `/eval-harness` returns 404 unless `ENABLE_EVAL_HARNESS=1`. *Owner: Riccardo (needs deploy access). Before Monday.*
 2. **Judge calibration by inspection** (§1.5, revised): run `--profile explore --models "zai-org/GLM-5.2"` (8 judged cells), generate the HTML report, Riccardo skims screenshots vs judge scores/rationales and says agree/disagree. No hand-labeling protocol. *Owner: Claude runs + reports, Riccardo skims.*
 3. **Baseline rank run** (§4 step 5): `--profile rank`, all visible models, `current-v0`/`separate`. Deliverable: the model leaderboard (pass rate × quality × latency × tokens) answering "which models are good with today's prompt." *Unblocked the moment #2 is acceptable; results inform launch-week model choices.*
 4. **Monday morning:** launch checklist sweep — deployed build healthy, GLM 5.2 default confirmed in prod, error overlay + "Try to fix" behave on a forced failure.

@@ -8,7 +8,6 @@ export default function CodeRunner({
   code,
   files,
   onRequestFix,
-  previewKit,
   previewDebounceMs,
   previewVendor,
   previewBundleMode,
@@ -19,7 +18,6 @@ export default function CodeRunner({
   code?: string;
   files?: Array<{ path: string; content: string }>;
   onRequestFix?: (e: string) => void;
-  previewKit?: "radix" | "baseui";
   previewDebounceMs?: number;
   previewVendor?: PreviewVendorMode;
   previewBundleMode?: PreviewBundleMode;
@@ -32,7 +30,6 @@ export default function CodeRunner({
     <CodeRunnerReact
       files={actualFiles}
       onRequestFix={onRequestFix}
-      previewKit={previewKit}
       previewDebounceMs={previewDebounceMs}
       previewVendor={previewVendor}
       previewBundleMode={previewBundleMode}

@@ -28,11 +28,8 @@ export type PromptConfig = {
   * variants do NOT apply the earlier tweaks. When `"v8"`, it appends a
   * `## Available components` section listing the renderer's actual injected UI
   * components (auto-generated via `listInjectedComponentNames`). It does NOT
-  * apply earlier variant tweaks. No other differences. When `"v9"`, it appends
-  * the same `## Available components` section as v8 but sourced from the Base
-  * UI component set (`listInjectedComponentNames("baseui")`) instead of the
-  * Radix/shadcn set. Only the component list content differs; surrounding
-  * wording is byte-identical to v8.
+  * apply earlier variant tweaks. No other differences. When `"v9"`, it uses the
+  * same Base UI-backed component inventory as production.
   */
   promptVariant?:
     | "v1"
@@ -48,9 +45,8 @@ export type PromptConfig = {
     | "v10"
     | "v11";
   /**
-   * Which injected component library the prompt targets. Controls the
-   * allowed-stack list (generated from that library's deps). Defaults to
-   * "radix" so every existing variant stays byte-identical.
+   * Which injected component library the prompt targets. The release renderer
+   * supports the Base UI-backed shadcn component kit only.
    */
   uiLibrary?: PreviewUiLibrary;
 };
@@ -98,7 +94,8 @@ export function buildProductionCodingPrompt(): string {
   // Ships the Base UI direction: allowed-stack generated from the Base UI deps,
   // the full Base UI component inventory listed, plus the inline plan-first
   // instruction. Benchmarked (minimal-v9 × inline × baseui, 2026-07-05): quality
-  // parity with Radix, ~22% faster, and the missing-component failure class gone.
+  // parity with the previous component kit, ~22% faster, and the
+  // missing-component failure class gone.
   const base = buildMinimalCodingPrompt({
     ...DEFAULT_PROMPT_CONFIG,
     uiLibrary: "baseui",
@@ -106,7 +103,7 @@ export function buildProductionCodingPrompt(): string {
   return (
     base +
     "\n\n" +
-    buildAvailableComponentsSection("baseui") +
+    buildAvailableComponentsSection() +
     "\n\n" +
     // Ships the stronger Hallmark-informed rubric (minimal-v11). The gentler
     // PRODUCTION_DESIGN_SECTION (minimal-v10) still produced flat/white output
@@ -154,7 +151,7 @@ export const HALLMARK_DESIGN_SECTION = dedent`
  * so existing parsing keeps working unchanged.
  */
 export function buildMinimalCodingPrompt(config: PromptConfig): string {
-  const allowedStack = buildAllowedStack(config.uiLibrary ?? "radix");
+  const allowedStack = buildAllowedStack();
 
   let prompt = dedent`
     # LlamaCoder
@@ -282,9 +279,7 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     prompt = applyMinimalV8Tweaks(prompt);
   }
 
-  // Variant v9 = v8's `## Available components` section but sourced from the
-  // Base UI component set instead of the Radix/shadcn set. Only the component
-  // list content differs from v8; the surrounding wording is byte-identical.
+  // Variant v9 uses the same Base UI component list as production.
   if (config.promptVariant === "v9") {
     prompt = applyMinimalV9Tweaks(prompt);
   }
@@ -477,17 +472,14 @@ function applyMinimalV7Tweaks(prompt: string): string {
  * right after the `## Reasoning` section.
  */
 function applyMinimalV8Tweaks(prompt: string): string {
-  return prompt + "\n\n" + buildAvailableComponentsSection("radix");
+  return prompt + "\n\n" + buildAvailableComponentsSection();
 }
 
 /**
- * Variant v9 = v8's `## Available components` section but with the Base UI
- * component set instead of the Radix/shadcn set. The surrounding wording is
- * byte-identical to `applyMinimalV8Tweaks`; only the component list source
- * changes (baseui instead of radix).
+ * Variant v9 = the Base UI-backed component inventory used by production.
  */
 function applyMinimalV9Tweaks(prompt: string): string {
-  return prompt + "\n\n" + buildAvailableComponentsSection("baseui");
+  return prompt + "\n\n" + buildAvailableComponentsSection();
 }
 
 /**
@@ -499,7 +491,7 @@ function applyMinimalV10Tweaks(prompt: string): string {
   return (
     prompt +
     "\n\n" +
-    buildAvailableComponentsSection("baseui") +
+    buildAvailableComponentsSection() +
     "\n\n" +
     PRODUCTION_DESIGN_SECTION
   );
@@ -513,7 +505,7 @@ function applyMinimalV11Tweaks(prompt: string): string {
   return (
     prompt +
     "\n\n" +
-    buildAvailableComponentsSection("baseui") +
+    buildAvailableComponentsSection() +
     "\n\n" +
     HALLMARK_DESIGN_SECTION
   );
@@ -524,8 +516,8 @@ function applyMinimalV11Tweaks(prompt: string): string {
  * iterating `PREVIEW_DEPS`. This keeps the prompt and the renderer's import map
  * in sync by construction.
  */
-function buildAllowedStack(uiLibrary: PreviewUiLibrary = "radix"): string {
-  return Object.entries(getPreviewDependencies(uiLibrary))
+function buildAllowedStack(): string {
+  return Object.entries(getPreviewDependencies())
     .map(([name, version]) => `- ${name}@${version}`)
     .join("\n");
 }
@@ -536,10 +528,8 @@ function buildAllowedStack(uiLibrary: PreviewUiLibrary = "radix"): string {
  * composes from them instead of reinventing or guessing. Shared by the v8/v9
  * variants and the production prompt.
  */
-function buildAvailableComponentsSection(
-  uiLibrary: PreviewUiLibrary,
-): string {
-  const components = listInjectedComponentNames(uiLibrary).join(", ");
+function buildAvailableComponentsSection(): string {
+  const components = listInjectedComponentNames().join(", ");
   return dedent`
     ## Available components
 

@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  SandpackPreview,
-  SandpackProvider,
-  useSandpack,
-} from "@codesandbox/sandpack-react/unstyled";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getSandpackConfig } from "@/lib/sandpack-config";
 import { bundle, ensureEsbuild, type BundleResult } from "@/lib/preview/bundle";
 import {
   assemblePreviewFiles,
@@ -115,53 +109,23 @@ const LEAF_INLINE_BASEUI_COMPONENT_PATHS = [
 export default function ReactCodeRunner({
   files,
   onRequestFix,
-  previewKit = "baseui",
   previewDebounceMs,
   previewVendor,
   previewBundleMode = "external",
   isFixPending,
   allowAutoFix,
 }: RunnerProps) {
-  const useWasmPreview = useWasmPreviewFlag();
-  const effectivePreviewVendor =
-    previewVendor ?? (previewKit === "baseui" ? "flat" : "local");
-
-  if (useWasmPreview || previewKit === "baseui") {
-    return (
-      <WasmReactCodeRunner
-        files={files}
-        onRequestFix={onRequestFix}
-        previewKit={previewKit}
-        previewDebounceMs={previewDebounceMs}
-        previewVendor={effectivePreviewVendor}
-        previewBundleMode={previewBundleMode}
-        isFixPending={isFixPending}
-        allowAutoFix={allowAutoFix}
-      />
-    );
-  }
-
-  return <SandpackReactCodeRunner files={files} onRequestFix={onRequestFix} isFixPending={isFixPending} allowAutoFix={allowAutoFix} />;
-}
-
-function SandpackReactCodeRunner({ files, onRequestFix, isFixPending }: RunnerProps) {
-  const filesKey = files.map((f) => f.path + f.content).join("");
   return (
-    <SandpackProvider
-      key={filesKey}
-      className="relative h-full w-full [&_.sp-preview-container]:flex [&_.sp-preview-container]:h-full [&_.sp-preview-container]:w-full [&_.sp-preview-container]:grow [&_.sp-preview-container]:flex-col [&_.sp-preview-container]:justify-center [&_.sp-preview-iframe]:grow"
-      {...getSandpackConfig(files)}
-    >
-      <SandpackPreview
-        showNavigator={false}
-        showOpenInCodeSandbox={false}
-        showRefreshButton={false}
-        showRestartButton={false}
-        showOpenNewtab={false}
-        className="h-full w-full"
-      />
-      {onRequestFix && <SandpackErrorMessage onRequestFix={onRequestFix} isFixPending={isFixPending} />}
-    </SandpackProvider>
+    <WasmReactCodeRunner
+      files={files}
+      onRequestFix={onRequestFix}
+      previewKit="baseui"
+      previewDebounceMs={previewDebounceMs}
+      previewVendor={previewVendor ?? "flat"}
+      previewBundleMode={previewBundleMode}
+      isFixPending={isFixPending}
+      allowAutoFix={allowAutoFix}
+    />
   );
 }
 
@@ -325,7 +289,7 @@ function WasmReactCodeRunner({
         buildSrcdoc(
           result.code,
           result.css,
-          getPreviewDependencies(previewKit),
+          getPreviewDependencies(),
           {
             precompiledTailwindCss: cachedTailwindCss,
             vendor: effectivePreviewVendor,
@@ -582,22 +546,6 @@ function PreviewMetricsBadge({
   );
 }
 
-function SandpackErrorMessage({
-  onRequestFix,
-  isFixPending,
-}: {
-  onRequestFix: (e: string) => void;
-  isFixPending?: boolean;
-}) {
-  const { sandpack } = useSandpack();
-
-  if (!sandpack.error) return null;
-
-  return (
-    <ErrorMessage error={sandpack.error.message} onRequestFix={onRequestFix} />
-  );
-}
-
 function ErrorMessage({
   error,
   onRequestFix,
@@ -645,20 +593,6 @@ function ErrorMessage({
       </div>
     </div>
   );
-}
-
-function useWasmPreviewFlag() {
-  const envFlag = process.env.NEXT_PUBLIC_PREVIEW_RUNNER;
-  const [queryFlag, setQueryFlag] = useState<"sandpack" | "wasm" | null>(null);
-
-  useEffect(() => {
-    const preview = new URLSearchParams(window.location.search).get("preview");
-    setQueryFlag(preview === "wasm" || preview === "sandpack" ? preview : null);
-  }, []);
-
-  if (queryFlag) return queryFlag === "wasm";
-  if (envFlag === "sandpack" || envFlag === "wasm") return envFlag === "wasm";
-  return true;
 }
 
 function usePreviewDebugFlag() {
