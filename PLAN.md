@@ -14,7 +14,7 @@ Production now ships the Base UI direction (commit `fe29f90`), validated by the 
 - **Renderer default flipped radix → baseui** (`code-runner-react.tsx`) — all chat/share previews render Base UI's 64 modern components (scroll-area, combobox, command, data-table, date-picker, sidebar, …).
 - **Production prompt is Base UI-aware** (`buildProductionCodingPrompt`): allowed-stack generated from the Base UI deps, full Base UI component inventory listed, inline plan retained. `v1` and all benchmark variants stay byte-identical (`uiLibrary` defaults radix).
 - **Supporting fixes:** harness renders Base UI (`a9528d7`); Base UI import map completed with general libs like framer-motion (`5e7d6a6`); harness error bridge records uncaught runtime/module errors (`fe29f90`).
-- **Verified:** production `next build` passes; `/preview-poc` (now baseui default) smoke-renders to `ready`.
+- **Verified:** production `next build` passes; Base UI renders through the product preview path.
 - **Remaining:** (1) production deploy verification (owner: Riccardo); (2) old stored chats were radix-generated — some may break under Base UI per the accepted-breakage decision (§0.2); (3) the production `code-runner` "Try to fix" error capture could get the same `pageerror` fix the harness got.
 
 ---
@@ -39,8 +39,8 @@ The company launch does **not** wait for this plan. Launch-critical vs. deferred
 
 ## Context for the implementer
 
-- **What already exists:** the wasm renderer POC is *built and committed* (`d49406f`, `6637ec3`) — see §0.1 for the file map. `poc-wasm-esm.md` in the repo root is the original build spec; where it and the code disagree, **the code + this plan win** (the POC deviated from the spec in reviewed, accepted ways).
-- **Try it:** `pnpm dev`, then `/preview-poc?preview=wasm&debug=1` (gauntlet fixture app + error cases). Flags: `?preview=wasm|sandpack` per-page, `NEXT_PUBLIC_PREVIEW_RUNNER=wasm` globally, `?debug=1` shows the timing badge. A temporary `/tailwind-test` route was used to validate Tailwind 4 browser arbitrary-value behavior and then deleted so it does not ship publicly.
+- **What already exists:** the wasm renderer POC was built and committed (`d49406f`, `6637ec3`) and has since been absorbed into the product renderer path. `poc-wasm-esm.md` was the original build spec; where it and the code disagree, **the code + this plan win** (the POC deviated from the spec in reviewed, accepted ways).
+- **Try it:** `pnpm dev`, then generate through the app preview. Flags: `?preview=wasm|sandpack` per-page, `NEXT_PUBLIC_PREVIEW_RUNNER=wasm` globally, `?debug=1` shows the timing badge. Temporary fixture routes were used during validation and then deleted so they do not ship publicly.
 - **Environment:** generation needs `TOGETHER_API_KEY` (Helicone proxy is optional, auto-enabled via env). The benchmark harness needs no database — only the app's chat routes touch Prisma; `/preview-harness` must stay client-only precisely so the harness never needs one.
 - **Known bugs fixed in §0.3:** console-error overlay regression, the ready/error race, and the missing watchdog were fixed in `components/code-runner-react.tsx`.
 - **Content deliverables that don't exist yet** (design is specified, the artifact isn't — don't assume they're written somewhere):
@@ -62,13 +62,13 @@ Sandpack is unmaintained (last release ~a year ago, maintainer gone, CodeSandbox
 - `lib/preview/files.ts` — file-map assembly: path normalization, shadcn source injection, synthesized `App.tsx`/`main.tsx` (ported from `lib/sandpack-config.ts`).
 - `lib/preview/html.ts` — srcdoc template: import map, Tailwind 4 CDN, error/console postMessage bridge, storage shim, inlined bundle with `</script>` escaping. Sandboxed iframe without `allow-same-origin`.
 - `components/code-runner-react.tsx` — both pipelines behind a flag (`NEXT_PUBLIC_PREVIEW_RUNNER=wasm` or `?preview=wasm|sandpack`), phase state machine, timing metrics exposed as `data-preview-*` attributes, debug badge behind `?debug=1`.
-- `app/(main)/preview-poc` — fixture page (gauntlet app exercising Radix + framer-motion + recharts + CSS + error cases) for manual and automated testing.
+- Product preview routes now exercise the Base UI preview kit through the wasm renderer; standalone fixture routes were removed before release.
 
 ### 0.2 Decisions
 
 - **Dependency freshness [decided]:** keep `recharts@3.9.1` (and modern pins generally). Update the recharts snippet in `lib/prompts.ts` and any `lib/shadcn-docs` references to v3 patterns as part of hardening. The migration's purpose is a modern stack; pinning back to v2 for parity would contradict it.
 - **Backwards compatibility [decided]:** accept breakage of old stored chats. llamacoder is a demo/eval vehicle, not an archive. Old apps that break under the new renderer show the error overlay + "Try to fix"; `?preview=sandpack` remains as escape hatch for one release. No per-chat renderer versioning. Before the flip, manually spot-check a handful of recent real chats through the wasm preview to confirm breakage is the exception.
-- **Browser support bar [decided]:** Chrome + Safari must pass; Firefox is best-effort. Status: Chrome verified; **iOS Safari verified on a real device (2026-07-02, preview-poc page)**. Note the stack intentionally needs no SharedArrayBuffer / COOP-COEP (unlike WebContainers), which is why mobile Safari works.
+- **Browser support bar [decided]:** Chrome + Safari must pass; Firefox is best-effort. Status: Chrome verified; **iOS Safari verified on a real device (2026-07-02, wasm preview page)**. Note the stack intentionally needs no SharedArrayBuffer / COOP-COEP (unlike WebContainers), which is why mobile Safari works.
 - **react-router-dom [decided]:** keep the dependency in `PREVIEW_DEPS` (renderer stays forgiving; old chats and disobedient generations still render), keep the prompt ban (scope control: single-page MVPs keep evaluation well-defined — one screenshot, one route). Enforcement principle: **the forbidden list is enforced by static checks on `generatedFiles`, never by the renderer.** Revisit the ban post-release with benchmark data (see §6).
 
 ### 0.3 Hardening checklist (complete except post-release cleanup)
@@ -365,7 +365,7 @@ Explicitly deferred until the §4 sequence ships. Each item exists because the b
 - ~~**HTML report generation** from `results.jsonl`~~ — pulled forward into v1 (`scripts/benchmark/report.ts`) as the vehicle for inspection-based judge calibration (§1.5 revised).
 - **together-ai SDK crash bug:** `together-ai@0.40.0` has a TDZ bug (`Cannot access 'TogetherError' before initialization` in `AbstractChatCompletionRunner`) that kills the process from a background tick when a stream errors, bypassing per-cell isolation (observed 2026-07-03, cost 18 cells, recovered via `--models`/`--prompts` patch rerun into the same out dir). Upgrade the SDK when a fix ships, or add a `process.on("unhandledRejection")` guard in `run.ts`.
 - **`--models all` semantics:** today it returns `manifest.models` (the 5 visible models); either add the hidden models to the manifest or make `all` mean "every model in `lib/constants.ts`".
-- **Base UI migration test (requested 2026-07-04).** Premise (to verify when picked up): shadcn/ui has moved off Radix primitives onto Base UI (`@base-ui-components/react`). The renderer's `PREVIEW_DEPS` and injected shadcn sources (`lib/shadcn.ts`, `lib/preview/files.ts`) are all Radix-based today, so a Base-UI shadcn would change the dependency list, the import map, and every injected `components/ui/*` source. Task: (1) confirm the shadcn→Base UI switch and pin the current versions; (2) build a `preview-poc` variant that renders shadcn components backed by Base UI instead of Radix; (3) run the benchmark against it to confirm the wasm pipeline + prompt still produce working apps once the primitive layer changes. **Sequence: after the current prompt-tweak tests conclude** — this is a renderer-substrate change, larger than a prompt tweak, and should not be interleaved with the `minimal-vN` prompt experiments (it would confound attribution). Do it as its own tracked change with its own before/after benchmark.
+- **Base UI migration test (completed 2026-07-05).** shadcn/ui moved off Radix primitives onto Base UI, and the renderer now injects the Base UI preview kit through the product preview path. Keep future renderer-substrate changes isolated from prompt experiments so benchmark attribution stays clean.
 
 ### 6.1 `minimal-v2` prompt tweak backlog (data-backed candidates)
 
