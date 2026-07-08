@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.trycloudflare.com"],
-  serverExternalPackages: ["esbuild"],
   turbopack: {},
   async headers() {
     return [

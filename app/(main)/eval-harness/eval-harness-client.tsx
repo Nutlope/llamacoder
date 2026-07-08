@@ -70,7 +70,15 @@ export default function EvalHarnessClient() {
       updatePhase("bundling");
       updateResult(() => emptyResult);
 
-      const buildResult = await bundle(assemblePreviewFiles(files));
+      const buildResult = await bundle(
+        assemblePreviewFiles(files, {
+          uiLibrary: "baseui",
+          externalBaseuiComponents: true,
+        }),
+        {
+          externalBaseuiComponents: true,
+        },
+      );
 
       if (!buildResult.ok) {
         updatePhase("error");

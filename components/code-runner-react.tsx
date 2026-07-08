@@ -2,7 +2,7 @@
 
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { bundle, ensureEsbuild, type BundleResult } from "@/lib/preview/bundle";
+import { bundle, ensureEsbuild } from "@/lib/preview/bundle";
 import {
   assemblePreviewFiles,
   collectUsedBaseuiInlinePaths,
@@ -10,10 +10,7 @@ import {
   type PreviewUiLibrary,
 } from "@/lib/preview/files";
 import { buildSrcdoc } from "@/lib/preview/html";
-import {
-  buildPreviewStyleSignature,
-  collectPreviewStyleCandidates,
-} from "@/lib/preview/tailwind-signature";
+import { buildPreviewStyleSignature } from "@/lib/preview/tailwind-signature";
 
 export type PreviewVendorMode = "local" | "cdn" | "flat";
 export type PreviewBundleMode =
@@ -85,10 +82,6 @@ type PreviewResource = {
 // still surfacing a genuine hang rather than spinning forever.
 const PREVIEW_WATCHDOG_MS = 60_000;
 const previewTailwindCssCache = new Map<string, string>();
-const staticPreviewTailwindCandidatesCache = new Map<
-  PreviewUiLibrary,
-  string[]
->();
 const PREVIEW_TAILWIND_CSS_CACHE_PREFIX = "llamacoder-preview-tailwind-css:";
 const PREVIEW_TAILWIND_CSS_CACHE_VERSION = "v2";
 const LEAF_INLINE_BASEUI_COMPONENT_PATHS = [
@@ -153,9 +146,6 @@ function WasmReactCodeRunner({
   const [state, setState] = useState<PreviewState>({ phase: "bundling" });
   const [consoleErrors, setConsoleErrors] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<PreviewMetrics>({});
-  const canUseServerPrebundle =
-    previewKit === "baseui" &&
-    (effectivePreviewVendor === "local" || effectivePreviewVendor === "flat");
   const filesKey = useMemo(
     () => files.map((file) => file.path + file.content).join(""),
     [files],
@@ -174,10 +164,8 @@ function WasmReactCodeRunner({
   }
 
   useEffect(() => {
-    if (!canUseServerPrebundle) {
-      void ensureEsbuild();
-    }
-  }, [canUseServerPrebundle]);
+    void ensureEsbuild();
+  }, []);
 
   useEffect(() => {
     let didCancel = false;
@@ -191,7 +179,7 @@ function WasmReactCodeRunner({
     const runBundle = async () => {
       const assemblyStartedAt = performance.now();
       const externalBaseuiComponents =
-        canUseServerPrebundle &&
+        previewKit === "baseui" &&
         previewBundleMode !== "inline-components" &&
         previewBundleMode !== "single-file";
       const bundleBareDependencies =
@@ -216,43 +204,12 @@ function WasmReactCodeRunner({
           : undefined;
       const tailwindCacheReadMs =
         performance.now() - tailwindCacheReadStartedAt;
-      let tailwindPrecompileMetrics: Pick<
-        PreviewMetrics,
-        | "tailwindCandidateMs"
-        | "tailwindPrecompileCacheHit"
-        | "tailwindPrecompileMs"
-      > = {};
-      const tailwindPrecompileRequest =
-        cachedTailwindCss === undefined &&
-        previewKit === "baseui" &&
-        (effectivePreviewVendor === "local" ||
-          effectivePreviewVendor === "flat")
-          ? preparePreviewTailwindPrecompile(files, previewKit, tailwindCssCacheKey)
-          : null;
-
-      const serverBundle =
-        canUseServerPrebundle
-          ? await prebundlePreviewFiles(assembledFiles, {
-              externalBaseuiComponents,
-              bundleBareDependencies,
-              externalReactDependencies,
-              inlineBaseuiComponentPaths,
-              tailwind: tailwindPrecompileRequest
-                ? {
-                    cacheKey: tailwindPrecompileRequest.cacheKey,
-                    candidates: tailwindPrecompileRequest.candidates,
-                  }
-                : undefined,
-            })
-          : null;
-      const result =
-        serverBundle ??
-        (await bundle(assembledFiles, {
-          externalBaseuiComponents,
-          bundleBareDependencies,
-          externalReactDependencies,
-          inlineBaseuiComponentPaths,
-        }));
+      const result = await bundle(assembledFiles, {
+        externalBaseuiComponents,
+        bundleBareDependencies,
+        externalReactDependencies,
+        inlineBaseuiComponentPaths,
+      });
 
       if (didCancel) return;
 
@@ -261,27 +218,6 @@ function WasmReactCodeRunner({
         return;
       }
 
-      const precompiledTailwind =
-        serverBundle?.tailwind?.ok === true
-          ? serverBundle.tailwind
-          : tailwindPrecompileRequest
-            ? await precompilePreviewTailwindCss(
-                tailwindPrecompileRequest.cacheKey,
-                tailwindPrecompileRequest.candidates,
-              )
-            : null;
-
-      if (didCancel) return;
-
-      if (precompiledTailwind) {
-        cachedTailwindCss = precompiledTailwind.css;
-        storeCompiledPreviewCss(tailwindCssCacheKey, precompiledTailwind.css);
-        tailwindPrecompileMetrics = {
-          tailwindCandidateMs: tailwindPrecompileRequest?.candidateMs,
-          tailwindPrecompileCacheHit: precompiledTailwind.cacheHit,
-          tailwindPrecompileMs: precompiledTailwind.durationMs,
-        };
-      }
       shouldStoreIframeCompiledCssRef.current = cachedTailwindCss === undefined;
 
       iframeStartedAtRef.current = performance.now();
@@ -305,7 +241,6 @@ function WasmReactCodeRunner({
         assemblyMs,
         tailwindCacheReadMs,
         tailwindCssCacheHit: cachedTailwindCss !== undefined,
-        ...tailwindPrecompileMetrics,
         bundleInputFileCount: result.inputFileCount,
         bundleInputBytes: result.inputBytes,
         bundleCacheKeyBytes: result.cacheKeyBytes,
@@ -344,7 +279,6 @@ function WasmReactCodeRunner({
     effectivePreviewVendor,
     previewBundleMode,
     tailwindCssCacheKey,
-    canUseServerPrebundle,
   ]);
 
   useEffect(() => {
@@ -723,207 +657,6 @@ function hashString(value: string) {
     hash = (hash * 33) ^ value.charCodeAt(index);
   }
   return (hash >>> 0).toString(36);
-}
-
-function toPreviewFileList(fileMap: Record<string, string>) {
-  return Object.entries(fileMap).map(([path, content]) => ({ path, content }));
-}
-
-function preparePreviewTailwindPrecompile(
-  files: Array<{ path: string; content: string }>,
-  previewKit: PreviewUiLibrary,
-  cacheKey: string,
-) {
-  const tailwindCandidateStartedAt = performance.now();
-  const tailwindCandidates =
-    previewKit === "baseui"
-      ? mergeTailwindCandidates(
-          getStaticPreviewTailwindCandidates(previewKit),
-          collectPreviewStyleCandidates(files),
-        )
-      : collectPreviewStyleCandidates(
-          toPreviewFileList(
-            assemblePreviewFiles(files, {
-              uiLibrary: previewKit,
-            }),
-          ),
-        );
-  const candidateMs = performance.now() - tailwindCandidateStartedAt;
-
-  return {
-    cacheKey,
-    candidates: tailwindCandidates,
-    candidateMs,
-  };
-}
-
-function getStaticPreviewTailwindCandidates(previewKit: PreviewUiLibrary) {
-  const cached = staticPreviewTailwindCandidatesCache.get(previewKit);
-  if (cached) return cached;
-
-  const candidates = collectPreviewStyleCandidates(
-    toPreviewFileList(
-      assemblePreviewFiles([], {
-        uiLibrary: previewKit,
-      }),
-    ),
-  );
-  staticPreviewTailwindCandidatesCache.set(previewKit, candidates);
-  return candidates;
-}
-
-function mergeTailwindCandidates(left: string[], right: string[]) {
-  return [...new Set([...left, ...right])].sort();
-}
-
-async function prebundlePreviewFiles(
-  files: Record<string, string>,
-  options: {
-    externalBaseuiComponents: boolean;
-    bundleBareDependencies?: boolean;
-    externalReactDependencies?: boolean;
-    inlineBaseuiComponentPaths?: string[];
-    tailwind?: {
-      cacheKey: string;
-      candidates: string[];
-    };
-  },
-): Promise<
-  | (Extract<BundleResult, { ok: true }> & {
-      tailwind?: PreviewTailwindPrecompileResult;
-    })
-  | null
-> {
-  const response = await fetch("/api/preview-bundle", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      files,
-      options: {
-        externalBaseuiComponents: options.externalBaseuiComponents,
-        bundleBareDependencies: options.bundleBareDependencies,
-        externalReactDependencies: options.externalReactDependencies,
-        inlineBaseuiComponentPaths: options.inlineBaseuiComponentPaths,
-      },
-      tailwind: options.tailwind,
-    }),
-  }).catch(() => null);
-
-  if (!response?.ok) return null;
-
-  const payload = (await response.json().catch(() => null)) as
-    | (Partial<Extract<BundleResult, { ok: true }>> & {
-        ok?: unknown;
-      })
-    | null;
-
-  if (
-    payload?.ok !== true ||
-    typeof payload.code !== "string" ||
-    typeof payload.css !== "string"
-  ) {
-    return null;
-  }
-
-  return {
-    ok: true,
-    code: payload.code,
-    css: payload.css,
-    durationMs: toFiniteNumber(payload.durationMs),
-    cacheHit: payload.cacheHit === true,
-    cacheSource:
-      typeof payload.cacheSource === "string"
-        ? payload.cacheSource
-        : "server",
-    cacheLookupMs: toFiniteNumber(payload.cacheLookupMs),
-    ensureMs: 0,
-    inputFileCount: toFiniteNumber(payload.inputFileCount),
-    inputBytes: toFiniteNumber(payload.inputBytes),
-    cacheKeyBytes: toFiniteNumber(payload.cacheKeyBytes),
-    outputJsBytes: toFiniteNumber(payload.outputJsBytes),
-    outputCssBytes: toFiniteNumber(payload.outputCssBytes),
-    tailwind: parsePreviewTailwindPrecompileResult(
-      (payload as { tailwind?: unknown }).tailwind,
-    ),
-  };
-}
-
-type PreviewTailwindPrecompileResult =
-  | {
-      ok: true;
-      css: string;
-      cacheHit: boolean;
-      durationMs: number;
-    }
-  | {
-      ok: false;
-      error: string;
-      durationMs: number;
-    };
-
-function parsePreviewTailwindPrecompileResult(
-  value: unknown,
-): PreviewTailwindPrecompileResult | undefined {
-  if (typeof value !== "object" || value === null) return undefined;
-
-  if (
-    (value as { ok?: unknown }).ok === true &&
-    typeof (value as { css?: unknown }).css === "string"
-  ) {
-    return {
-      ok: true,
-      css: (value as { css: string }).css,
-      cacheHit: (value as { cacheHit?: unknown }).cacheHit === true,
-      durationMs: toFiniteNumber((value as { durationMs?: unknown }).durationMs),
-    };
-  }
-
-  if ((value as { ok?: unknown }).ok === false) {
-    return {
-      ok: false,
-      error:
-        typeof (value as { error?: unknown }).error === "string"
-          ? (value as { error: string }).error
-          : "Tailwind precompile failed.",
-      durationMs: toFiniteNumber((value as { durationMs?: unknown }).durationMs),
-    };
-  }
-
-  return undefined;
-}
-
-async function precompilePreviewTailwindCss(
-  cacheKey: string,
-  candidates: string[],
-) {
-  const response = await fetch("/api/preview-tailwind", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ cacheKey, candidates }),
-  }).catch(() => null);
-
-  if (!response?.ok) return null;
-
-  const payload = (await response.json().catch(() => null)) as {
-    css?: unknown;
-    cacheHit?: unknown;
-    durationMs?: unknown;
-  } | null;
-
-  if (typeof payload?.css !== "string" || payload.css.length === 0) {
-    return null;
-  }
-
-  return {
-    css: payload.css,
-    cacheHit: payload.cacheHit === true,
-    durationMs:
-      typeof payload.durationMs === "number" ? payload.durationMs : undefined,
-  };
-}
-
-function toFiniteNumber(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function formatErrorForFixPayload(error: string, consoleErrors: string[]) {

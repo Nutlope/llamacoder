@@ -6,9 +6,9 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "pnpm generate:baseui-vendor && prisma generate && prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "tsc --noEmit --noUnusedLocals",
+    "lint": "pnpm generate:baseui-vendor && tsc --noEmit --noUnusedLocals",
     "test": "tsx --test \"lib/**/*.test.ts\"",
     "generate:baseui-preview": "tsx scripts/preview/generate-baseui-files.ts",
     "generate:baseui-vendor": "tsx scripts/preview/generate-baseui-vendor.ts"

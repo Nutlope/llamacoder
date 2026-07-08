@@ -19,6 +19,53 @@ try {
   Object.defineProperty(window, "localStorage", { value: memoryStorageShim(), configurable: true });
   Object.defineProperty(window, "sessionStorage", { value: memoryStorageShim(), configurable: true });
 } catch (_) {}
+function scrollPreviewHash(hash) {
+  const id = decodeURIComponent(String(hash || "").replace(/^#/, ""));
+  if (!id) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  const target =
+    document.getElementById(id) ||
+    document.querySelector('[name="' + CSS.escape(id) + '"]');
+
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  try {
+    history.replaceState(null, "", "#" + id);
+  } catch (_) {}
+}
+window.addEventListener("click", (event) => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return;
+  }
+
+  const anchor = event.target && event.target.closest
+    ? event.target.closest("a[href]")
+    : null;
+  if (!anchor || anchor.target || anchor.hasAttribute("download")) return;
+
+  const href = anchor.getAttribute("href") || "";
+
+  if (href.startsWith("#")) {
+    event.preventDefault();
+    scrollPreviewHash(href);
+    return;
+  }
+
+  if (href.startsWith("/#")) {
+    event.preventDefault();
+    scrollPreviewHash(href.slice(1));
+    return;
+  }
+
+  if (href === "/" || href.startsWith("/")) {
+    event.preventDefault();
+  }
+}, true);
 window.addEventListener("error", (event) => {
   parent.postMessage({
     source: "preview",
@@ -196,6 +243,7 @@ requestAnimationFrame(() => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<base href="about:srcdoc">
 <script type="importmap">${JSON.stringify(importMap)}</script>
 ${modulePreloads}
 ${buildStyleTags({
