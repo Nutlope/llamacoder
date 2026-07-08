@@ -172,6 +172,7 @@ window.__previewCollectCompiledCss = collectCompiledCss;
 window.__previewPostMetric = postPreviewMetric;
 let previewAppReadyPayload = null;
 let previewStyleReadyPayload = null;
+let previewStyleWatchStarted = false;
 function maybePostPreviewReady() {
   if (!previewAppReadyPayload || !previewStyleReadyPayload) return;
 
@@ -183,13 +184,24 @@ function maybePostPreviewReady() {
 }
 window.__previewMarkAppReady = (extra = {}) => {
   previewAppReadyPayload = extra;
+  startTailwindReadyWatch();
   maybePostPreviewReady();
 };
+function startTailwindReadyWatch() {
+  if (previewStyleWatchStarted) return;
+  previewStyleWatchStarted = true;
+  waitForTailwindReady();
+}
 function waitForTailwindReady() {
   const startedAt = performance.now();
   const timeoutMs = 5000;
 
   function check() {
+    if (!document.body) {
+      requestAnimationFrame(check);
+      return;
+    }
+
     const probe = document.createElement("div");
     probe.className = "grid rounded-md bg-zinc-50 p-6";
     document.body.appendChild(probe);
@@ -220,7 +232,7 @@ function waitForTailwindReady() {
 window.addEventListener("load", () => {
   requestAnimationFrame(() => {
     postPreviewMetric("document-loaded");
-    waitForTailwindReady();
+    startTailwindReadyWatch();
   });
 });
 `;
