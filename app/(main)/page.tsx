@@ -293,6 +293,11 @@ export default function Home() {
                                 <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
                                   {m.label}
                                 </Select.ItemText>
+                                {m.note && (
+                                  <span className="text-xs text-gray-400">
+                                    {m.note}
+                                  </span>
+                                )}
                                 <Select.ItemIndicator>
                                   <CheckIcon className="size-3 text-blue-600" />
                                 </Select.ItemIndicator>

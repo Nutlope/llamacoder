@@ -21,14 +21,23 @@ export function resolveModel(model: string): string {
 // with stream=false). Qwen3-Coder-* are now non-serverless on Together.
 export const PLANNING_MODEL = "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8";
 
-export const MODELS = [
+export type ModelOption = {
+  label: string;
+  value: string;
+  hidden?: boolean;
+  // Optional muted hint shown next to the label in the picker (e.g. "slower").
+  note?: string;
+};
+
+// Selectable (non-hidden) models are the fast, reliable set plus Nemotron 3
+// Ultra (fast on serverless) and Qwen3.7 Max (best-looking output, but ~2x
+// slower — flagged). MiniMax M3 and the old Qwen 3 235B were dropped from the
+// picker for slow/inconsistent serverless throughput, but stay here as hidden
+// entries so existing chats and MODEL_ALIASES keep resolving them.
+export const MODELS: ModelOption[] = [
   {
     label: "GLM 5.2",
     value: "zai-org/GLM-5.2",
-  },
-  {
-    label: "MiniMax M3",
-    value: "MiniMaxAI/MiniMax-M3",
   },
   {
     label: "Kimi K2.7 Code",
@@ -39,8 +48,23 @@ export const MODELS = [
     value: "moonshotai/Kimi-K2.6",
   },
   {
+    label: "Nemotron 3 Ultra",
+    value: "nvidia/nemotron-3-ultra-550b-a55b",
+  },
+  {
+    label: "Qwen3.7 Max",
+    value: "Qwen/Qwen3.7-Max",
+    note: "slower",
+  },
+  {
+    label: "MiniMax M3",
+    value: "MiniMaxAI/MiniMax-M3",
+    hidden: true,
+  },
+  {
     label: "Qwen 3 235B",
     value: "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
+    hidden: true,
   },
   {
     label: "DeepSeek V3",
