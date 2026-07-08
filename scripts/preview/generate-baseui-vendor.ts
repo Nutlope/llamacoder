@@ -344,9 +344,8 @@ async function buildComponentVendor() {
 }
 
 async function writeVendorPreloadGraph() {
-  const graph: Record<string, string[]> = {};
+  const graphEntries: Array<[string, string[]]> = [];
   const directories = [
-    [OUT_DIR, PUBLIC_URL_PREFIX],
     [FLAT_OUT_DIR, FLAT_PUBLIC_URL_PREFIX],
     [COMPONENTS_OUT_DIR, COMPONENTS_PUBLIC_URL_PREFIX],
   ] as const;
@@ -354,21 +353,23 @@ async function writeVendorPreloadGraph() {
   for (const [directory, publicUrlPrefix] of directories) {
     const files = await collectBuiltJavaScriptFiles(directory);
 
-    await Promise.all(
-      files.map(async (filePath) => {
-        const source = await fs.readFile(filePath, "utf8");
-        const href = `${publicUrlPrefix}/${path
-          .relative(directory, filePath)
-          .split(path.sep)
-          .join("/")}`;
-        const imports = collectStaticImportSpecifiers(source);
+    for (const filePath of files) {
+      const source = await fs.readFile(filePath, "utf8");
+      const href = `${publicUrlPrefix}/${path
+        .relative(directory, filePath)
+        .split(path.sep)
+        .join("/")}`;
+      const imports = collectStaticImportSpecifiers(source);
 
-        if (imports.length > 0) {
-          graph[href] = imports;
-        }
-      }),
-    );
+      if (imports.length > 0) {
+        graphEntries.push([href, imports]);
+      }
+    }
   }
+
+  const graph = Object.fromEntries(
+    graphEntries.sort(([left], [right]) => left.localeCompare(right)),
+  );
 
   await fs.writeFile(
     GENERATED_VENDOR_PRELOADS_PATH,
@@ -396,7 +397,7 @@ async function collectBuiltJavaScriptFiles(directory: string): Promise<string[]>
     }),
   );
 
-  return files.flat();
+  return files.flat().sort((left, right) => left.localeCompare(right));
 }
 
 function collectStaticImportSpecifiers(source: string) {

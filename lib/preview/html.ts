@@ -170,6 +170,21 @@ function postPreviewMetric(type, extra = {}) {
 window.__previewCollectMetrics = collectPreviewMetrics;
 window.__previewCollectCompiledCss = collectCompiledCss;
 window.__previewPostMetric = postPreviewMetric;
+let previewAppReadyPayload = null;
+let previewStyleReadyPayload = null;
+function maybePostPreviewReady() {
+  if (!previewAppReadyPayload || !previewStyleReadyPayload) return;
+
+  postPreviewMetric("ready", {
+    ...previewStyleReadyPayload,
+    ...previewAppReadyPayload,
+    compiledCss: collectCompiledCss(),
+  });
+}
+window.__previewMarkAppReady = (extra = {}) => {
+  previewAppReadyPayload = extra;
+  maybePostPreviewReady();
+};
 function waitForTailwindReady() {
   const startedAt = performance.now();
   const timeoutMs = 5000;
@@ -191,7 +206,9 @@ function waitForTailwindReady() {
         tailwindWaitMs: Math.round(performance.now() - startedAt),
         compiledCss: collectCompiledCss(),
       };
+      previewStyleReadyPayload = readyPayload;
       postPreviewMetric("tailwind-ready", readyPayload);
+      maybePostPreviewReady();
       return;
     }
 
@@ -220,12 +237,8 @@ export function buildSrcdoc(
 ): string {
   const safeCode = escapeScriptContents(`${bundledCode}
 requestAnimationFrame(() => {
-  if (window.__previewPostMetric) {
-    window.__previewPostMetric("ready", {
-      compiledCss: window.__previewCollectCompiledCss
-        ? window.__previewCollectCompiledCss()
-        : "",
-    });
+  if (window.__previewMarkAppReady) {
+    window.__previewMarkAppReady({});
   } else {
     parent.postMessage({ source: "preview", type: "ready" }, "*");
   }
