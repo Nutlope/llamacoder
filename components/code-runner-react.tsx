@@ -170,6 +170,23 @@ function WasmReactCodeRunner({
   }, []);
 
   useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || typeof IntersectionObserver === "undefined") return;
+
+    // The srcdoc can finish loading while the iframe is hidden (Code tab) or
+    // mid-layout-animation (panel width transition); Chromium then leaves the
+    // sandboxed frame blank until something invalidates its surface. Repaint
+    // whenever the iframe comes (back) into view.
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        nudgeIframePaint(iframe);
+      }
+    });
+    observer.observe(iframe);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     let didCancel = false;
     runStartedAtRef.current = performance.now();
     iframeStartedAtRef.current = null;
@@ -343,6 +360,7 @@ function WasmReactCodeRunner({
         if (stateRef.current.phase === "error") return;
 
         loadedSrcdocReadyRef.current = true;
+        nudgeIframePaint(iframeRef.current);
         if (shouldStoreIframeCompiledCssRef.current) {
           storeCompiledPreviewCss(
             tailwindCssCacheKeyRef.current,
@@ -480,11 +498,19 @@ function WasmReactCodeRunner({
         title="Preview"
         className="h-full w-full border-0"
       />
-      {(state.phase === "bundling" || state.phase === "running") && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/60 text-sm font-medium text-gray-500 backdrop-blur-sm">
-          {state.phase === "bundling" ? "Bundling preview..." : "Running..."}
-        </div>
-      )}
+      {(state.phase === "bundling" || state.phase === "running") &&
+        (srcdoc === "" ? (
+          // Nothing rendered yet: plain placeholder instead of a blur overlay.
+          <div className="absolute inset-0 flex items-center justify-center bg-white text-sm font-medium text-gray-400">
+            Building preview...
+          </div>
+        ) : (
+          // Keep the current preview visible during re-bundles; just hint
+          // that an update is in flight.
+          <div className="absolute bottom-3 right-3 animate-pulse rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
+            Updating...
+          </div>
+        ))}
       {error && <ErrorMessage error={error} onRequestFix={onRequestFix} disabled={isFixPending} />}
       {showDebugMetrics && (
         <PreviewMetricsBadge state={state} metrics={metrics} />
@@ -577,6 +603,19 @@ function ErrorMessage({
       </div>
     </div>
   );
+}
+
+function nudgeIframePaint(iframe: HTMLIFrameElement | null) {
+  if (!iframe) return;
+
+  // Chromium can leave a sandboxed srcdoc iframe permanently blank when its
+  // document loaded while the frame was hidden or mid-layout-animation (the
+  // panel animates w-0 -> w-[70%]). A one-frame display toggle forces the
+  // frame to recomposite; it does NOT reload the iframe's document.
+  iframe.style.display = "none";
+  requestAnimationFrame(() => {
+    iframe.style.display = "";
+  });
 }
 
 function usePreviewDebugFlag() {
