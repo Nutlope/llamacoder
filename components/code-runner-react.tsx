@@ -174,6 +174,10 @@ function WasmReactCodeRunner({
   const [state, setState] = useState<PreviewState>({ phase: "bundling" });
   const [consoleErrors, setConsoleErrors] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<PreviewMetrics>({});
+  // First-ever ready flips this: before it, loading must cover the whole
+  // panel (the iframe underneath is a blank white document); after it, the
+  // previous app stays visible during re-bundles and a corner hint suffices.
+  const [hasEverBeenReady, setHasEverBeenReady] = useState(false);
   const filesKey = useMemo(
     () => files.map((file) => file.path + file.content).join(""),
     [files],
@@ -344,6 +348,7 @@ function WasmReactCodeRunner({
             totalMs: performance.now() - runStartedAtRef.current,
           });
           transitionState({ phase: "ready" });
+          setHasEverBeenReady(true);
           return;
         }
       }
@@ -427,6 +432,7 @@ function WasmReactCodeRunner({
         // working preview into a bogus 60s watchdog failure).
         loadedSrcdocReadyRef.current = true;
         transitionState({ phase: "ready" });
+        setHasEverBeenReady(true);
         try {
           nudgeIframePaint(iframeRef.current);
           if (shouldStoreIframeCompiledCssRef.current) {
@@ -577,11 +583,12 @@ function WasmReactCodeRunner({
         className="h-full w-full border-0"
       />
       {(state.phase === "bundling" || state.phase === "running") &&
-        (srcdoc === "" ? (
-          // Nothing rendered yet: plain placeholder instead of a blur overlay.
-          <div className="absolute inset-0 flex items-center justify-center bg-white text-sm font-medium text-gray-400">
-            Building preview...
-          </div>
+        (!hasEverBeenReady ? (
+          // Nothing has ever rendered in the iframe: it is a blank white
+          // document until `ready`, so the loading state must cover the
+          // panel for the whole boot (bundle + iframe boot + tailwind), not
+          // just until the srcdoc is set.
+          <PreviewLoadingOverlay phase={state.phase} metrics={metrics} />
         ) : (
           // Keep the current preview visible during re-bundles; just hint
           // that an update is in flight.
@@ -599,6 +606,71 @@ function WasmReactCodeRunner({
       {showDebugMetrics && (
         <PreviewMetricsBadge state={state} metrics={metrics} />
       )}
+    </div>
+  );
+}
+
+function PreviewLoadingOverlay({
+  phase,
+  metrics,
+}: {
+  phase: "bundling" | "running";
+  metrics: PreviewMetrics;
+}) {
+  // Real pipeline signals, in order: esbuild finishes (phase leaves
+  // "bundling"), the iframe document loads, tailwind finishes compiling.
+  const steps = [
+    { label: "Bundling code", done: phase !== "bundling" },
+    { label: "Starting preview", done: metrics.documentMs !== undefined },
+    { label: "Compiling styles", done: metrics.styledMs !== undefined },
+  ];
+  const activeIndex = steps.findIndex((step) => !step.done);
+  const progress =
+    activeIndex === -1 ? 96 : [16, 48, 80][activeIndex];
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-white">
+      <div className="flex w-56 flex-col gap-5">
+        <div className="flex flex-col gap-2.5">
+          <p className="text-sm font-medium text-gray-900">
+            Building your app
+          </p>
+          <div className="h-1 overflow-hidden rounded-full bg-gray-100">
+            <div
+              className="h-full rounded-full bg-blue-500 transition-[width] duration-700 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+        <ol className="flex flex-col gap-2">
+          {steps.map((step, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <li
+                key={step.label}
+                className={`flex items-center gap-2 text-[13px] transition-colors duration-300 ${
+                  step.done
+                    ? "text-gray-400"
+                    : isActive
+                      ? "font-medium text-gray-900"
+                      : "text-gray-300"
+                }`}
+              >
+                <span className="flex size-4 items-center justify-center">
+                  {step.done ? (
+                    <CheckIcon className="size-3.5 text-blue-500" />
+                  ) : isActive ? (
+                    <span className="size-3 animate-spin rounded-full border-[1.5px] border-gray-300 border-t-blue-500" />
+                  ) : (
+                    <span className="size-1 rounded-full bg-gray-300" />
+                  )}
+                </span>
+                {step.label}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
