@@ -1,9 +1,8 @@
 import { baseuiPreviewDependencies } from "./generated/baseui-files";
 
-const GENERAL_PREVIEW_DEPS: Record<string, string> = {
-  "framer-motion": "11.15.0",
-  vaul: "0.9.1",
-};
+// framer-motion and vaul moved into the baseui preview kit (locally
+// vendored); versions now come from preview-kits/baseui/package.json.
+const GENERAL_PREVIEW_DEPS: Record<string, string> = {};
 
 export const PREVIEW_DEPS: Record<string, string> = {
   ...GENERAL_PREVIEW_DEPS,
