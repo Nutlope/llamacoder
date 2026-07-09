@@ -29,6 +29,7 @@
     "@shadcn/react": "0.2.0",
     "@tailwindcss/typography": "^0.5.15",
     "@vercel/og": "^0.8.6",
+    "braintrust": "^3.21.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
