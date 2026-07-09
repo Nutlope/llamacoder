@@ -14,6 +14,7 @@ export default function CodeRunner({
   isFixPending,
   allowAutoFix,
   refreshNonce,
+  isActivePane,
 }: {
   language?: string;
   code?: string;
@@ -25,6 +26,7 @@ export default function CodeRunner({
   isFixPending?: boolean;
   allowAutoFix?: boolean;
   refreshNonce?: number;
+  isActivePane?: boolean;
 }) {
   const actualFiles =
     files || (code ? [{ path: "App.tsx", content: code }] : []);
@@ -38,6 +40,7 @@ export default function CodeRunner({
       isFixPending={isFixPending}
       allowAutoFix={allowAutoFix}
       refreshNonce={refreshNonce}
+      isActivePane={isActivePane}
     />
   );
 }

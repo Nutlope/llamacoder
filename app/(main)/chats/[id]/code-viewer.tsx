@@ -402,6 +402,7 @@ export default function CodeViewer({
               previewDebounceMs={streamText ? 400 : 0}
               isFixPending={isFixPending}
               allowAutoFix={allowAutoFix}
+              isActivePane={activeTab === "preview"}
             />
           </div>
         )}

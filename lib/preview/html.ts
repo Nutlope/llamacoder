@@ -257,6 +257,50 @@ window.addEventListener("load", () => {
     startTailwindReadyWatch();
   }, 0);
 });
+// Chromium never rasters a sandboxed srcdoc frame whose document loaded while
+// the tab was hidden/occluded, and it stays permanently white after the tab
+// becomes visible because nothing inside it is dirty anymore. Style nudges
+// from the parent can't help: with no frames being produced, a perturb+restore
+// pair coalesces into a net no-op before any frame samples it. So while
+// hidden, keep one imperceptible 1x1 pixel changing on a timer — persistent
+// real paint damage that forces the first produced frame to raster the
+// current content.
+let paintKeepAliveEl = null;
+let paintKeepAliveTimer = null;
+let paintKeepAliveTick = 0;
+let paintKeepAliveVisibleTicks = 0;
+function paintKeepAliveStep() {
+  paintKeepAliveTimer = null;
+  if (document.body) {
+    if (!paintKeepAliveEl || !paintKeepAliveEl.isConnected) {
+      paintKeepAliveEl = document.createElement("div");
+      paintKeepAliveEl.setAttribute("aria-hidden", "true");
+      paintKeepAliveEl.style.cssText =
+        "position:fixed;left:0;bottom:0;width:1px;height:1px;pointer-events:none;z-index:2147483647;";
+      document.body.appendChild(paintKeepAliveEl);
+    }
+    paintKeepAliveTick += 1;
+    paintKeepAliveEl.style.backgroundColor =
+      paintKeepAliveTick % 2 ? "rgba(0,0,0,0.02)" : "rgba(0,0,0,0.01)";
+  }
+  if (document.hidden) {
+    paintKeepAliveVisibleTicks = 0;
+    paintKeepAliveTimer = setTimeout(paintKeepAliveStep, 500);
+  } else if (paintKeepAliveVisibleTicks < 3) {
+    // A few extra ticks once visible so the recovering frame definitely
+    // rasters, then get out of the way entirely.
+    paintKeepAliveVisibleTicks += 1;
+    paintKeepAliveTimer = setTimeout(paintKeepAliveStep, 200);
+  } else if (paintKeepAliveEl) {
+    paintKeepAliveEl.remove();
+    paintKeepAliveEl = null;
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  paintKeepAliveVisibleTicks = 0;
+  if (!paintKeepAliveTimer) paintKeepAliveStep();
+});
+paintKeepAliveStep();
 `;
 
 export function buildSrcdoc(

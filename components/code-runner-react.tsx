@@ -35,6 +35,14 @@ type RunnerProps = {
   isFixPending?: boolean;
   allowAutoFix?: boolean;
   refreshNonce?: number;
+  /**
+   * Whether the pane containing this runner is the one the user is looking
+   * at. The pre-warm path renders the runner inside an opacity-0 wrapper, so
+   * the srcdoc often finishes loading uncomposited; flipping opacity back
+   * fires neither IntersectionObserver nor visibilitychange, so the reveal
+   * needs its own repaint nudge.
+   */
+  isActivePane?: boolean;
 };
 
 type PreviewState =
@@ -119,6 +127,7 @@ export default function ReactCodeRunner({
   isFixPending,
   allowAutoFix,
   refreshNonce,
+  isActivePane,
 }: RunnerProps) {
   return (
     <WasmReactCodeRunner
@@ -131,6 +140,7 @@ export default function ReactCodeRunner({
       isFixPending={isFixPending}
       allowAutoFix={allowAutoFix}
       refreshNonce={refreshNonce}
+      isActivePane={isActivePane}
     />
   );
 }
@@ -145,6 +155,7 @@ function WasmReactCodeRunner({
   previewVendor,
   previewBundleMode = "external",
   refreshNonce = 0,
+  isActivePane = true,
 }: RunnerProps) {
   const effectivePreviewVendor =
     previewVendor ?? (previewKit === "baseui" ? "flat" : "local");
@@ -217,6 +228,15 @@ function WasmReactCodeRunner({
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    // Pre-warmed previews load behind an opacity-0 wrapper; when the user
+    // switches to the Preview tab, that opacity flip triggers neither the
+    // IntersectionObserver nor visibilitychange, so repaint explicitly.
+    if (isActivePane) {
+      nudgeIframePaint(iframeRef.current);
+    }
+  }, [isActivePane]);
 
   useEffect(() => {
     let didCancel = false;
@@ -677,16 +697,21 @@ function nudgeIframePaint(iframe: HTMLIFrameElement | null) {
   // panel animates w-0 -> w-[70%]). Keep it in layout and only perturb the
   // compositor; removing it with display:none can itself leave the surface
   // stuck white in headed Chrome.
+  //
+  // Must be timer-driven, never requestAnimationFrame: Chrome suspends rAF in
+  // hidden/occluded tabs, which is precisely when the frame goes blank — an
+  // rAF-scheduled restore never runs there, leaving the nudge half-applied
+  // and the surface stuck white. Timers keep ticking (throttled) while
+  // hidden, so the perturb+restore pair always completes and the pending
+  // invalidation rasters on the next visible frame.
   iframe.style.willChange = "transform, opacity";
   iframe.style.transform = "translateZ(0)";
   iframe.style.opacity = "0.999";
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      iframe.style.transform = "";
-      iframe.style.opacity = "";
-      iframe.style.willChange = "";
-    });
-  });
+  window.setTimeout(() => {
+    iframe.style.transform = "";
+    iframe.style.opacity = "";
+    iframe.style.willChange = "";
+  }, 120);
 }
 
 function usePreviewDebugFlag() {

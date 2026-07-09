@@ -1,5 +1,40 @@
 # URGENT — Preview rendering fixes
 
+## -1. STUCK-WHITE PREVIEW (found 2026-07-09, FIXED): never-rastered srcdoc surface
+
+Symptom: preview panel stays pure white with no spinner and no error — phase
+is `ready`, the app inside the iframe fully booted and posted metrics, and
+toggling Code→Preview reveals the complete app instantly. Reproduced 100%
+against chat h5Wi25sSB22kLGz2 with COLD preview caches + hidden/occluded tab;
+warm caches mask it (the app mounts fast enough to make the frame's initial
+raster), which is why it felt random and "worked when we first tested".
+
+Root cause, verified live by A/B in real Chrome:
+1. Chrome produces NO frames for hidden/occluded tabs. A sandboxed srcdoc
+   iframe whose content mounts ~1s after document load (cold tailwind
+   compile) never gets its surface rastered, and Chromium does not
+   re-raster it when the tab becomes visible — permanently white.
+2. `nudgeIframePaint` couldn't help for two stacked reasons: its restore ran
+   on double-rAF (suspended while hidden — same bug class as #0, leaving the
+   perturbed styles stuck), and even timer-based outer style perturbations
+   coalesce into a net no-op before any frame samples them — no frames are
+   being produced, so nothing observes the intermediate state.
+3. The pre-warm wrapper (opacity-0, code-viewer.tsx) made load-while-
+   uncomposited the NORMAL path, and revealing it fires neither
+   IntersectionObserver (opacity doesn't affect intersection) nor
+   visibilitychange, so no nudge ran on reveal either.
+
+FIX (this pass):
+- Paint keep-alive inside the srcdoc bridge (lib/preview/html.ts): while
+  `document.hidden`, an imperceptible 1x1 fixed pixel alternates its
+  background every 500ms — persistent real paint damage, so the FIRST frame
+  Chrome produces after the tab becomes visible must re-raster the frame.
+  A/B verified: old code stays white after reveal, new code paints
+  immediately (2/2 cycles, cold caches).
+- `nudgeIframePaint` restore moved from double-rAF to setTimeout(120).
+- New `isActivePane` prop threaded code-viewer → CodeRunner → runner:
+  nudges on Preview-tab reveal from the opacity-0 pre-warm wrapper.
+
 ## 0. THE MASTER ROOT CAUSE (found 2026-07-09, FIXED): rAF-based readiness
 
 The recurring fake "Preview did not report ready or error within 60s" was
