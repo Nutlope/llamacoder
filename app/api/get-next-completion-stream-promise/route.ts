@@ -128,16 +128,30 @@ export async function POST(req: Request) {
     },
   });
 
-  const stream = together.chat.completions.stream({
-    model: resolvedModel,
-    reasoning: { enabled: false },
-    messages: inputMessages,
-    temperature,
-    // 13000 matches the inline-mode budget the winning config was benchmarked at
-    // (the <thinking> plan shares the output budget with the code). Streams in
-    // well under the 300s maxDuration.
-    max_tokens: maxTokens,
-  });
+  let stream: ReturnType<typeof together.chat.completions.stream>;
+  try {
+    stream = together.chat.completions.stream({
+      model: resolvedModel,
+      reasoning: { enabled: false },
+      messages: inputMessages,
+      temperature,
+      // 13000 matches the inline-mode budget the winning config was benchmarked at
+      // (the <thinking> plan shares the output budget with the code). Streams in
+      // well under the 300s maxDuration.
+      max_tokens: maxTokens,
+    });
+  } catch (error) {
+    span?.log({
+      error: serializeBraintrustError(error),
+      metrics: {
+        first_token_ms: firstTokenMs,
+        total_generation_ms: performance.now() - startedAt,
+      },
+    });
+    span?.end();
+    await flushBraintrustSpan(span);
+    throw error;
+  }
 
   stream.on("content", (delta) => {
     if (!firstTokenMs && delta.length > 0) {
