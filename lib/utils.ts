@@ -46,7 +46,11 @@ function resolveBlockPath(
 ): { language: string; path: string; code: string } {
   const header = parseFenceHeader(fenceTag);
   if (header.path) {
-    return { language: header.language, path: header.path, code };
+    return {
+      language: header.language,
+      path: header.path,
+      code: stripSplitFenceAttributeBrace(fenceTag, code),
+    };
   }
   const lines = code.split("\n");
   const attrPath = parseAttributeLine(lines[0] ?? "");
@@ -60,6 +64,24 @@ function resolveBlockPath(
   const { name, extension } = generateIntelligentFilename(code, header.language);
   const path = extension ? `${name}.${extension}` : name;
   return { language: header.language, path, code };
+}
+
+// Some models split the closing brace of a path-bearing fence header onto the
+// first code line:
+//   ```tsx{path=src/data.ts
+//   }
+//   export const data = ...
+// `parseFenceHeader` can still recover the path, but that orphan brace is not
+// code and must not leak into the generated file.
+function stripSplitFenceAttributeBrace(fenceTag: string, code: string) {
+  const hasSplitPathBrace =
+    /\{\s*(path|filename)\s*=[^}\n]*$/i.test(fenceTag) &&
+    code.split("\n", 1)[0]?.trim() === "}";
+
+  if (!hasSplitPathBrace) return code;
+
+  const newlineIndex = code.indexOf("\n");
+  return newlineIndex === -1 ? "" : code.slice(newlineIndex + 1);
 }
 
 // Ensure every extracted file gets a unique path so distinct code blocks never
@@ -289,7 +311,11 @@ export function getFilesFromMessage(msg: {
     const paths = stored.map((f) => f?.path).filter(Boolean);
     const uniquePaths = new Set(paths);
     const blockEstimate = countCodeBlocks(msg.content);
+    const hasTopLevelOrphanBrace = stored.some(
+      (f) => typeof f?.code === "string" && f.code.trimStart().startsWith("}"),
+    );
     if (
+      !hasTopLevelOrphanBrace &&
       paths.length === uniquePaths.size &&
       (blockEstimate === 0 || stored.length >= blockEstimate)
     ) {

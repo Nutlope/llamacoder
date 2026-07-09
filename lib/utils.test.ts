@@ -4,6 +4,7 @@ import {
   normalizeFenceOpeners,
   parseReplySegments,
   extractAllCodeBlocks,
+  getFilesFromMessage,
 } from "./utils";
 
 const B = "```"; // keep literal fences out of the source so editors don't choke
@@ -108,6 +109,63 @@ test("next-line {path=...} attribute is parsed and stripped from code", () => {
   // the attribute line must not leak into the rendered code
   assert.doesNotMatch(got[0].code, /\{path=/);
   assert.match(got[0].code, /import \{ Hero \}/);
+});
+
+// GLM (chat dxpXfIirRtV5oHn_) sometimes emitted the closing brace of the
+// path-bearing fence header on the next line. The path was recovered, but the
+// orphan `}` leaked into the file body and caused `Unexpected "}"` at byte 0.
+test("split closing brace from path fence header is stripped from code", () => {
+  const md = [
+    `${B}tsx{path=src/data/seed.ts`,
+    "}",
+    "export type Channel = { id: string };",
+    B,
+    `${B}tsx{path=src/components/chat/Sidebar.tsx`,
+    "}",
+    `import { Hash } from "lucide-react";`,
+    "export function Sidebar() { return null; }",
+    B,
+  ].join("\n");
+
+  const ui = files(md);
+  const backend = extractAllCodeBlocks(md);
+  assert.deepEqual(
+    ui.map((f) => f.path),
+    ["src/data/seed.ts", "src/components/chat/Sidebar.tsx"],
+  );
+  assert.deepEqual(
+    backend.map((f) => f.path),
+    ui.map((f) => f.path),
+  );
+  assert.equal(ui[0].code.startsWith("}"), false);
+  assert.equal(ui[1].code.startsWith("}"), false);
+  assert.match(ui[0].code, /export type Channel/);
+  assert.match(ui[1].code, /import \{ Hash \}/);
+});
+
+test("legacy stored files with orphan leading brace are re-extracted", () => {
+  const content = [
+    `${B}tsx{path=src/data/seed.ts`,
+    "}",
+    "export type Channel = { id: string };",
+    B,
+  ].join("\n");
+
+  const got = getFilesFromMessage({
+    content,
+    files: [
+      {
+        path: "src/data/seed.ts",
+        language: "tsx",
+        code: "}\nexport type Channel = { id: string };",
+      },
+    ],
+  });
+
+  assert.equal(got.length, 1);
+  assert.equal(got[0].path, "src/data/seed.ts");
+  assert.equal(got[0].code.startsWith("}"), false);
+  assert.match(got[0].code, /export type Channel/);
 });
 
 // The exact production regression: eight bare ```tsx blocks each carrying a
