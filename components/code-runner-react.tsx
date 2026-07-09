@@ -36,7 +36,7 @@ type PreviewState =
   | { phase: "bundling" }
   | { phase: "running" }
   | { phase: "ready" }
-  | { phase: "error"; error: string };
+  | { phase: "error"; error: string; canAutoFix?: boolean };
 
 type PreviewMetrics = {
   bundleMs?: number;
@@ -340,6 +340,7 @@ function WasmReactCodeRunner({
 
       transitionState({
         phase: "error",
+        canAutoFix: false,
         error: `Preview did not report ready or error within ${Math.round(
           PREVIEW_WATCHDOG_MS / 1000,
         )}s.`,
@@ -449,11 +450,19 @@ function WasmReactCodeRunner({
     state.phase === "error"
       ? formatErrorForFixPayload(state.error, consoleErrors)
       : undefined;
+  const canAutoFix = state.phase !== "error" || state.canAutoFix !== false;
 
   const autoFixSentForFilesRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!allowAutoFix || !onRequestFix || isFixPending || !error || !filesKey) {
+    if (
+      !canAutoFix ||
+      !allowAutoFix ||
+      !onRequestFix ||
+      isFixPending ||
+      !error ||
+      !filesKey
+    ) {
       return;
     }
     if (autoFixSentForFilesRef.current === filesKey) {
@@ -461,7 +470,7 @@ function WasmReactCodeRunner({
     }
     autoFixSentForFilesRef.current = filesKey;
     onRequestFix(error);
-  }, [allowAutoFix, error, filesKey, isFixPending, onRequestFix]);
+  }, [allowAutoFix, canAutoFix, error, filesKey, isFixPending, onRequestFix]);
 
   return (
     <div
@@ -531,7 +540,13 @@ function WasmReactCodeRunner({
             Updating...
           </div>
         ))}
-      {error && <ErrorMessage error={error} onRequestFix={onRequestFix} disabled={isFixPending} />}
+      {error && (
+        <ErrorMessage
+          error={error}
+          onRequestFix={canAutoFix ? onRequestFix : undefined}
+          disabled={isFixPending}
+        />
+      )}
       {showDebugMetrics && (
         <PreviewMetricsBadge state={state} metrics={metrics} />
       )}
