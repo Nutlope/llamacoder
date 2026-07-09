@@ -30,6 +30,7 @@ type RunnerProps = {
   previewBundleMode?: PreviewBundleMode;
   isFixPending?: boolean;
   allowAutoFix?: boolean;
+  refreshNonce?: number;
 };
 
 type PreviewState =
@@ -107,6 +108,7 @@ export default function ReactCodeRunner({
   previewBundleMode = "external",
   isFixPending,
   allowAutoFix,
+  refreshNonce,
 }: RunnerProps) {
   return (
     <WasmReactCodeRunner
@@ -118,6 +120,7 @@ export default function ReactCodeRunner({
       previewBundleMode={previewBundleMode}
       isFixPending={isFixPending}
       allowAutoFix={allowAutoFix}
+      refreshNonce={refreshNonce}
     />
   );
 }
@@ -131,6 +134,7 @@ function WasmReactCodeRunner({
   previewDebounceMs = 0,
   previewVendor,
   previewBundleMode = "external",
+  refreshNonce = 0,
 }: RunnerProps) {
   const effectivePreviewVendor =
     previewVendor ?? (previewKit === "baseui" ? "flat" : "local");
@@ -143,6 +147,7 @@ function WasmReactCodeRunner({
   const shouldStoreIframeCompiledCssRef = useRef(false);
   const loadedSrcdocRef = useRef("");
   const loadedSrcdocReadyRef = useRef(false);
+  const loadedRefreshNonceRef = useRef(refreshNonce);
   const showDebugMetrics = usePreviewDebugFlag();
   const [srcdoc, setSrcdoc] = useState("");
   const [state, setState] = useState<PreviewState>({ phase: "bundling" });
@@ -152,6 +157,7 @@ function WasmReactCodeRunner({
     () => files.map((file) => file.path + file.content).join(""),
     [files],
   );
+  const runKey = `${refreshNonce}:${filesKey}`;
   const tailwindCssCacheKey = `${PREVIEW_TAILWIND_CSS_CACHE_PREFIX}${PREVIEW_TAILWIND_CSS_CACHE_VERSION}:${previewKit}:${effectivePreviewVendor}:${hashString(buildPreviewStyleSignature(files))}`;
   tailwindCssCacheKeyRef.current = tailwindCssCacheKey;
 
@@ -282,7 +288,10 @@ function WasmReactCodeRunner({
       // React skips the srcdoc attribute write when the string is unchanged,
       // so the iframe never reloads and never re-posts `ready` — the watchdog
       // would then report a bogus 60s failure over a working preview.
-      if (nextSrcdoc === loadedSrcdocRef.current) {
+      const isSameSrcdoc = nextSrcdoc === loadedSrcdocRef.current;
+      const isManualRefresh = refreshNonce !== loadedRefreshNonceRef.current;
+
+      if (isSameSrcdoc && !isManualRefresh) {
         if (loadedSrcdocReadyRef.current) {
           setMetrics({
             bundleMs: result.durationMs,
@@ -302,12 +311,14 @@ function WasmReactCodeRunner({
       }
 
       const runSrcdoc =
-        nextSrcdoc === loadedSrcdocRef.current
-          ? // Same document but it never reached ready — force a real reload.
+        isSameSrcdoc
+          ? // Same document, either from manual refresh or a retry after a
+            // missing ready signal: force a real iframe reload.
             nextSrcdoc.replace("<body>", `<body><!-- reload:${Date.now()} -->`)
           : nextSrcdoc;
-      loadedSrcdocRef.current = runSrcdoc;
+      loadedSrcdocRef.current = nextSrcdoc;
       loadedSrcdocReadyRef.current = false;
+      loadedRefreshNonceRef.current = refreshNonce;
 
       iframeStartedAtRef.current = performance.now();
       setSrcdoc(runSrcdoc);
@@ -353,7 +364,7 @@ function WasmReactCodeRunner({
       window.clearTimeout(watchdog);
     };
   }, [
-    filesKey,
+    runKey,
     previewKit,
     previewDebounceMs,
     effectivePreviewVendor,

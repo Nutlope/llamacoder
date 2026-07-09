@@ -13,6 +13,7 @@ export default function CodeRunner({
   previewBundleMode,
   isFixPending,
   allowAutoFix,
+  refreshNonce,
 }: {
   language?: string;
   code?: string;
@@ -23,6 +24,7 @@ export default function CodeRunner({
   previewBundleMode?: PreviewBundleMode;
   isFixPending?: boolean;
   allowAutoFix?: boolean;
+  refreshNonce?: number;
 }) {
   const actualFiles =
     files || (code ? [{ path: "App.tsx", content: code }] : []);
@@ -35,6 +37,7 @@ export default function CodeRunner({
       previewBundleMode={previewBundleMode}
       isFixPending={isFixPending}
       allowAutoFix={allowAutoFix}
+      refreshNonce={refreshNonce}
     />
   );
 }

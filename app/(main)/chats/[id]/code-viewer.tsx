@@ -397,7 +397,7 @@ export default function CodeViewer({
               onRequestFix={onRequestFix}
               language={language}
               files={files.map((f) => ({ path: f.path, content: f.code }))}
-              key={refresh}
+              refreshNonce={refresh}
               previewDebounceMs={streamText ? 400 : 0}
               isFixPending={isFixPending}
               allowAutoFix={allowAutoFix}
