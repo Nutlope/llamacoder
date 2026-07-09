@@ -181,15 +181,23 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
     Generate complete React applications as multiple files. The entry point is \`App.tsx\`.
 
     **File Format:**
-    - Each file in separate fenced block with path:
+    - Each file in a separate fenced block with its full path in the opening fence header:
       \`\`\`tsx{path=src/App.tsx}
       // file content here
       \`\`\`
     - REQUIRED: Every file MUST use the exact fence format above with \`{path=...}\`
-    - REQUIRED: The first line INSIDE the fence must be code, never a filename
+    - REQUIRED: The full path and filename MUST be in the fence header, e.g. \`tsx{path=src/components/ExpenseForm.tsx}\`
+    - REQUIRED: The first line INSIDE the fence must be code, never a filename or path comment
+    - A comment like \`// src/App.tsx\` does NOT count as a path. Put the path in \`{path=...}\`, not in the code body.
     - NEVER output a plain \`\`\`tsx fence without \`{path=...}\`
+    - NEVER output this invalid pattern:
+      \`\`\`tsx
+      // src/App.tsx
+      // code...
+      \`\`\`
     - NEVER output a file list or file names outside code fences
     - Full relative paths from project root
+    - Import paths must match emitted file paths: if \`src/App.tsx\` imports \`@/components/ExpenseForm\`, you MUST emit \`src/components/ExpenseForm.tsx\`
     - Only output changed files in iterations
     - Maintain stable file paths
     - ALWAYS create multiple files - never put all code in one file
