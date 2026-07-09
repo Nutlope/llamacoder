@@ -8,8 +8,18 @@ import {
   extractAllCodeBlocks,
   getFilesFromMessage,
 } from "@/lib/utils";
+import { createLocalChatTitle } from "@/lib/chat-title";
 import { useRouter } from "next/navigation";
-import { memo, startTransition, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  startTransition,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
@@ -18,12 +28,12 @@ import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat, Message } from "./page";
 import { Context } from "../../providers";
 
-const HeaderChat = memo(({ chat }: { chat: Chat }) => (
+const HeaderChat = memo(({ title }: { title: string }) => (
   <div className="flex items-center gap-4 px-4 py-4">
     <a href="/" target="_blank">
       <LogoSmall />
     </a>
-    <p className="italic text-gray-500">{chat.title}</p>
+    <p className="italic text-gray-500">{title}</p>
   </div>
 ));
 
@@ -31,6 +41,7 @@ HeaderChat.displayName = "HeaderChat";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
+  const [chatTitle, setChatTitle] = useState(chat.title);
   const [streamPromise, setStreamPromise] = useState<
     Promise<ReadableStream> | undefined
   >(context.streamPromise);
@@ -41,6 +52,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
   const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
   const router = useRouter();
   const isHandlingStreamRef = useRef(false);
+  const isUpdatingTitleRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
     chat.messages
       .filter((m) => m.role === "assistant" && extractFirstCodeBlock(m.content))
@@ -73,6 +85,32 @@ export default function PageClient({ chat }: { chat: Chat }) {
     if (prev.content.trimStart().startsWith(FIX_REQUEST_PREFIX)) return false;
     return true;
   }, [chat, activeMessage, streamText]);
+
+  useEffect(() => {
+    if (isUpdatingTitleRef.current) return;
+    if (chat.title !== createLocalChatTitle(chat.prompt)) return;
+
+    isUpdatingTitleRef.current = true;
+    const controller = new AbortController();
+
+    fetch("/api/generate-chat-title", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId: chat.id }),
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : undefined))
+      .then((data) => {
+        if (typeof data?.title === "string") {
+          setChatTitle(data.title);
+        }
+      })
+      .catch(() => {
+        isUpdatingTitleRef.current = false;
+      });
+
+    return () => controller.abort();
+  }, [chat.id, chat.prompt, chat.title]);
 
   useEffect(() => {
     async function f() {
@@ -229,7 +267,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
         <div
           className={`flex w-full shrink-0 flex-col overflow-hidden ${isShowingCodeViewer ? "lg:w-[30%]" : "lg:w-full"}`}
         >
-          <HeaderChat chat={chat} />
+          <HeaderChat title={chatTitle} />
 
           <ChatLog
             chat={chatForChatLog}

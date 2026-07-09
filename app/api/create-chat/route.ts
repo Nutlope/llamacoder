@@ -4,62 +4,29 @@ import { screenshotToCodePrompt } from "@/lib/prompts";
 import { buildProductionCodingPrompt } from "@/lib/prompt-config";
 import Together from "together-ai";
 import { resolveModel } from "@/lib/constants";
+import { createLocalChatTitle } from "@/lib/chat-title";
 
 export async function POST(request: NextRequest) {
   try {
     const { prompt, model, screenshotUrl } = await request.json();
     const resolvedModel = resolveModel(model);
-
-    const prisma = getPrisma();
-    const chat = await prisma.chat.create({
-      data: {
-        model: resolvedModel,
-        // The High-quality toggle was removed (benchmark: worse reliability, no
-        // quality gain). All generations use the single minimal-v1 × inline path.
-        quality: "low",
-        prompt,
-        title: "",
-        shadcn: true,
-      },
-    });
-
-    let options: ConstructorParameters<typeof Together>[0] = {};
-    if (process.env.HELICONE_API_KEY) {
-      options.baseURL = "https://together.helicone.ai/v1";
-      options.defaultHeaders = {
-        "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-        "Helicone-Property-appname": "LlamaCoder",
-        "Helicone-Session-Id": chat.id,
-        "Helicone-Session-Name": "LlamaCoder Chat",
-      };
-    }
-
-    const together = new Together(options);
-
-    async function fetchTitle() {
-      const responseForChatTitle = await together.chat.completions.create({
-        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a chatbot helping the user create a simple app or script, and your current job is to create a succinct title, maximum 3-5 words, for the chat given their initial prompt. Please return only the title.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      });
-      const title = responseForChatTitle.choices[0].message?.content || prompt;
-      return title;
-    }
-
-    const title = await fetchTitle();
+    const chatId = createId();
 
     let fullScreenshotDescription;
     if (screenshotUrl) {
       try {
+        let options: ConstructorParameters<typeof Together>[0] = {};
+        if (process.env.HELICONE_API_KEY) {
+          options.baseURL = "https://together.helicone.ai/v1";
+          options.defaultHeaders = {
+            "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+            "Helicone-Property-appname": "LlamaCoder",
+            "Helicone-Session-Id": chatId,
+            "Helicone-Session-Name": "LlamaCoder Chat",
+          };
+        }
+
+        const together = new Together(options);
         const screenshotResponse = await together.chat.completions.create({
           model: "moonshotai/Kimi-K2.7-Code",
           reasoning: { enabled: false },
@@ -98,38 +65,40 @@ export async function POST(request: NextRequest) {
       userMessage = prompt;
     }
 
-    let newChat = await prisma.chat.update({
-      where: {
-        id: chat.id,
-      },
+    const prisma = getPrisma();
+    const lastMessageId = createId();
+    await prisma.chat.create({
       data: {
-        title,
+        id: chatId,
+        model: resolvedModel,
+        // The High-quality toggle was removed (benchmark: worse reliability, no
+        // quality gain). All generations use the single minimal-v1 × inline path.
+        quality: "low",
+        prompt,
+        title: createLocalChatTitle(prompt),
+        shadcn: true,
         messages: {
-          createMany: {
-            data: [
-              {
-                role: "system",
-                content: buildProductionCodingPrompt(),
-                position: 0,
-              },
-              { role: "user", content: userMessage, position: 1 },
-            ],
-          },
+          create: [
+            {
+              id: createId(),
+              role: "system",
+              content: buildProductionCodingPrompt(),
+              position: 0,
+            },
+            {
+              id: lastMessageId,
+              role: "user",
+              content: userMessage,
+              position: 1,
+            },
+          ],
         },
-      },
-      include: {
-        messages: true,
       },
     });
 
-    const lastMessage = newChat.messages
-      .sort((a, b) => a.position - b.position)
-      .at(-1);
-    if (!lastMessage) throw new Error("No new message");
-
     return NextResponse.json({
-      chatId: chat.id,
-      lastMessageId: lastMessage.id,
+      chatId,
+      lastMessageId,
     });
   } catch (error) {
     console.error("Error creating chat:", error);
@@ -138,4 +107,13 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function createId(size = 16) {
+  const alphabet =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-";
+  const bytes = new Uint8Array(size);
+  crypto.getRandomValues(bytes);
+
+  return Array.from(bytes, (byte) => alphabet[byte & 63]).join("");
 }
