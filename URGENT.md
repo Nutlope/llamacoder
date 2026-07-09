@@ -1,5 +1,44 @@
 # URGENT — Preview rendering fixes
 
+## 0. THE MASTER ROOT CAUSE (found 2026-07-09, FIXED): rAF-based readiness
+
+The recurring fake "Preview did not report ready or error within 60s" was
+ultimately caused by the ready pipeline running on `requestAnimationFrame`:
+the app-ready trailer, the bridge's load handler, and the tailwind-ready
+watch in `lib/preview/html.ts` were all rAF-driven. Chrome fully suspends
+rAF in hidden/occluded tabs — and users tab away during a 60-90s generation
+almost every time — so the preview loaded in the background, rAF never
+fired, `ready` never posted, the watchdog fired, and auto-fix sent a bogus
+"code is not working" message into the chat. Reproduced live with
+`visibilityState: "hidden"`: rAF suspended even in the parent page.
+
+FIXED: readiness now uses timers (setTimeout polling), which keep running in
+hidden tabs (throttled to ~1s ticks, which is fine). Verified: preview
+reaches ready in ~940ms with the tab fully hidden.
+
+Related hardening in the same pass: the runner's `ready` handler now flips
+phase FIRST and wraps auxiliary work (paint nudge, CSS store, metrics) in
+try/catch — a stale-HMR ReferenceError inside that handler was observed
+eating ready messages, which produced identical fake-60s symptoms.
+
+## Remaining speed opportunities (found while profiling, NOT yet done)
+
+- **Pre-warm the preview during streaming**: the runner only mounts when the
+  Preview tab is first opened (`hasOpenedPreview` in code-viewer.tsx), and
+  during streaming the app sits on the Code tab — so the first preview boot
+  (vendor fetches, tailwind compile, HTTP cache) all happens AFTER
+  generation finishes. Mounting the hidden runner as soon as files exist
+  would make the post-generation preview appear near-instantly.
+- **`@import "tailwindcss"` triggers a real fetch**: the browser Tailwind
+  build resolves it as a relative URL — observed request to
+  `/chats/tailwindcss`, which Next SSRs via the `/chats/[id]` route (633ms
+  warm, worse cold, plus pointless server load). Investigate dropping the
+  import line or serving a tiny static stub.
+- **Same-process iframe blocks the app's main thread**: the sandboxed srcdoc
+  iframe shares the renderer with the chat UI; cold tailwind compiles and
+  big vendor evals visibly freeze the parent page. Long-term: serve previews
+  from a separate origin so Chrome gives them their own process.
+
 Findings from the 2026-07-08 preview investigation. The bundling pipeline and its
 caches work; the pain comes from how the preview is mounted, how failures inside
 the iframe are (not) reported, and a cache that silently dies over time.
