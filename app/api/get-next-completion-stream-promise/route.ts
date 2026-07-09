@@ -4,6 +4,11 @@ import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
 import { resolveModel } from "@/lib/constants";
+import {
+  flushBraintrustSpan,
+  serializeBraintrustError,
+  startBraintrustSpan,
+} from "@/lib/braintrust";
 
 function optimizeMessagesForTokens(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -87,20 +92,98 @@ export async function POST(req: Request) {
   }
 
   const together = new Together(options);
+  const resolvedModel = resolveModel(model);
+  const temperature = 0.4;
+  const maxTokens = 13000;
+  const inputMessages = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+  const startedAt = performance.now();
+  let firstTokenMs = 0;
+  const promptChars = inputMessages.reduce(
+    (sum, item) => sum + item.content.length,
+    0,
+  );
 
-  const res = await together.chat.completions.create({
-    model: resolveModel(model),
+  const span = startBraintrustSpan({
+    name: "llamacoder.stream-generation",
+    type: "llm",
+    event: {
+      input: {
+        messages: inputMessages,
+      },
+      metadata: {
+        route: "/api/get-next-completion-stream-promise",
+        chatId: message.chatId,
+        messageId,
+        requestedModel: model,
+        resolvedModel,
+        provider: "together",
+        messageCount: inputMessages.length,
+        promptChars,
+        temperature,
+        maxTokens,
+      },
+    },
+  });
+
+  const stream = together.chat.completions.stream({
+    model: resolvedModel,
     reasoning: { enabled: false },
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    stream: true,
-    temperature: 0.4,
+    messages: inputMessages,
+    temperature,
     // 13000 matches the inline-mode budget the winning config was benchmarked at
     // (the <thinking> plan shares the output budget with the code). Streams in
     // well under the 300s maxDuration.
-    max_tokens: 13000,
+    max_tokens: maxTokens,
   });
 
-  return new Response(res.toReadableStream());
+  stream.on("content", (delta) => {
+    if (!firstTokenMs && delta.length > 0) {
+      firstTokenMs = performance.now() - startedAt;
+      span?.log({
+        metrics: {
+          first_token_ms: firstTokenMs,
+        },
+      });
+    }
+  });
+
+  stream
+    .finalContent()
+    .then(async (finalText) => {
+      const usage = await stream.totalUsage().catch(() => undefined);
+      span?.log({
+        output: finalText,
+        metadata: {
+          completed: true,
+          outputChars: finalText?.length ?? 0,
+        },
+        metrics: {
+          first_token_ms: firstTokenMs,
+          total_generation_ms: performance.now() - startedAt,
+          prompt_tokens: usage?.prompt_tokens ?? 0,
+          completion_tokens: usage?.completion_tokens ?? 0,
+          tokens: usage?.total_tokens ?? 0,
+        },
+      });
+      span?.end();
+      await flushBraintrustSpan(span);
+    })
+    .catch(async (error) => {
+      span?.log({
+        error: serializeBraintrustError(error),
+        metrics: {
+          first_token_ms: firstTokenMs,
+          total_generation_ms: performance.now() - startedAt,
+        },
+      });
+      span?.end();
+      await flushBraintrustSpan(span);
+    });
+
+  return new Response(stream.toReadableStream());
 }
 
 export const runtime = "edge";
