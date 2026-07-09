@@ -30,10 +30,10 @@ export type ModelOption = {
 };
 
 // Selectable (non-hidden) models are the fast, reliable set plus Nemotron 3
-// Ultra (fast on serverless) and Qwen3.7 Max (best-looking output, but ~2x
-// slower — flagged). MiniMax M3 and the old Qwen 3 235B were dropped from the
-// picker for slow/inconsistent serverless throughput, but stay here as hidden
-// entries so existing chats and MODEL_ALIASES keep resolving them.
+// Ultra (fast on serverless). Qwen3.7 Max, MiniMax M3 and the old Qwen 3 235B
+// were dropped from the picker for slow/inconsistent serverless throughput,
+// but stay here as hidden entries so existing chats and MODEL_ALIASES keep
+// resolving them.
 export const MODELS: ModelOption[] = [
   {
     label: "GLM 5.2",
@@ -54,7 +54,7 @@ export const MODELS: ModelOption[] = [
   {
     label: "Qwen3.7 Max",
     value: "Qwen/Qwen3.7-Max",
-    note: "slower",
+    hidden: true,
   },
   {
     label: "MiniMax M3",
