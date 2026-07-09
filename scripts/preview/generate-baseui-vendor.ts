@@ -77,7 +77,9 @@ const RUNTIME_SPECS = [
   "class-variance-authority",
   "clsx",
   "cmdk",
+  "date-fns",
   "embla-carousel-react",
+  "framer-motion",
   "input-otp",
   "lucide-react",
   "next-themes",
@@ -86,6 +88,7 @@ const RUNTIME_SPECS = [
   "recharts",
   "sonner",
   "tailwind-merge",
+  "vaul",
 ];
 
 type Entry = {

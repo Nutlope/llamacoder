@@ -183,7 +183,20 @@ function WasmReactCodeRunner({
       }
     });
     observer.observe(iframe);
-    return () => observer.disconnect();
+
+    // IntersectionObserver doesn't fire while the tab itself is hidden, and
+    // previews now finish loading in background tabs — repaint when the user
+    // comes back, or the frame can stay blank.
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        nudgeIframePaint(iframe);
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {

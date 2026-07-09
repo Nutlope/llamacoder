@@ -209,15 +209,6 @@ export default function CodeViewer({
     (chat.assistantMessagesCountBefore || 0) + currentVersionIndex;
 
   const [refresh, setRefresh] = useState(0);
-  // Once the preview has been opened, keep it mounted across tab switches:
-  // unmounting destroys the iframe, so every toggle back would pay a full
-  // rebundle + iframe boot (and show the loading overlay again).
-  const [hasOpenedPreview, setHasOpenedPreview] = useState(
-    activeTab === "preview",
-  );
-  useEffect(() => {
-    if (activeTab === "preview") setHasOpenedPreview(true);
-  }, [activeTab]);
   const disabledControls = !!streamText || files.length === 0;
   const selectValue = disabledControls
     ? undefined
@@ -389,7 +380,12 @@ export default function CodeViewer({
             </StickToBottom.Content>
           </StickToBottom>
         </div>
-        {hasOpenedPreview && files.length > 0 && (
+        {files.length > 0 && (
+          // Mounted as soon as files exist — even while streaming on the Code
+          // tab — so the preview pre-warms in the background (bundle, vendor
+          // fetches, tailwind CSS) and is ready the moment the tab opens.
+          // Auto-fix is disabled while streaming, so partial-bundle errors
+          // in the hidden runner are harmless.
           <div
             className={
               activeTab === "preview"

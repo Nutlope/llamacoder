@@ -349,8 +349,10 @@ export function buildPreviewTailwindCss(
 ): string {
   if (!deps.shadcn) return "";
 
+  // No \`@import "tailwindcss"\`: the browser compiler generates utilities
+  // without it, and it resolves the bare specifier as a relative URL — every
+  // preview fetched /chats/tailwindcss and made Next SSR a page for it.
   return `
-@import "tailwindcss";
 ${assets.tailwindCss}
 
 @custom-variant dark (&:is(.dark *));

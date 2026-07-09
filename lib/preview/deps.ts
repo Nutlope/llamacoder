@@ -153,7 +153,9 @@ function buildBaseuiVendorImports(prefix: string): Record<string, string> {
     "class-variance-authority": `${prefix}/class-variance-authority.js`,
     cmdk: `${prefix}/cmdk.js`,
     clsx: `${prefix}/clsx.js`,
+    "date-fns": `${prefix}/date-fns.js`,
     "embla-carousel-react": `${prefix}/embla-carousel-react.js`,
+    "framer-motion": `${prefix}/framer-motion.js`,
     "input-otp": `${prefix}/input-otp.js`,
     "lucide-react": `${prefix}/lucide-react.js`,
     "next-themes": `${prefix}/next-themes.js`,
@@ -162,6 +164,7 @@ function buildBaseuiVendorImports(prefix: string): Record<string, string> {
     recharts: `${prefix}/recharts.js`,
     sonner: `${prefix}/sonner.js`,
     "tailwind-merge": `${prefix}/tailwind-merge.js`,
+    vaul: `${prefix}/vaul.js`,
     ...Object.fromEntries(
       BASE_UI_SUBPATHS.map((subpath) => [
         `@base-ui/react/${subpath}`,

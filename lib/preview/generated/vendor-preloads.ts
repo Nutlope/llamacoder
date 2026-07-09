@@ -665,6 +665,10 @@ export const previewVendorPreloadGraph = {
   "/preview-vendor/baseui-flat/embla-carousel-react.js": [
     "/preview-vendor/baseui-flat/react.js"
   ],
+  "/preview-vendor/baseui-flat/framer-motion.js": [
+    "/preview-vendor/baseui-flat/react-jsx-runtime.js",
+    "/preview-vendor/baseui-flat/react.js"
+  ],
   "/preview-vendor/baseui-flat/input-otp.js": [
     "/preview-vendor/baseui-flat/react.js"
   ],
@@ -699,6 +703,11 @@ export const previewVendorPreloadGraph = {
   ],
   "/preview-vendor/baseui-flat/sonner.js": [
     "/preview-vendor/baseui-flat/react-dom.js",
+    "/preview-vendor/baseui-flat/react.js"
+  ],
+  "/preview-vendor/baseui-flat/vaul.js": [
+    "/preview-vendor/baseui-flat/react-dom.js",
+    "/preview-vendor/baseui-flat/react-jsx-runtime.js",
     "/preview-vendor/baseui-flat/react.js"
   ]
 } as const;
