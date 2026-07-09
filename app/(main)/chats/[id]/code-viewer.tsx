@@ -351,7 +351,7 @@ export default function CodeViewer({
         </div>
       </div>
 
-      <div className="flex grow flex-col overflow-y-auto bg-white">
+      <div className="relative flex grow flex-col overflow-y-auto bg-white">
         <div
           className={
             activeTab === "code" ? "flex grow flex-col overflow-hidden" : "hidden"
@@ -390,8 +390,9 @@ export default function CodeViewer({
             className={
               activeTab === "preview"
                 ? "flex h-full items-center justify-center"
-                : "hidden"
+                : "pointer-events-none absolute inset-0 flex h-full items-center justify-center opacity-0"
             }
+            aria-hidden={activeTab !== "preview"}
           >
             <CodeRunner
               onRequestFix={onRequestFix}

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findMissingPreviewModules } from "./html";
+import { buildSrcdoc, findMissingPreviewModules } from "./html";
 
 const DEPS: Record<string, string> = {
   react: "19.0.0",
@@ -43,4 +43,14 @@ test("subpath imports resolve through import-map prefix entries", () => {
 console.log(useReducedMotion);`;
 
   assert.deepEqual(findMissingPreviewModules(code, DEPS), []);
+});
+
+test("tailwind candidate classes are seeded into the preview document", () => {
+  const srcdoc = buildSrcdoc("", "", DEPS, {
+    tailwindCandidateClasses: 'fixed top-1/2 bg-[url("/x.svg")]',
+  });
+
+  assert.match(srcdoc, /id="__preview-tailwind-candidates"/);
+  assert.match(srcdoc, /fixed top-1\/2/);
+  assert.match(srcdoc, /&quot;\/x\.svg&quot;/);
 });

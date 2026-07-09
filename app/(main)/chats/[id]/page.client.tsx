@@ -8,6 +8,7 @@ import {
   extractAllCodeBlocks,
   getFilesFromMessage,
 } from "@/lib/utils";
+import { FIX_REQUEST_PREFIX, shouldAllowAutoFix } from "@/lib/chat-auto-fix";
 import { createLocalChatTitle } from "@/lib/chat-title";
 import { useRouter } from "next/navigation";
 import {
@@ -62,28 +63,14 @@ export default function PageClient({ chat }: { chat: Chat }) {
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [isFixPending, setIsFixPending] = useState(false);
   const autoFixMessageIdsRef = useRef<Set<string>>(new Set());
-  const FIX_REQUEST_PREFIX = "The code is not working. Can you fix it? Here's the error:";
-
-  function previousUserMessageFor(
-    chat: Chat,
-    message: Message,
-  ): Message | undefined {
-    const idx = chat.messages.findIndex((m) => m.id === message.id);
-    if (idx <= 0) return undefined;
-    for (let i = idx - 1; i >= 0; i--) {
-      if (chat.messages[i].role === "user") return chat.messages[i];
-    }
-    return undefined;
-  }
 
   const allowAutoFix = useMemo(() => {
-    if (streamText) return false;
-    if (!activeMessage) return false;
-    const prev = previousUserMessageFor(chat, activeMessage);
-    if (!prev) return false;
-    if (autoFixMessageIdsRef.current.has(prev.id)) return false;
-    if (prev.content.trimStart().startsWith(FIX_REQUEST_PREFIX)) return false;
-    return true;
+    return shouldAllowAutoFix({
+      messages: chat.messages,
+      activeMessage,
+      streamText,
+      autoFixMessageIds: autoFixMessageIdsRef.current,
+    });
   }, [chat, activeMessage, streamText]);
 
   useEffect(() => {

@@ -9,8 +9,12 @@ import {
   getPreviewDependencies,
   type PreviewUiLibrary,
 } from "@/lib/preview/files";
+import { baseuiPreviewFiles } from "@/lib/preview/generated/baseui-files";
 import { buildSrcdoc, findMissingPreviewModules } from "@/lib/preview/html";
-import { buildPreviewStyleSignature } from "@/lib/preview/tailwind-signature";
+import {
+  buildPreviewStyleSignature,
+  collectPreviewStyleCandidates,
+} from "@/lib/preview/tailwind-signature";
 
 export type PreviewVendorMode = "local" | "cdn" | "flat";
 export type PreviewBundleMode =
@@ -84,7 +88,13 @@ type PreviewResource = {
 const PREVIEW_WATCHDOG_MS = 60_000;
 const previewTailwindCssCache = new Map<string, string>();
 const PREVIEW_TAILWIND_CSS_CACHE_PREFIX = "llamacoder-preview-tailwind-css:";
-const PREVIEW_TAILWIND_CSS_CACHE_VERSION = "v2";
+const PREVIEW_TAILWIND_CSS_CACHE_VERSION = "v3";
+const BASEUI_STYLE_FILES = Object.entries(baseuiPreviewFiles).map(
+  ([path, content]) => ({ path, content }),
+);
+const BASEUI_STYLE_SIGNATURE = buildPreviewStyleSignature(BASEUI_STYLE_FILES);
+const BASEUI_STYLE_CANDIDATES =
+  collectPreviewStyleCandidates(BASEUI_STYLE_FILES);
 const LEAF_INLINE_BASEUI_COMPONENT_PATHS = [
   "lib/utils.ts",
   "components/ui/badge.tsx",
@@ -158,7 +168,10 @@ function WasmReactCodeRunner({
     [files],
   );
   const runKey = `${refreshNonce}:${filesKey}`;
-  const tailwindCssCacheKey = `${PREVIEW_TAILWIND_CSS_CACHE_PREFIX}${PREVIEW_TAILWIND_CSS_CACHE_VERSION}:${previewKit}:${effectivePreviewVendor}:${hashString(buildPreviewStyleSignature(files))}`;
+  const previewStyleSignature = buildPreviewStyleSignature(files);
+  const tailwindCssCacheKey = `${PREVIEW_TAILWIND_CSS_CACHE_PREFIX}${PREVIEW_TAILWIND_CSS_CACHE_VERSION}:${previewKit}:${effectivePreviewVendor}:${hashString(
+    `${previewStyleSignature}\n${BASEUI_STYLE_SIGNATURE}`,
+  )}`;
   tailwindCssCacheKeyRef.current = tailwindCssCacheKey;
 
   function transitionState(nextState: PreviewState) {
@@ -234,6 +247,10 @@ function WasmReactCodeRunner({
         externalBaseuiComponents,
         inlineBaseuiComponentPaths,
       });
+      const tailwindCandidateClasses = [
+        ...collectPreviewStyleCandidates(files),
+        ...BASEUI_STYLE_CANDIDATES,
+      ].join(" ");
       const assemblyMs = performance.now() - assemblyStartedAt;
       const tailwindCacheReadStartedAt = performance.now();
       let cachedTailwindCss =
@@ -281,6 +298,7 @@ function WasmReactCodeRunner({
         getPreviewDependencies(),
         {
           precompiledTailwindCss: cachedTailwindCss,
+          tailwindCandidateClasses,
           vendor: effectivePreviewVendor,
         },
       );
@@ -656,12 +674,19 @@ function nudgeIframePaint(iframe: HTMLIFrameElement | null) {
 
   // Chromium can leave a sandboxed srcdoc iframe permanently blank when its
   // document loaded while the frame was hidden or mid-layout-animation (the
-  // panel animates w-0 -> w-[70%]). A one-frame display toggle forces the
-  // frame to recomposite; it does NOT reload the iframe's document.
-  iframe.style.display = "none";
-  setTimeout(() => {
-    iframe.style.display = "";
-  }, 0);
+  // panel animates w-0 -> w-[70%]). Keep it in layout and only perturb the
+  // compositor; removing it with display:none can itself leave the surface
+  // stuck white in headed Chrome.
+  iframe.style.willChange = "transform, opacity";
+  iframe.style.transform = "translateZ(0)";
+  iframe.style.opacity = "0.999";
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      iframe.style.transform = "";
+      iframe.style.opacity = "";
+      iframe.style.willChange = "";
+    });
+  });
 }
 
 function usePreviewDebugFlag() {

@@ -267,6 +267,7 @@ export function buildSrcdoc(
     localVendor?: boolean;
     vendor?: "local" | "cdn" | "flat";
     precompiledTailwindCss?: string;
+    tailwindCandidateClasses?: string;
   } = {},
 ): string {
   const safeCode = escapeScriptContents(`${bundledCode}
@@ -309,6 +310,7 @@ ${options.precompiledTailwindCss ? "<script>window.__previewStylesPrecompiled = 
 <script>${safeBridge}</script>
 </head>
 <body>
+${buildTailwindCandidateSeed(options.tailwindCandidateClasses)}
 <div id="root"></div>
 <script type="module" id="__preview-app">${safeCode}</script>
 <script>
@@ -326,6 +328,14 @@ document.getElementById("__preview-app").addEventListener("error", function () {
 </script>
 </body>
 </html>`;
+}
+
+function buildTailwindCandidateSeed(candidates: string | undefined) {
+  if (!candidates) return "";
+
+  return `<div id="__preview-tailwind-candidates" hidden class="${escapeHtmlAttribute(
+    candidates,
+  )}"></div>`;
 }
 
 function buildStyleTags(options: {
