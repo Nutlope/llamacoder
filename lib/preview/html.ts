@@ -202,11 +202,15 @@ function startTailwindReadyWatch() {
 function waitForTailwindReady() {
   const startedAt = performance.now();
   const timeoutMs = 5000;
+  const pollMs = 50;
   let probe = null;
 
+  // Poll with timers, NOT requestAnimationFrame: rAF is fully suspended in
+  // hidden tabs, and users routinely tab away while an app generates — the
+  // preview must still become ready in the background.
   function check() {
     if (!document.body) {
-      requestAnimationFrame(check);
+      setTimeout(check, pollMs);
       return;
     }
 
@@ -241,16 +245,17 @@ function waitForTailwindReady() {
       return;
     }
 
-    requestAnimationFrame(check);
+    setTimeout(check, pollMs);
   }
 
-  requestAnimationFrame(check);
+  check();
 }
 window.addEventListener("load", () => {
-  requestAnimationFrame(() => {
+  // setTimeout, not requestAnimationFrame: rAF never fires in hidden tabs.
+  setTimeout(() => {
     postPreviewMetric("document-loaded");
     startTailwindReadyWatch();
-  });
+  }, 0);
 });
 `;
 
@@ -265,13 +270,13 @@ export function buildSrcdoc(
   } = {},
 ): string {
   const safeCode = escapeScriptContents(`${bundledCode}
-requestAnimationFrame(() => {
+setTimeout(() => {
   if (window.__previewMarkAppReady) {
     window.__previewMarkAppReady({});
   } else {
     parent.postMessage({ source: "preview", type: "ready" }, "*");
   }
-});
+}, 0);
 `);
   const safeBridge = escapeScriptContents(ERROR_BRIDGE);
   const safeCss = bundledCss.replace(/<\/style/gi, "<\\/style");

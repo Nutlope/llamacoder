@@ -359,26 +359,33 @@ function WasmReactCodeRunner({
       if (event.data.type === "ready") {
         if (stateRef.current.phase === "error") return;
 
+        // Flip to ready before anything else: an exception in the auxiliary
+        // work below must never swallow the ready signal (that turns a
+        // working preview into a bogus 60s watchdog failure).
         loadedSrcdocReadyRef.current = true;
-        nudgeIframePaint(iframeRef.current);
-        if (shouldStoreIframeCompiledCssRef.current) {
-          storeCompiledPreviewCss(
-            tailwindCssCacheKeyRef.current,
-            event.data.compiledCss,
-          );
-        }
-        const readyAt = performance.now();
-        const iframeMetrics = parseIframeMetrics(event.data);
-        setMetrics((current) => ({
-          ...current,
-          runtimeMs: iframeStartedAtRef.current
-            ? readyAt - iframeStartedAtRef.current
-            : undefined,
-          totalMs: readyAt - runStartedAtRef.current,
-          iframeReadyMs: toNumber(event.data.elapsedMs),
-          ...iframeMetrics,
-        }));
         transitionState({ phase: "ready" });
+        try {
+          nudgeIframePaint(iframeRef.current);
+          if (shouldStoreIframeCompiledCssRef.current) {
+            storeCompiledPreviewCss(
+              tailwindCssCacheKeyRef.current,
+              event.data.compiledCss,
+            );
+          }
+          const readyAt = performance.now();
+          const iframeMetrics = parseIframeMetrics(event.data);
+          setMetrics((current) => ({
+            ...current,
+            runtimeMs: iframeStartedAtRef.current
+              ? readyAt - iframeStartedAtRef.current
+              : undefined,
+            totalMs: readyAt - runStartedAtRef.current,
+            iframeReadyMs: toNumber(event.data.elapsedMs),
+            ...iframeMetrics,
+          }));
+        } catch {
+          // Metrics/cache/paint-nudge failures are non-fatal by design.
+        }
         return;
       }
 
@@ -613,9 +620,9 @@ function nudgeIframePaint(iframe: HTMLIFrameElement | null) {
   // panel animates w-0 -> w-[70%]). A one-frame display toggle forces the
   // frame to recomposite; it does NOT reload the iframe's document.
   iframe.style.display = "none";
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     iframe.style.display = "";
-  });
+  }, 0);
 }
 
 function usePreviewDebugFlag() {
