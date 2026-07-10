@@ -1,7 +1,31 @@
-import { getFilesFromMessage } from "./utils";
+import { getFilesFromMessage, stripThinkingBlocks } from "./utils";
 
 export const FIX_REQUEST_PREFIX =
   "The code is not working. Can you fix it? Here's the error:";
+
+// GLM (chat LCGsL-FlYg-1bRB-) sometimes emits a multi-file app as bare
+// fences with no {path=...} anywhere. The files land at fallback names that
+// can't satisfy each other's imports, and the bundler reports a misleading
+// `Cannot resolve "@/lib/data"` — which sends the model chasing a code bug
+// it doesn't have (it re-sent byte-identical code twice in that chat). When
+// the previewed response has this shape, describe the actual problem instead
+// of forwarding the symptom.
+export function describePathlessFenceProblem(content: string): string | null {
+  const stripped = stripThinkingBlocks(content);
+  if (stripped.includes("{path=")) return null;
+
+  let fences = 0;
+  for (const line of stripped.split("\n")) {
+    if (line.startsWith("```")) fences += 1;
+  }
+  if (Math.floor(fences / 2) < 2) return null;
+
+  return [
+    "Your previous response emitted multiple code fences without a {path=...} attribute, so the files could not be placed at their correct paths and their imports cannot resolve.",
+    "Re-send the COMPLETE app — every file with its full contents — and open every fence with the language and path, exactly like:",
+    "```tsx{path=src/App.tsx}",
+  ].join("\n");
+}
 
 type AutoFixMessage = {
   id: string;

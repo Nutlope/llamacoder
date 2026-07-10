@@ -8,7 +8,11 @@ import {
   extractAllCodeBlocks,
   getFilesFromMessage,
 } from "@/lib/utils";
-import { FIX_REQUEST_PREFIX, shouldAllowAutoFix } from "@/lib/chat-auto-fix";
+import {
+  FIX_REQUEST_PREFIX,
+  describePathlessFenceProblem,
+  shouldAllowAutoFix,
+} from "@/lib/chat-auto-fix";
 import { createLocalChatTitle } from "@/lib/chat-title";
 import { useRouter } from "next/navigation";
 import {
@@ -185,7 +189,17 @@ export default function PageClient({ chat }: { chat: Chat }) {
       if (isFixPending) return;
 
       setIsFixPending(true);
-      const newMessageText = `${FIX_REQUEST_PREFIX}\n\n${error.trimStart()}`;
+      // A bundler "Cannot resolve" on a response whose fences carried no
+      // {path=...} is a symptom; tell the model about the missing path tags
+      // instead so it re-sends the files correctly rather than hunting for a
+      // code bug it doesn't have.
+      const previewedMessage =
+        activeMessage ??
+        [...chat.messages].reverse().find((m) => m.role === "assistant");
+      const problem = previewedMessage
+        ? describePathlessFenceProblem(previewedMessage.content)
+        : null;
+      const newMessageText = `${FIX_REQUEST_PREFIX}\n\n${(problem ?? error).trimStart()}`;
       const optimistic: Message = {
         id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         role: "user",
@@ -225,7 +239,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
         router.refresh();
       });
     },
-    [chat, isFixPending, router],
+    [chat, isFixPending, router, activeMessage],
   );
 
   useEffect(() => {
