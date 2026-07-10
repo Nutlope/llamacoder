@@ -257,55 +257,6 @@ window.addEventListener("load", () => {
     startTailwindReadyWatch();
   }, 0);
 });
-// Chromium never rasters a sandboxed srcdoc frame whose document loaded while
-// the tab was hidden/occluded, and it stays permanently white after the tab
-// becomes visible because nothing inside it is dirty anymore. Style nudges
-// from the parent can't help: with no frames being produced, a perturb+restore
-// pair coalesces into a net no-op before any frame samples it. Keep one
-// imperceptible 1x1 pixel changing on a slow timer — persistent real paint
-// damage that forces the first produced frame to raster the current content.
-//
-// Do not stop this based on document.hidden. Arc and Chromium can occlude a
-// tab (another Space/window covers it) while still reporting the document as
-// visible. Stopping after a few "visible" ticks recreates the permanently
-// white surface this is meant to prevent. A single 1px update per second is
-// cheap, and hidden-tab timer throttling reduces it further in the background.
-let paintKeepAliveEl = null;
-let paintKeepAliveTimer = null;
-let paintKeepAliveTick = 0;
-function paintKeepAliveStep() {
-  paintKeepAliveTimer = null;
-  if (document.body) {
-    if (!paintKeepAliveEl || !paintKeepAliveEl.isConnected) {
-      paintKeepAliveEl = document.createElement("div");
-      paintKeepAliveEl.setAttribute("aria-hidden", "true");
-      paintKeepAliveEl.style.cssText =
-        "position:fixed;left:0;bottom:0;width:1px;height:1px;pointer-events:none;z-index:2147483647;";
-      document.body.appendChild(paintKeepAliveEl);
-    }
-    paintKeepAliveTick += 1;
-    paintKeepAliveEl.style.backgroundColor =
-      paintKeepAliveTick % 2 ? "rgba(0,0,0,0.02)" : "rgba(0,0,0,0.01)";
-  }
-  paintKeepAliveTimer = setTimeout(paintKeepAliveStep, 1000);
-}
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState !== "visible") return;
-  if (paintKeepAliveTimer) clearTimeout(paintKeepAliveTimer);
-  paintKeepAliveStep();
-});
-// The parent runner asks for a repaint on reveal events (tab visible again,
-// Preview pane opened, ready). Inner pixel damage is the only safe repaint
-// primitive: parent-side style perturbation of the iframe promotes/demotes
-// its compositor layer and was observed dropping the rastered surface of a
-// HEALTHY visible preview (blank after window focus returns).
-window.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "llamacoder-repaint") {
-    if (paintKeepAliveTimer) clearTimeout(paintKeepAliveTimer);
-    paintKeepAliveStep();
-  }
-});
-paintKeepAliveStep();
 `;
 
 export function buildSrcdoc(

@@ -11,6 +11,7 @@ import {
 } from "@/lib/preview/files";
 import { baseuiPreviewFiles } from "@/lib/preview/generated/baseui-files";
 import { buildSrcdoc, findMissingPreviewModules } from "@/lib/preview/html";
+import { nudgePreviewIframeGeometry } from "@/lib/preview/repaint";
 import {
   buildPreviewStyleSignature,
   collectPreviewStyleCandidates,
@@ -213,7 +214,7 @@ function WasmReactCodeRunner({
     // whenever the iframe comes (back) into view.
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
-        nudgeIframePaint(iframe);
+        nudgePreviewIframeGeometry(iframe);
       }
     });
     observer.observe(iframe);
@@ -223,7 +224,7 @@ function WasmReactCodeRunner({
     // comes back, or the frame can stay blank.
     function onVisibilityChange() {
       if (document.visibilityState === "visible") {
-        nudgeIframePaint(iframe);
+        nudgePreviewIframeGeometry(iframe);
       }
     }
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -238,7 +239,7 @@ function WasmReactCodeRunner({
     // switches to the Preview tab, that opacity flip triggers neither the
     // IntersectionObserver nor visibilitychange, so repaint explicitly.
     if (isActivePane) {
-      nudgeIframePaint(iframeRef.current);
+      nudgePreviewIframeGeometry(iframeRef.current);
     }
   }, [isActivePane]);
 
@@ -434,7 +435,7 @@ function WasmReactCodeRunner({
         transitionState({ phase: "ready" });
         setHasEverBeenReady(true);
         try {
-          nudgeIframePaint(iframeRef.current);
+          nudgePreviewIframeGeometry(iframeRef.current);
           if (shouldStoreIframeCompiledCssRef.current) {
             storeCompiledPreviewCss(
               tailwindCssCacheKeyRef.current,
@@ -759,25 +760,6 @@ function ErrorMessage({
       </div>
     </div>
   );
-}
-
-function nudgeIframePaint(iframe: HTMLIFrameElement | null) {
-  if (!iframe) return;
-
-  // Never touch the iframe's own styles here. The old transform/opacity/
-  // willChange dance promoted and then demoted the iframe's compositor
-  // layer, and that demotion was observed dropping the rastered surface of
-  // a HEALTHY visible preview: the panel went blank shortly after window
-  // focus returned, and every manual refresh re-blanked it (the `ready`
-  // handler re-ran the dance). Since an idle app produces no new paint
-  // damage, the blank then persisted indefinitely.
-  //
-  // Instead, ask the srcdoc bridge to produce a few frames of imperceptible
-  // 1x1-pixel paint damage inside the frame (the same keep-alive that fixes
-  // loads in hidden tabs). Inner damage forces Chromium to re-raster the
-  // frame's surface without any layer churn, so it is safe to fire over a
-  // perfectly healthy preview.
-  iframe.contentWindow?.postMessage({ type: "llamacoder-repaint" }, "*");
 }
 
 function usePreviewDebugFlag() {

@@ -54,17 +54,3 @@ test("tailwind candidate classes are seeded into the preview document", () => {
   assert.match(srcdoc, /fixed top-1\/2/);
   assert.match(srcdoc, /&quot;\/x\.svg&quot;/);
 });
-
-test("preview paint keepalive survives browser occlusion", () => {
-  const srcdoc = buildSrcdoc("", "", DEPS);
-
-  // Arc/Chromium can occlude a tab without setting document.hidden. The
-  // preview must therefore keep producing a tiny amount of inner-frame paint
-  // damage even while the browser reports the document as visible; otherwise
-  // a srcdoc that finishes offscreen can stay permanently white.
-  assert.match(
-    srcdoc,
-    /paintKeepAliveTimer = setTimeout\(paintKeepAliveStep, 1000\);/,
-  );
-  assert.doesNotMatch(srcdoc, /paintKeepAliveEl\.remove\(\)/);
-});
