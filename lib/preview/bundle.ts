@@ -1,4 +1,5 @@
 import * as esbuild from "esbuild-wasm";
+import { PREVIEW_CACHE_STORAGE } from "./cache-policy";
 
 const ESBUILD_WASM_URL = "/preview-vendor/esbuild/esbuild.wasm";
 
@@ -53,9 +54,6 @@ type CachedBundle = {
 };
 
 const BUNDLE_CACHE_LIMIT = 24;
-const BUNDLE_DB_NAME = "llamacoder-preview";
-const BUNDLE_DB_VERSION = 1;
-const BUNDLE_STORE_NAME = "bundles";
 const REACT_DEPENDENCY_SPECIFIERS = [
   "react",
   "react-dom",
@@ -88,7 +86,7 @@ export async function bundle(
       css: cached.css,
       durationMs: 0,
       cacheHit: true,
-      cacheSource: "memory",
+      cacheSource: PREVIEW_CACHE_STORAGE,
       cacheLookupMs: performance.now() - cacheLookupStartedAt,
       ensureMs: 0,
       ...inputStats,
@@ -96,24 +94,6 @@ export async function bundle(
       outputCssBytes: cached.css.length,
     };
   }
-  const persistentCached = await getPersistentCachedBundle(cacheKey);
-  if (persistentCached) {
-    setCachedBundle(cacheKey, persistentCached);
-    return {
-      ok: true,
-      code: persistentCached.code,
-      css: persistentCached.css,
-      durationMs: 0,
-      cacheHit: true,
-      cacheSource: "indexeddb",
-      cacheLookupMs: performance.now() - cacheLookupStartedAt,
-      ensureMs: 0,
-      ...inputStats,
-      outputJsBytes: persistentCached.code.length,
-      outputCssBytes: persistentCached.css.length,
-    };
-  }
-
   const cacheLookupMs = performance.now() - cacheLookupStartedAt;
   const ensureStartedAt = performance.now();
   await ensureEsbuild();
@@ -160,10 +140,6 @@ export async function bundle(
       code: bundled.code,
       css: bundled.css,
     });
-    void setPersistentCachedBundle(cacheKey, {
-      code: bundled.code,
-      css: bundled.css,
-    });
     return bundled;
   } catch (error) {
     return {
@@ -190,70 +166,6 @@ function getInputStats(files: Record<string, string>, cacheKey: string) {
     ),
     cacheKeyBytes: cacheKey.length,
   };
-}
-
-async function getPersistentCachedBundle(
-  key: string,
-): Promise<CachedBundle | null> {
-  const db = await openBundleCacheDb();
-  if (!db) return null;
-
-  return new Promise((resolve) => {
-    const transaction = db.transaction(BUNDLE_STORE_NAME, "readonly");
-    const request = transaction.objectStore(BUNDLE_STORE_NAME).get(key);
-
-    request.onsuccess = () => {
-      const value = request.result;
-      resolve(isCachedBundleRecord(value) ? value : null);
-    };
-    request.onerror = () => resolve(null);
-    transaction.oncomplete = () => db.close();
-    transaction.onerror = () => db.close();
-  });
-}
-
-async function setPersistentCachedBundle(key: string, value: CachedBundle) {
-  const db = await openBundleCacheDb();
-  if (!db) return;
-
-  await new Promise<void>((resolve) => {
-    const transaction = db.transaction(BUNDLE_STORE_NAME, "readwrite");
-    transaction.objectStore(BUNDLE_STORE_NAME).put({
-      ...value,
-      key,
-      updatedAt: Date.now(),
-    });
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => resolve();
-  });
-  db.close();
-}
-
-function openBundleCacheDb(): Promise<IDBDatabase | null> {
-  if (typeof indexedDB === "undefined") return Promise.resolve(null);
-
-  return new Promise((resolve) => {
-    const request = indexedDB.open(BUNDLE_DB_NAME, BUNDLE_DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(BUNDLE_STORE_NAME)) {
-        db.createObjectStore(BUNDLE_STORE_NAME, { keyPath: "key" });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
-    request.onblocked = () => resolve(null);
-  });
-}
-
-function isCachedBundleRecord(value: unknown): value is CachedBundle {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as CachedBundle).code === "string" &&
-    typeof (value as CachedBundle).css === "string"
-  );
 }
 
 function getBundleCache() {

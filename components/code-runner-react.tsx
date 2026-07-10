@@ -11,6 +11,7 @@ import {
 } from "@/lib/preview/files";
 import { baseuiPreviewFiles } from "@/lib/preview/generated/baseui-files";
 import { buildSrcdoc, findMissingPreviewModules } from "@/lib/preview/html";
+import { PREVIEW_CACHE_STORAGE } from "@/lib/preview/cache-policy";
 import { nudgePreviewIframeGeometry } from "@/lib/preview/repaint";
 import {
   buildPreviewStyleSignature,
@@ -185,7 +186,7 @@ function WasmReactCodeRunner({
   );
   const runKey = `${refreshNonce}:${filesKey}`;
   const previewStyleSignature = buildPreviewStyleSignature(files);
-  const tailwindCssCacheKey = `${PREVIEW_TAILWIND_CSS_CACHE_PREFIX}${PREVIEW_TAILWIND_CSS_CACHE_VERSION}:${previewKit}:${effectivePreviewVendor}:${hashString(
+  const tailwindCssCacheKey = `${PREVIEW_CACHE_STORAGE}:${PREVIEW_TAILWIND_CSS_CACHE_PREFIX}${PREVIEW_TAILWIND_CSS_CACHE_VERSION}:${previewKit}:${effectivePreviewVendor}:${hashString(
     `${previewStyleSignature}\n${BASEUI_STYLE_SIGNATURE}`,
   )}`;
   tailwindCssCacheKeyRef.current = tailwindCssCacheKey;
@@ -848,17 +849,7 @@ function formatResourceName(value: string) {
 }
 
 function getCachedPreviewTailwindCss(key: string) {
-  const memoryValue = previewTailwindCssCache.get(key);
-  if (memoryValue) return memoryValue;
-  if (typeof window === "undefined") return undefined;
-
-  try {
-    const storedValue = window.localStorage.getItem(key) ?? undefined;
-    if (storedValue) previewTailwindCssCache.set(key, storedValue);
-    return storedValue;
-  } catch {
-    return undefined;
-  }
+  return previewTailwindCssCache.get(key);
 }
 
 function storeCompiledPreviewCss(key: string, value: unknown) {
@@ -871,32 +862,6 @@ function storeCompiledPreviewCss(key: string, value: unknown) {
   }
 
   previewTailwindCssCache.set(key, value);
-  setCachedPreviewTailwindCss(key, value);
-}
-
-function setCachedPreviewTailwindCss(key: string, css: string) {
-  if (typeof window === "undefined") return;
-
-  try {
-    window.localStorage.setItem(key, css);
-  } catch {
-    // Quota exceeded: these entries are up to 1MB each, so a few dozen app
-    // versions fill localStorage and every future write would silently fail.
-    // Drop all preview CSS entries (old cache versions included) and retry.
-    try {
-      const staleKeys: string[] = [];
-      for (let index = 0; index < window.localStorage.length; index++) {
-        const storedKey = window.localStorage.key(index);
-        if (storedKey?.startsWith(PREVIEW_TAILWIND_CSS_CACHE_PREFIX)) {
-          staleKeys.push(storedKey);
-        }
-      }
-      staleKeys.forEach((staleKey) => window.localStorage.removeItem(staleKey));
-      window.localStorage.setItem(key, css);
-    } catch {
-      // Memory cache still covers same-page preview rerenders.
-    }
-  }
 }
 
 function hashString(value: string) {
