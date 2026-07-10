@@ -261,14 +261,18 @@ window.addEventListener("load", () => {
 // the tab was hidden/occluded, and it stays permanently white after the tab
 // becomes visible because nothing inside it is dirty anymore. Style nudges
 // from the parent can't help: with no frames being produced, a perturb+restore
-// pair coalesces into a net no-op before any frame samples it. So while
-// hidden, keep one imperceptible 1x1 pixel changing on a timer — persistent
-// real paint damage that forces the first produced frame to raster the
-// current content.
+// pair coalesces into a net no-op before any frame samples it. Keep one
+// imperceptible 1x1 pixel changing on a slow timer — persistent real paint
+// damage that forces the first produced frame to raster the current content.
+//
+// Do not stop this based on document.hidden. Arc and Chromium can occlude a
+// tab (another Space/window covers it) while still reporting the document as
+// visible. Stopping after a few "visible" ticks recreates the permanently
+// white surface this is meant to prevent. A single 1px update per second is
+// cheap, and hidden-tab timer throttling reduces it further in the background.
 let paintKeepAliveEl = null;
 let paintKeepAliveTimer = null;
 let paintKeepAliveTick = 0;
-let paintKeepAliveVisibleTicks = 0;
 function paintKeepAliveStep() {
   paintKeepAliveTimer = null;
   if (document.body) {
@@ -283,22 +287,12 @@ function paintKeepAliveStep() {
     paintKeepAliveEl.style.backgroundColor =
       paintKeepAliveTick % 2 ? "rgba(0,0,0,0.02)" : "rgba(0,0,0,0.01)";
   }
-  if (document.hidden) {
-    paintKeepAliveVisibleTicks = 0;
-    paintKeepAliveTimer = setTimeout(paintKeepAliveStep, 500);
-  } else if (paintKeepAliveVisibleTicks < 3) {
-    // A few extra ticks once visible so the recovering frame definitely
-    // rasters, then get out of the way entirely.
-    paintKeepAliveVisibleTicks += 1;
-    paintKeepAliveTimer = setTimeout(paintKeepAliveStep, 200);
-  } else if (paintKeepAliveEl) {
-    paintKeepAliveEl.remove();
-    paintKeepAliveEl = null;
-  }
+  paintKeepAliveTimer = setTimeout(paintKeepAliveStep, 1000);
 }
 document.addEventListener("visibilitychange", () => {
-  paintKeepAliveVisibleTicks = 0;
-  if (!paintKeepAliveTimer) paintKeepAliveStep();
+  if (document.visibilityState !== "visible") return;
+  if (paintKeepAliveTimer) clearTimeout(paintKeepAliveTimer);
+  paintKeepAliveStep();
 });
 // The parent runner asks for a repaint on reveal events (tab visible again,
 // Preview pane opened, ready). Inner pixel damage is the only safe repaint
@@ -307,8 +301,8 @@ document.addEventListener("visibilitychange", () => {
 // HEALTHY visible preview (blank after window focus returns).
 window.addEventListener("message", (event) => {
   if (event.data && event.data.type === "llamacoder-repaint") {
-    paintKeepAliveVisibleTicks = 0;
-    if (!paintKeepAliveTimer) paintKeepAliveStep();
+    if (paintKeepAliveTimer) clearTimeout(paintKeepAliveTimer);
+    paintKeepAliveStep();
   }
 });
 paintKeepAliveStep();
