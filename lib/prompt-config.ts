@@ -84,6 +84,14 @@ export const PRODUCTION_DESIGN_SECTION = dedent`
 export const INLINE_PLAN_INSTRUCTION =
   "Before writing any code files, first write a brief implementation plan inside a single <thinking>...</thinking> block. List the MVP features you will build and the files you will create (with their paths), keeping it concise. After the closing </thinking>, emit all the code files in the fenced format above. Everything — the plan and the code — must be in this one response.";
 
+// End-of-prompt self-check, production only (appended after the benchmarked
+// sections so their byte-identical variant outputs are untouched). GLM 5.2
+// ignored the mid-prompt {path=...} REQUIRED rules on the first turn of chat
+// LCGsL-FlYg-1bRB- and shipped a multi-file app as bare ```tsx fences; a
+// final check placed last in the prompt is the shape models follow best.
+export const FENCE_SELF_CHECK_INSTRUCTION =
+  "FINAL CHECK before you finish: every code fence in your response MUST open as ```tsx{path=src/...} (or ```ts{path=src/...}). If even one fence is a bare ``` or ```tsx without {path=...}, the renderer cannot place that file and the whole app fails to build. Re-open any such fence with its {path=...} before sending.";
+
 /**
  * The production coding system prompt: the benchmark-winning `minimal-v1` prompt
  * (clean, no few-shot examples, allowed stack generated from PREVIEW_DEPS) plus
@@ -112,7 +120,9 @@ export function buildProductionCodingPrompt(): string {
     // dramatic win: real palettes, serif display type, depth, biased layouts.
     HALLMARK_DESIGN_SECTION +
     "\n\n" +
-    INLINE_PLAN_INSTRUCTION
+    INLINE_PLAN_INSTRUCTION +
+    "\n\n" +
+    FENCE_SELF_CHECK_INSTRUCTION
   );
 }
 
