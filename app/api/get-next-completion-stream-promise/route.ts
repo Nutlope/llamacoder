@@ -217,9 +217,6 @@ export async function POST(req: Request) {
       reasoning: { enabled: false },
       messages: inputMessages,
       temperature,
-      // 13000 matches the inline-mode budget the winning config was benchmarked at
-      // (the <thinking> plan shares the output budget with the code). Streams in
-      // well under the 300s maxDuration.
       max_tokens: maxTokens,
     });
   } catch (error) {
