@@ -764,26 +764,20 @@ function ErrorMessage({
 function nudgeIframePaint(iframe: HTMLIFrameElement | null) {
   if (!iframe) return;
 
-  // Chromium can leave a sandboxed srcdoc iframe permanently blank when its
-  // document loaded while the frame was hidden or mid-layout-animation (the
-  // panel animates w-0 -> w-[70%]). Keep it in layout and only perturb the
-  // compositor; removing it with display:none can itself leave the surface
-  // stuck white in headed Chrome.
+  // Never touch the iframe's own styles here. The old transform/opacity/
+  // willChange dance promoted and then demoted the iframe's compositor
+  // layer, and that demotion was observed dropping the rastered surface of
+  // a HEALTHY visible preview: the panel went blank shortly after window
+  // focus returned, and every manual refresh re-blanked it (the `ready`
+  // handler re-ran the dance). Since an idle app produces no new paint
+  // damage, the blank then persisted indefinitely.
   //
-  // Must be timer-driven, never requestAnimationFrame: Chrome suspends rAF in
-  // hidden/occluded tabs, which is precisely when the frame goes blank — an
-  // rAF-scheduled restore never runs there, leaving the nudge half-applied
-  // and the surface stuck white. Timers keep ticking (throttled) while
-  // hidden, so the perturb+restore pair always completes and the pending
-  // invalidation rasters on the next visible frame.
-  iframe.style.willChange = "transform, opacity";
-  iframe.style.transform = "translateZ(0)";
-  iframe.style.opacity = "0.999";
-  window.setTimeout(() => {
-    iframe.style.transform = "";
-    iframe.style.opacity = "";
-    iframe.style.willChange = "";
-  }, 120);
+  // Instead, ask the srcdoc bridge to produce a few frames of imperceptible
+  // 1x1-pixel paint damage inside the frame (the same keep-alive that fixes
+  // loads in hidden tabs). Inner damage forces Chromium to re-raster the
+  // frame's surface without any layer churn, so it is safe to fire over a
+  // perfectly healthy preview.
+  iframe.contentWindow?.postMessage({ type: "llamacoder-repaint" }, "*");
 }
 
 function usePreviewDebugFlag() {
