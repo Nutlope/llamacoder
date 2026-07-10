@@ -8,6 +8,8 @@ export const MODEL_ALIASES: Record<string, string> = {
   "MiniMaxAI/MiniMax-M2.5": "MiniMaxAI/MiniMax-M3",
   "MiniMaxAI/MiniMax-M2.7": "MiniMaxAI/MiniMax-M3",
   "moonshotai/Kimi-K2.5": "moonshotai/Kimi-K2.7-Code",
+  "moonshotai/Kimi-K2-Instruct-0905": "moonshotai/Kimi-K2.7-Code",
+  "deepseek-ai/DeepSeek-V3.1": "moonshotai/Kimi-K2.7-Code",
   "Qwen/Qwen3-Coder-Next-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
   "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
 };
