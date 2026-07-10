@@ -162,7 +162,9 @@ export default function Home() {
             }}
           >
             <Fieldset>
-              <div className="relative flex w-full max-w-2xl rounded-xl border border-gray-300 bg-white pb-10">
+              <div
+                className={`relative flex w-full max-w-2xl rounded-xl border border-gray-300 bg-white pb-10 transition-[height] ${isPending ? "h-28 overflow-hidden" : ""}`}
+              >
                 <div className="w-full">
                   {screenshotLoading && (
                     <div className="relative mx-3 mt-3">
@@ -212,9 +214,9 @@ export default function Home() {
                       </button>
                     </div>
                   )}
-                  <div className="relative">
+                  <div className="relative max-h-48 overflow-hidden">
                     <div className="p-3">
-                      <p className="invisible w-full whitespace-pre-wrap">
+                      <p className="invisible max-h-48 w-full overflow-hidden whitespace-pre-wrap">
                         {textareaResizePrompt}
                       </p>
                     </div>
@@ -224,7 +226,7 @@ export default function Home() {
                       required
                       name="prompt"
                       rows={2}
-                      className="peer absolute inset-0 w-full resize-none bg-transparent px-4 py-3 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
+                      className="peer absolute bottom-1 left-0 right-1 top-1 resize-none overflow-y-auto bg-transparent px-4 py-2 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       onPaste={(e) => {

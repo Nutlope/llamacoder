@@ -75,9 +75,9 @@ export default function ChatBox({
       >
         <fieldset className="w-full" disabled={disabled}>
           <div className="relative flex flex-col rounded-lg border border-gray-300 bg-white">
-            <div className="relative w-full">
+            <div className="relative max-h-48 w-full overflow-hidden">
               <div className="w-full p-2.5">
-                <p className="invisible min-h-[48px] w-full whitespace-pre-wrap">
+                <p className="invisible max-h-48 min-h-[48px] w-full overflow-hidden whitespace-pre-wrap">
                   {textareaResizePrompt}
                 </p>
               </div>
@@ -88,7 +88,7 @@ export default function ChatBox({
                 onChange={(e) => setPrompt(e.target.value)}
                 required
                 name="prompt"
-                className="peer absolute inset-0 w-full resize-none bg-transparent p-2.5 placeholder-gray-500 focus:outline-none disabled:opacity-50"
+                className="peer absolute bottom-1 left-0 right-1 top-1 resize-none overflow-y-auto bg-transparent px-2.5 py-1.5 placeholder-gray-500 focus:outline-none disabled:opacity-50"
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
