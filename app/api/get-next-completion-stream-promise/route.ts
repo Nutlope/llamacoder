@@ -169,7 +169,12 @@ export async function POST(req: Request) {
   const together = new Together(options);
   const resolvedModel = resolveModel(model);
   const temperature = 0.4;
-  const maxTokens = 13000;
+  // 20000, up from the benchmarked 13000: chat USzt_maT7friospM hit the 13k
+  // cap mid-file on a detailed prompt, truncating the last fence — the file
+  // was dropped and the preview failed with "Cannot resolve". A cap is not a
+  // target, so typical generations are unaffected; only would-be truncations
+  // keep streaming (still well under the 300s maxDuration).
+  const maxTokens = 20000;
   const inputMessages = messages.map((m) => ({
     role: m.role,
     content: m.content,
