@@ -141,13 +141,28 @@ export function extractFirstCodeBlock(input: string) {
   return null; // No code block found
 }
 
+// Some models leak their reasoning into the message body as a `<thinking>`
+// block (chat LCGsL-FlYg-1bRB-, GLM 5.2). That prose often quotes code inside
+// backtick fences, which the regex extractor happily turns into junk files
+// (`component-27.txt`, a file literally named `...`). Worse, when the
+// generation is truncated mid-thought the block never closes and everything
+// after `<thinking>` is an unreliable repetition loop. Strip terminated
+// blocks, and drop everything from an unterminated opener onward, before
+// extracting files. Display parsing (parseReplySegments) is left untouched.
+export function stripThinkingBlocks(markdown: string): string {
+  let out = markdown.replace(/<thinking>[\s\S]*?<\/thinking>/g, "");
+  const unterminated = out.indexOf("<thinking>");
+  if (unterminated !== -1) out = out.slice(0, unterminated);
+  return out;
+}
+
 export function extractAllCodeBlocks(input: string): Array<{
   code: string;
   language: string;
   path: string;
   fullMatch: string;
 }> {
-  input = normalizeFenceOpeners(input);
+  input = normalizeFenceOpeners(stripThinkingBlocks(input));
   const codeBlockRegex = /```([^\n]*)\n([\s\S]*?)\n```/g;
   const files: Array<{
     code: string;
