@@ -14,6 +14,25 @@ export const MODEL_ALIASES: Record<string, string> = {
   "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
 };
 
+export const FALLBACK_MODEL = "moonshotai/Kimi-K2.7-Code";
+
+export function isNonServerlessModelError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const candidate = error as {
+    message?: unknown;
+    error?: { code?: unknown; message?: unknown };
+  };
+  const message = [candidate.message, candidate.error?.message]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ");
+
+  return (
+    candidate.error?.code === "model_not_available" &&
+    /unable to access non-serverless model/i.test(message)
+  );
+}
+
 export function resolveModel(model: string): string {
   return MODEL_ALIASES[model] ?? model;
 }

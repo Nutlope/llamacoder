@@ -3,7 +3,11 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
-import { resolveModel } from "@/lib/constants";
+import {
+  FALLBACK_MODEL,
+  isNonServerlessModelError,
+  resolveModel,
+} from "@/lib/constants";
 import {
   flushBraintrustSpan,
   logBraintrustFailure,
@@ -232,15 +236,64 @@ export async function POST(req: Request) {
     throw error;
   }
 
-  stream.on("content", (delta) => {
-    if (!firstTokenMs && delta.length > 0) {
-      firstTokenMs = performance.now() - startedAt;
-      span?.log({
-        metrics: {
-          first_token_ms: firstTokenMs,
-        },
-      });
-    }
+  const attachContentListener = (
+    currentStream: typeof stream,
+    currentModel: string,
+  ) => {
+    currentStream.on("content", (delta) => {
+      if (!firstTokenMs && delta.length > 0) {
+        firstTokenMs = performance.now() - startedAt;
+        span?.log({
+          metrics: {
+            first_token_ms: firstTokenMs,
+          },
+          metadata: { model: currentModel },
+        });
+      }
+    });
+  };
+
+  attachContentListener(stream, resolvedModel);
+
+  const responseStream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let emittedOutput = false;
+      let activeModel = resolvedModel;
+      let activeStream = stream;
+
+      while (true) {
+        try {
+          const reader = activeStream.toReadableStream().getReader();
+          while (true) {
+            const chunk = await reader.read();
+            if (chunk.done) break;
+            emittedOutput = true;
+            controller.enqueue(chunk.value);
+          }
+          controller.close();
+          return;
+        } catch (error) {
+          if (
+            emittedOutput ||
+            activeModel === FALLBACK_MODEL ||
+            !isNonServerlessModelError(error)
+          ) {
+            controller.error(error);
+            return;
+          }
+
+          activeModel = FALLBACK_MODEL;
+          activeStream = together.chat.completions.stream({
+            model: activeModel,
+            reasoning: { enabled: false },
+            messages: inputMessages,
+            temperature,
+            max_tokens: maxTokens,
+          });
+          attachContentListener(activeStream, activeModel);
+        }
+      }
+    },
   });
 
   stream
@@ -276,7 +329,7 @@ export async function POST(req: Request) {
       await flushBraintrustSpan(span);
     });
 
-  return new Response(stream.toReadableStream());
+  return new Response(responseStream);
 }
 
 export const runtime = "edge";

@@ -1,5 +1,10 @@
 import Together from "together-ai";
-import { PLANNING_MODEL, resolveModel } from "./constants";
+import {
+  FALLBACK_MODEL,
+  PLANNING_MODEL,
+  isNonServerlessModelError,
+  resolveModel,
+} from "./constants";
 import {
   getMainCodingPrompt,
   softwareArchitectPrompt,
@@ -221,24 +226,48 @@ export async function generateApp(
     systemPrompt += "\n\n" + INLINE_PLAN_INSTRUCTION;
   }
 
-  const stream = together.chat.completions.stream({
-    model: resolveModel(model),
+  const request = {
     reasoning: { enabled: false },
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: plan },
+      { role: "system" as const, content: systemPrompt },
+      { role: "user" as const, content: plan },
     ],
     temperature,
     max_tokens: maxTokens,
+  };
+  let requestedModel = resolveModel(model);
+  let stream = together.chat.completions.stream({
+    ...request,
+    model: requestedModel,
   });
 
-  stream.on("content", (delta) => {
-    if (!firstTokenMs && delta.length > 0) {
-      firstTokenMs = performance.now() - codingStartedAt;
+  const attachContentTimer = (currentStream: typeof stream) => {
+    currentStream.on("content", (delta) => {
+      if (!firstTokenMs && delta.length > 0) {
+        firstTokenMs = performance.now() - codingStartedAt;
+      }
+    });
+  };
+  attachContentTimer(stream);
+
+  let rawText: string;
+  try {
+    rawText = (await stream.finalContent()) ?? "";
+  } catch (error) {
+    if (
+      requestedModel === FALLBACK_MODEL ||
+      !isNonServerlessModelError(error)
+    ) {
+      throw error;
     }
-  });
-
-  const rawText = (await stream.finalContent()) ?? "";
+    requestedModel = FALLBACK_MODEL;
+    stream = together.chat.completions.stream({
+      ...request,
+      model: requestedModel,
+    });
+    attachContentTimer(stream);
+    rawText = (await stream.finalContent()) ?? "";
+  }
   const totalGenerationMs = performance.now() - startedAt;
   const usage = addUsage(
     planUsage,
