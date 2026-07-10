@@ -6,6 +6,7 @@ import Together from "together-ai";
 import { resolveModel } from "@/lib/constants";
 import {
   flushBraintrustSpan,
+  logBraintrustFailure,
   serializeBraintrustError,
   startBraintrustSpan,
 } from "@/lib/braintrust";
@@ -48,31 +49,105 @@ export async function POST(req: Request) {
 
   const parsed = requestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
+    await logBraintrustFailure(
+      {
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            phase: "request-validation",
+          },
+        },
+      },
+      new Error("Invalid request"),
+    );
     return new Response("Invalid request", { status: 400 });
   }
   const { messageId, model } = parsed.data;
 
-  const message = await prisma.message.findUnique({
-    where: { id: messageId },
-  });
+  let message;
+  try {
+    message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        chat: {
+          select: {
+            braintrustParent: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    await logBraintrustFailure(
+      {
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          input: { messageId },
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            phase: "message-lookup",
+          },
+        },
+      },
+      error,
+    );
+    throw error;
+  }
 
   if (!message) {
+    await logBraintrustFailure(
+      {
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          input: { messageId },
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            phase: "message-lookup",
+          },
+        },
+      },
+      new Error("Message not found"),
+    );
     return new Response(null, { status: 404 });
   }
 
-  const messagesRes = await prisma.message.findMany({
-    where: { chatId: message.chatId, position: { lte: message.position } },
-    orderBy: { position: "asc" },
-  });
+  let messages;
+  try {
+    const messagesRes = await prisma.message.findMany({
+      where: { chatId: message.chatId, position: { lte: message.position } },
+      orderBy: { position: "asc" },
+    });
 
-  let messages = z
-    .array(
-      z.object({
-        role: z.enum(["system", "user", "assistant"]),
-        content: z.string(),
-      }),
-    )
-    .parse(messagesRes);
+    messages = z
+      .array(
+        z.object({
+          role: z.enum(["system", "user", "assistant"]),
+          content: z.string(),
+        }),
+      )
+      .parse(messagesRes);
+  } catch (error) {
+    await logBraintrustFailure(
+      {
+        parent: message.chat.braintrustParent ?? undefined,
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          input: { messageId },
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            chatId: message.chatId,
+            phase: "message-loading",
+          },
+        },
+      },
+      error,
+    );
+    throw error;
+  }
 
   messages = optimizeMessagesForTokens(messages);
 
@@ -107,6 +182,7 @@ export async function POST(req: Request) {
   );
 
   const span = startBraintrustSpan({
+    parent: message.chat.braintrustParent ?? undefined,
     name: "llamacoder.stream-generation",
     type: "llm",
     event: {
@@ -119,6 +195,7 @@ export async function POST(req: Request) {
         messageId,
         requestedModel: model,
         resolvedModel,
+        model: resolvedModel,
         provider: "together",
         messageCount: inputMessages.length,
         promptChars,

@@ -53,6 +53,21 @@ export async function flushBraintrustSpan(span: Span | undefined) {
   }
 }
 
+export async function logBraintrustFailure(
+  args: StartSpanArgs,
+  error: unknown,
+) {
+  const span = startBraintrustSpan({
+    ...args,
+    event: {
+      ...args.event,
+      error: serializeBraintrustError(error),
+    },
+  });
+  span?.end();
+  await flushBraintrustSpan(span);
+}
+
 export function serializeBraintrustError(error: unknown) {
   if (error instanceof Error) {
     return {

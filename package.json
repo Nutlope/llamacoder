@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "pnpm generate:baseui-vendor && tsc --noEmit --noUnusedLocals",
     "test": "tsx --test \"lib/**/*.test.ts\"",
+    "test:e2e:braintrust": "tsx scripts/e2e/verify-braintrust-trace.ts",
     "generate:baseui-preview": "tsx scripts/preview/generate-baseui-files.ts",
     "generate:baseui-vendor": "tsx scripts/preview/generate-baseui-vendor.ts"
   },

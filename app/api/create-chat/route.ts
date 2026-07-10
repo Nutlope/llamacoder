@@ -8,12 +8,14 @@ import { createLocalChatTitle } from "@/lib/chat-title";
 import {
   flushBraintrust,
   getBraintrustLogger,
+  logBraintrustFailure,
   serializeBraintrustError,
 } from "@/lib/braintrust";
 import type { Span } from "braintrust";
 
 export async function POST(request: NextRequest) {
   const logger = getBraintrustLogger();
+  let traceStarted = false;
 
   try {
     const body = await request.json();
@@ -123,6 +125,7 @@ export async function POST(request: NextRequest) {
 
       const prisma = getPrisma();
       const lastMessageId = createId();
+      const braintrustParent = await rootSpan?.export();
       await prisma.chat.create({
         data: {
           id: chatId,
@@ -132,6 +135,7 @@ export async function POST(request: NextRequest) {
           quality: "low",
           prompt,
           title: createLocalChatTitle(prompt),
+          braintrustParent,
           shadcn: true,
           messages: {
             create: [
@@ -152,6 +156,16 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      rootSpan?.log({
+        output: {
+          chatId,
+          lastMessageId,
+        },
+        metadata: {
+          completed: true,
+        },
+      });
+
       return NextResponse.json({
         chatId,
         lastMessageId,
@@ -160,6 +174,7 @@ export async function POST(request: NextRequest) {
 
     if (!logger) return await createChat();
 
+    traceStarted = true;
     const response = await logger.traced((span) => createChat(span), {
       name: "llamacoder.create-chat",
       type: "task",
@@ -180,6 +195,21 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Error creating chat:", error);
+    if (!traceStarted) {
+      await logBraintrustFailure(
+        {
+          name: "llamacoder.create-chat",
+          type: "task",
+          event: {
+            metadata: {
+              route: "/api/create-chat",
+              phase: "request-validation",
+            },
+          },
+        },
+        error,
+      );
+    }
     await flushBraintrust();
     return NextResponse.json(
       { error: "Failed to create chat" },
