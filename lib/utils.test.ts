@@ -5,6 +5,7 @@ import {
   parseReplySegments,
   extractAllCodeBlocks,
   getFilesFromMessage,
+  stripThinkingBlocks,
 } from "./utils";
 
 const B = "```"; // keep literal fences out of the source so editors don't choke
@@ -215,6 +216,59 @@ test("duplicate explicit paths are disambiguated, not dropped", () => {
   );
   assert.match(got[0].code, /return 1/);
   assert.match(got[1].code, /return 2/);
+});
+
+// From chat LCGsL-FlYg-1bRB- (GLM 5.2): the model leaked an unterminated <thinking> block
+// (a 50k-char repetition loop quoting code in fences) into the message body.
+// Those fences must not become files.
+test("unterminated <thinking> yields no files", () => {
+  const md = [
+    "<thinking>",
+    "The user is getting an error. Let me check `App.tsx`:",
+    `${B}tsx`,
+    `import { useState } from "react";`,
+    B,
+    "Wait, I see it now. Let me check `ListingCard.tsx`:",
+    `${B}`,
+    "No `...` there.",
+    B,
+  ].join("\n");
+  assert.equal(extractAllCodeBlocks(md).length, 0);
+});
+
+test("closed <thinking> is stripped but real files after it survive", () => {
+  const md = [
+    "<thinking>",
+    "Plan: quote some code",
+    `${B}tsx`,
+    "not a real file",
+    B,
+    "</thinking>",
+    `${B}tsx{path=src/App.tsx}`,
+    `export default function App() { return null; }`,
+    B,
+  ].join("\n");
+  const got = extractAllCodeBlocks(md);
+  assert.deepEqual(
+    got.map((f) => f.path),
+    ["src/App.tsx"],
+  );
+});
+
+// Direct unit coverage for the stripper itself.
+test("stripThinkingBlocks removes closed blocks and keeps surrounding text", () => {
+  const md = "Intro.\n<thinking>plan A</thinking>\nMiddle.\n<thinking>plan B</thinking>\nOutro.";
+  assert.equal(stripThinkingBlocks(md), "Intro.\n\nMiddle.\n\nOutro.");
+});
+
+test("stripThinkingBlocks drops everything after an unterminated opener", () => {
+  const md = "Before.\n<thinking>\ntruncated repetition loop that never closes";
+  assert.equal(stripThinkingBlocks(md), "Before.\n");
+});
+
+test("stripThinkingBlocks leaves content without thinking tags untouched", () => {
+  const md = `Prose.\n${B}tsx{path=src/App.tsx}\nexport default function App() { return null; }\n${B}`;
+  assert.equal(stripThinkingBlocks(md), md);
 });
 
 // Bare tagless blocks with distinct content get distinct intelligent names
