@@ -300,6 +300,17 @@ document.addEventListener("visibilitychange", () => {
   paintKeepAliveVisibleTicks = 0;
   if (!paintKeepAliveTimer) paintKeepAliveStep();
 });
+// The parent runner asks for a repaint on reveal events (tab visible again,
+// Preview pane opened, ready). Inner pixel damage is the only safe repaint
+// primitive: parent-side style perturbation of the iframe promotes/demotes
+// its compositor layer and was observed dropping the rastered surface of a
+// HEALTHY visible preview (blank after window focus returns).
+window.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "llamacoder-repaint") {
+    paintKeepAliveVisibleTicks = 0;
+    if (!paintKeepAliveTimer) paintKeepAliveStep();
+  }
+});
 paintKeepAliveStep();
 `;
 
