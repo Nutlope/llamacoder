@@ -1,0 +1,101 @@
+{
+  "promptVersion": "current-v0",
+  "archMode": "separate",
+  "judgeModel": "moonshotai/Kimi-K2.7-Code",
+  "prompts": [
+    {
+      "id": "counter-v1",
+      "prompt": "Build a polished counter app. It should show the current count prominently, include buttons to increment, decrement, and reset the count, and include a small activity log of the last few actions.",
+      "expectedBehavior": [
+        "A current count value is displayed prominently as the main page element.",
+        "Increment, decrement, and reset controls are visible and clearly labeled or icon-labeled.",
+        "An activity log or recent actions area is visible.",
+        "The layout visually separates the count, controls, and log sections.",
+        "The app looks complete rather than blank or placeholder-only."
+      ]
+    },
+    {
+      "id": "todo-crud-v1",
+      "prompt": "Build a compact todo manager for a busy product lead. Users should be able to add todos, mark them complete, edit their text, delete them, and filter between all, active, and completed todos. Include a clear empty state.",
+      "expectedBehavior": [
+        "A text input and add control are visible for creating new todos.",
+        "A todo list area or clear empty state is visible.",
+        "Each visible todo row includes controls or affordances for completion, editing, and deletion.",
+        "All, active, and completed filters are visible.",
+        "The interface is compact and suitable for quickly scanning tasks."
+      ]
+    },
+    {
+      "id": "chart-dashboard-v1",
+      "prompt": "Build a sales analytics dashboard. Show monthly revenue, conversion rate, and active customers. Include a line chart for revenue trend, a bar chart for channel performance, and summary cards with clear labels.",
+      "expectedBehavior": [
+        "Revenue, conversion rate, and active customer summary cards are visible.",
+        "A revenue trend line chart is visible with labeled axes or month labels.",
+        "A channel performance bar chart renders with multiple channels.",
+        "The dashboard has a clear visual hierarchy suitable for scanning.",
+        "Dashboard cards and charts have clear titles or labels."
+      ]
+    },
+    {
+      "id": "data-table-v1",
+      "prompt": "Build an issue tracker table for a small engineering team. Include at least eight issues with status, priority, owner, and updated date. Users should be able to search, filter by status, sort by priority or updated date, and see a count of visible issues.",
+      "expectedBehavior": [
+        "A table lists issues with status, priority, owner, and updated date columns.",
+        "At least several issue rows are visible in the table.",
+        "A search input is visible near the table.",
+        "A status filter control and sort controls are visible.",
+        "A visible issue count or summary count is shown."
+      ]
+    },
+    {
+      "id": "quiz-app-v1",
+      "prompt": "Build a five-question quiz app about web accessibility. Show one question at a time with multiple-choice answers, track progress, show whether the selected answer is correct, and display a final score with a restart option.",
+      "expectedBehavior": [
+        "A single quiz question is visible as the main content.",
+        "Multiple-choice answer options are visible.",
+        "A progress indicator such as question number, dots, or progress bar is visible.",
+        "The quiz topic is clearly related to web accessibility.",
+        "There is a visible control to continue, submit, restart, or otherwise advance the quiz."
+      ]
+    },
+    {
+      "id": "calculator-v1",
+      "prompt": "Build a clean calculator app with large buttons, a readable display, calculation history, support for basic arithmetic, percentages, clear, backspace, and keyboard-friendly layout.",
+      "expectedBehavior": [
+        "A readable calculator display is visible above or near the keypad.",
+        "Large number and operator buttons are arranged in a calculator-style grid.",
+        "Percent, clear, and backspace controls are visible.",
+        "A calculation history panel or history area is visible.",
+        "The button grid is readable and aligned on a 1280 by 800 viewport."
+      ]
+    },
+    {
+      "id": "settings-page-v1",
+      "prompt": "Build a shadcn-heavy account settings page for a SaaS workspace. Use tabs for profile, billing, and notifications; include a dialog for inviting a teammate; include select controls, switches, checkboxes, and a save action with visible saved feedback.",
+      "expectedBehavior": [
+        "Profile, billing, and notifications tabs are visible.",
+        "An invite teammate control is visible.",
+        "Select, switch, and checkbox controls are present in appropriate settings sections.",
+        "A save action is visible, with nearby space or copy for saved feedback.",
+        "The page looks like a cohesive settings surface rather than a landing page."
+      ]
+    },
+    {
+      "id": "tic-tac-toe-v1",
+      "prompt": "Build a tic-tac-toe game. Show a 3 by 3 board, alternate X and O turns, detect wins and draws, highlight the winning line, keep a small scoreboard, and include a new game button.",
+      "expectedBehavior": [
+        "A 3 by 3 tic-tac-toe board is visible.",
+        "The board cells are large enough to clearly show X or O marks.",
+        "A game status area is visible for current turn, winner, or draw messages.",
+        "The scoreboard and new game button are visible."
+      ]
+    }
+  ],
+  "models": [
+    "zai-org/GLM-5.2",
+    "MiniMaxAI/MiniMax-M3",
+    "moonshotai/Kimi-K2.7-Code",
+    "moonshotai/Kimi-K2.6",
+    "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8"
+  ]
+}

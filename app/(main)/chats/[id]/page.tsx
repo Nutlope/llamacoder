@@ -49,6 +49,16 @@ const getChatById = cache(async (id: string) => {
   const prisma = getPrisma();
   const chat = await prisma.chat.findFirst({
     where: { id },
+    select: {
+      id: true,
+      model: true,
+      quality: true,
+      prompt: true,
+      title: true,
+      llamaCoderVersion: true,
+      shadcn: true,
+      createdAt: true,
+    },
   });
 
   if (!chat) return null;

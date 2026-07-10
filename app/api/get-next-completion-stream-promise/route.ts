@@ -4,6 +4,12 @@ import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
 import { resolveModel } from "@/lib/constants";
+import {
+  flushBraintrustSpan,
+  logBraintrustFailure,
+  serializeBraintrustError,
+  startBraintrustSpan,
+} from "@/lib/braintrust";
 
 function optimizeMessagesForTokens(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -43,31 +49,105 @@ export async function POST(req: Request) {
 
   const parsed = requestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
+    await logBraintrustFailure(
+      {
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            phase: "request-validation",
+          },
+        },
+      },
+      new Error("Invalid request"),
+    );
     return new Response("Invalid request", { status: 400 });
   }
   const { messageId, model } = parsed.data;
 
-  const message = await prisma.message.findUnique({
-    where: { id: messageId },
-  });
+  let message;
+  try {
+    message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        chat: {
+          select: {
+            braintrustParent: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    await logBraintrustFailure(
+      {
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          input: { messageId },
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            phase: "message-lookup",
+          },
+        },
+      },
+      error,
+    );
+    throw error;
+  }
 
   if (!message) {
+    await logBraintrustFailure(
+      {
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          input: { messageId },
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            phase: "message-lookup",
+          },
+        },
+      },
+      new Error("Message not found"),
+    );
     return new Response(null, { status: 404 });
   }
 
-  const messagesRes = await prisma.message.findMany({
-    where: { chatId: message.chatId, position: { lte: message.position } },
-    orderBy: { position: "asc" },
-  });
+  let messages;
+  try {
+    const messagesRes = await prisma.message.findMany({
+      where: { chatId: message.chatId, position: { lte: message.position } },
+      orderBy: { position: "asc" },
+    });
 
-  let messages = z
-    .array(
-      z.object({
-        role: z.enum(["system", "user", "assistant"]),
-        content: z.string(),
-      }),
-    )
-    .parse(messagesRes);
+    messages = z
+      .array(
+        z.object({
+          role: z.enum(["system", "user", "assistant"]),
+          content: z.string(),
+        }),
+      )
+      .parse(messagesRes);
+  } catch (error) {
+    await logBraintrustFailure(
+      {
+        parent: message.chat.braintrustParent ?? undefined,
+        name: "llamacoder.stream-generation",
+        type: "llm",
+        event: {
+          input: { messageId },
+          metadata: {
+            route: "/api/get-next-completion-stream-promise",
+            chatId: message.chatId,
+            phase: "message-loading",
+          },
+        },
+      },
+      error,
+    );
+    throw error;
+  }
 
   messages = optimizeMessagesForTokens(messages);
 
@@ -87,17 +167,114 @@ export async function POST(req: Request) {
   }
 
   const together = new Together(options);
+  const resolvedModel = resolveModel(model);
+  const temperature = 0.4;
+  const maxTokens = 13000;
+  const inputMessages = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+  const startedAt = performance.now();
+  let firstTokenMs = 0;
+  const promptChars = inputMessages.reduce(
+    (sum, item) => sum + item.content.length,
+    0,
+  );
 
-  const res = await together.chat.completions.create({
-    model: resolveModel(model),
-    reasoning: { enabled: false },
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    stream: true,
-    temperature: 0.4,
-    max_tokens: 9000,
+  const span = startBraintrustSpan({
+    parent: message.chat.braintrustParent ?? undefined,
+    name: "llamacoder.stream-generation",
+    type: "llm",
+    event: {
+      input: {
+        messages: inputMessages,
+      },
+      metadata: {
+        route: "/api/get-next-completion-stream-promise",
+        chatId: message.chatId,
+        messageId,
+        requestedModel: model,
+        resolvedModel,
+        model: resolvedModel,
+        provider: "together",
+        messageCount: inputMessages.length,
+        promptChars,
+        temperature,
+        maxTokens,
+      },
+    },
   });
 
-  return new Response(res.toReadableStream());
+  let stream: ReturnType<typeof together.chat.completions.stream>;
+  try {
+    stream = together.chat.completions.stream({
+      model: resolvedModel,
+      reasoning: { enabled: false },
+      messages: inputMessages,
+      temperature,
+      // 13000 matches the inline-mode budget the winning config was benchmarked at
+      // (the <thinking> plan shares the output budget with the code). Streams in
+      // well under the 300s maxDuration.
+      max_tokens: maxTokens,
+    });
+  } catch (error) {
+    span?.log({
+      error: serializeBraintrustError(error),
+      metrics: {
+        first_token_ms: firstTokenMs,
+        total_generation_ms: performance.now() - startedAt,
+      },
+    });
+    span?.end();
+    await flushBraintrustSpan(span);
+    throw error;
+  }
+
+  stream.on("content", (delta) => {
+    if (!firstTokenMs && delta.length > 0) {
+      firstTokenMs = performance.now() - startedAt;
+      span?.log({
+        metrics: {
+          first_token_ms: firstTokenMs,
+        },
+      });
+    }
+  });
+
+  stream
+    .finalContent()
+    .then(async (finalText) => {
+      const usage = await stream.totalUsage().catch(() => undefined);
+      span?.log({
+        output: finalText,
+        metadata: {
+          completed: true,
+          outputChars: finalText?.length ?? 0,
+        },
+        metrics: {
+          first_token_ms: firstTokenMs,
+          total_generation_ms: performance.now() - startedAt,
+          prompt_tokens: usage?.prompt_tokens ?? 0,
+          completion_tokens: usage?.completion_tokens ?? 0,
+          tokens: usage?.total_tokens ?? 0,
+        },
+      });
+      span?.end();
+      await flushBraintrustSpan(span);
+    })
+    .catch(async (error) => {
+      span?.log({
+        error: serializeBraintrustError(error),
+        metrics: {
+          first_token_ms: firstTokenMs,
+          total_generation_ms: performance.now() - startedAt,
+        },
+      });
+      span?.end();
+      await flushBraintrustSpan(span);
+    });
+
+  return new Response(stream.toReadableStream());
 }
 
 export const runtime = "edge";

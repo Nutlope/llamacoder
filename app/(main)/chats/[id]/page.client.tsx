@@ -6,10 +6,21 @@ import {
   parseReplySegments,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
+  getFilesFromMessage,
 } from "@/lib/utils";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { memo, startTransition, use, useEffect, useRef, useState } from "react";
+import { FIX_REQUEST_PREFIX, shouldAllowAutoFix } from "@/lib/chat-auto-fix";
+import { createLocalChatTitle } from "@/lib/chat-title";
+import { useRouter } from "next/navigation";
+import {
+  memo,
+  startTransition,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import ChatBox from "./chat-box";
 import ChatLog from "./chat-log";
@@ -18,12 +29,12 @@ import CodeViewerLayout from "./code-viewer-layout";
 import type { Chat, Message } from "./page";
 import { Context } from "../../providers";
 
-const HeaderChat = memo(({ chat }: { chat: Chat }) => (
+const HeaderChat = memo(({ title }: { title: string }) => (
   <div className="flex items-center gap-4 px-4 py-4">
     <a href="/" target="_blank">
       <LogoSmall />
     </a>
-    <p className="italic text-gray-500">{chat.title}</p>
+    <p className="italic text-gray-500">{title}</p>
   </div>
 ));
 
@@ -31,7 +42,7 @@ HeaderChat.displayName = "HeaderChat";
 
 export default function PageClient({ chat }: { chat: Chat }) {
   const context = use(Context);
-  const searchParams = useSearchParams();
+  const [chatTitle, setChatTitle] = useState(chat.title);
   const [streamPromise, setStreamPromise] = useState<
     Promise<ReadableStream> | undefined
   >(context.streamPromise);
@@ -42,11 +53,51 @@ export default function PageClient({ chat }: { chat: Chat }) {
   const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
   const router = useRouter();
   const isHandlingStreamRef = useRef(false);
+  const isUpdatingTitleRef = useRef(false);
   const [activeMessage, setActiveMessage] = useState(
     chat.messages
       .filter((m) => m.role === "assistant" && extractFirstCodeBlock(m.content))
       .at(-1),
   );
+
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [isFixPending, setIsFixPending] = useState(false);
+  const autoFixMessageIdsRef = useRef<Set<string>>(new Set());
+
+  const allowAutoFix = useMemo(() => {
+    return shouldAllowAutoFix({
+      messages: chat.messages,
+      activeMessage,
+      streamText,
+      autoFixMessageIds: autoFixMessageIdsRef.current,
+    });
+  }, [chat, activeMessage, streamText]);
+
+  useEffect(() => {
+    if (isUpdatingTitleRef.current) return;
+    if (chat.title !== createLocalChatTitle(chat.prompt)) return;
+
+    isUpdatingTitleRef.current = true;
+    const controller = new AbortController();
+
+    fetch("/api/generate-chat-title", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId: chat.id }),
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : undefined))
+      .then((data) => {
+        if (typeof data?.title === "string") {
+          setChatTitle(data.title);
+        }
+      })
+      .catch(() => {
+        isUpdatingTitleRef.current = false;
+      });
+
+    return () => controller.abort();
+  }, [chat.id, chat.prompt, chat.title]);
 
   useEffect(() => {
     async function f() {
@@ -129,16 +180,84 @@ export default function PageClient({ chat }: { chat: Chat }) {
     f();
   }, [chat.id, router, streamPromise, context]);
 
+  const submitFix = useCallback(
+    async (error: string) => {
+      if (isFixPending) return;
+
+      setIsFixPending(true);
+      const newMessageText = `${FIX_REQUEST_PREFIX}\n\n${error.trimStart()}`;
+      const optimistic: Message = {
+        id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        role: "user",
+        content: newMessageText,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        chatId: chat.id,
+        position: Number.MAX_SAFE_INTEGER,
+        files: null,
+      } as Message;
+      setOptimisticMessages((prev) => [...prev, optimistic]);
+
+      startTransition(async () => {
+        const message = await createMessage(chat.id, newMessageText, "user");
+        autoFixMessageIdsRef.current.add(message.id);
+        setOptimisticMessages((prev) =>
+          prev.filter((m) => m.id !== optimistic.id),
+        );
+
+        const nextStreamPromise = fetch(
+          "/api/get-next-completion-stream-promise",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              messageId: message.id,
+              model: chat.model,
+            }),
+          },
+        ).then((res) => {
+          if (!res.body) {
+            throw new Error("No body on response");
+          }
+          return res.body;
+        });
+
+        setStreamPromise(nextStreamPromise);
+        router.refresh();
+      });
+    },
+    [chat, isFixPending, router],
+  );
+
+  useEffect(() => {
+    if (!streamPromise) {
+      setIsFixPending(false);
+      setOptimisticMessages([]);
+    }
+  }, [streamPromise]);
+
+  const chatForChatLog = useMemo<Chat>(() => {
+    const existingUserContents = new Set(
+      chat.messages.filter((m) => m.role === "user").map((m) => m.content),
+    );
+    const missingOptimistic = optimisticMessages.filter(
+      (m) => !existingUserContents.has(m.content),
+    );
+    return {
+      ...chat,
+      messages: [...chat.messages, ...missingOptimistic],
+    } as Chat;
+  }, [chat, optimisticMessages]);
+
   return (
     <div className="h-dvh">
       <div className="flex h-full">
         <div
           className={`flex w-full shrink-0 flex-col overflow-hidden ${isShowingCodeViewer ? "lg:w-[30%]" : "lg:w-full"}`}
         >
-          <HeaderChat chat={chat} />
+          <HeaderChat title={chatTitle} />
 
           <ChatLog
-            chat={chat}
+            chat={chatForChatLog}
             streamText={streamText}
             activeMessage={activeMessage}
             onMessageClick={(message) => {
@@ -178,35 +297,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
                 setActiveMessage(undefined);
                 setIsShowingCodeViewer(false);
               }}
-              onRequestFix={(error: string) => {
-                startTransition(async () => {
-                  let newMessageText = `The code is not working. Can you fix it? Here's the error:\n\n`;
-                  newMessageText += error.trimStart();
-                  const message = await createMessage(
-                    chat.id,
-                    newMessageText,
-                    "user",
-                  );
-
-                  const streamPromise = fetch(
-                    "/api/get-next-completion-stream-promise",
-                    {
-                      method: "POST",
-                      body: JSON.stringify({
-                        messageId: message.id,
-                        model: chat.model,
-                      }),
-                    },
-                  ).then((res) => {
-                    if (!res.body) {
-                      throw new Error("No body on response");
-                    }
-                    return res.body;
-                  });
-                  setStreamPromise(streamPromise);
-                  router.refresh();
-                });
-              }}
+              onRequestFix={submitFix}
+              isFixPending={isFixPending}
+              allowAutoFix={allowAutoFix}
               onRestore={async (
                 message: Message | undefined,
                 oldVersion: number,
@@ -214,13 +307,6 @@ export default function PageClient({ chat }: { chat: Chat }) {
               ) => {
                 startTransition(async () => {
                   if (!message) return;
-
-                  // Helper to get files from a message (JSON field or extract from content)
-                  const getFilesFromMessage = (msg: Message) => {
-                    return (
-                      (msg.files as any[]) || extractAllCodeBlocks(msg.content)
-                    );
-                  };
 
                   const restoredFiles = getFilesFromMessage(message);
                   if (restoredFiles.length === 0) return;

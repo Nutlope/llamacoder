@@ -14,7 +14,8 @@ import {
 import {
   extractAllCodeBlocks,
   generateIntelligentFilename,
-  getExtensionForLanguage,
+  getFilesFromMessage,
+  parseReplySegments,
   toTitleCase,
 } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -44,6 +45,8 @@ export default function CodeViewer({
   onClose,
   onRequestFix,
   onRestore,
+  isFixPending,
+  allowAutoFix,
 }: {
   chat: Chat;
   streamText: string;
@@ -58,6 +61,8 @@ export default function CodeViewer({
     oldVersion: number,
     newVersion: number,
   ) => void;
+  isFixPending?: boolean;
+  allowAutoFix?: boolean;
 }) {
   const streamAllFiles = extractAllCodeBlocks(streamText);
 
@@ -66,54 +71,12 @@ export default function CodeViewer({
     input: string,
   ): { code: string; language: string; path: string } | undefined {
     if (!input) return undefined;
-    const lines = input.split("\n");
-    const codeFenceRegex = /^```([^\n]*)$/;
-
-    let openTag: string | null = null;
-    let codeBuffer: string[] = [];
-    let latestComplete:
-      | { code: string; language: string; path: string }
-      | undefined;
-
-    for (const line of lines) {
-      const match = line.match(codeFenceRegex);
-      if (match && !openTag) {
-        // Opening a fence
-        openTag = match[1] || "";
-        codeBuffer = [];
-      } else if (match && openTag) {
-        // Closing the fence
-        const { language, path } = parseTag(openTag);
-        latestComplete = { code: codeBuffer.join("\n"), language, path };
-        openTag = null;
-        codeBuffer = [];
-      } else if (openTag) {
-        codeBuffer.push(line);
-      }
-    }
-
-    // If an open fence remains at end, return it as partial; else return latest complete
-    if (openTag) {
-      const { language, path } = parseTag(openTag);
-      return { code: codeBuffer.join("\n"), language, path };
-    }
-    return latestComplete;
-  }
-
-  function parseTag(tag: string) {
-    const raw = tag || "";
-    const langMatch = raw.match(/^([A-Za-z0-9]+)/);
-    const language = langMatch ? langMatch[1] : "text";
-    const pathMatch = raw.match(/(?:\{\s*)?path\s*=\s*([^}\s]+)(?:\s*\})?/);
-    const filenameMatch = raw.match(
-      /(?:\{\s*)?filename\s*=\s*([^}\s]+)(?:\s*\})?/,
+    // Reuse the shared parser so the streaming view agrees with the stored
+    // result (handles GLM's next-line `{path=...}` attribute, dedupe, etc.).
+    const fileSegments = parseReplySegments(input).filter(
+      (s): s is Extract<typeof s, { type: "file" }> => s.type === "file",
     );
-    const path = pathMatch
-      ? pathMatch[1]
-      : filenameMatch
-        ? filenameMatch[1]
-        : `file.${getExtensionForLanguage(language)}`;
-    return { language, path };
+    return fileSegments.at(-1);
   }
 
   const latestStreamBlock = extractLatestStreamBlock(streamText);
@@ -165,12 +128,6 @@ export default function CodeViewer({
     return Array.from(map.values());
   }
 
-  // Helper to get files from a message (JSON field or extract from content)
-  const getFilesFromMessage = (msg: Message) => {
-    // extractAllCodeBlocks is needed for legacy 1 file apps
-    return (msg.files as any[]) || extractAllCodeBlocks(msg.content);
-  };
-
   // Since each message now contains cumulative files, simplify the logic
   const assistantMessages = chat.messages.filter(
     (m) => m.role === "assistant" && getFilesFromMessage(m).length > 0,
@@ -196,9 +153,7 @@ export default function CodeViewer({
       : files.find((f) => f.path === "App.tsx") ||
         files.find((f) => f.path.endsWith(".tsx")) ||
         files[0];
-  const code = mainFile ? mainFile.code : "";
   const language = mainFile ? mainFile.language : "";
-  const rawFilename = mainFile ? mainFile.path : "";
 
   // Generate app title for display
   const generateAppTitle = (fileList: typeof files) => {
@@ -329,9 +284,12 @@ export default function CodeViewer({
           {!disabledControls && (
             <Select
               value={selectValue}
-              onValueChange={(value) =>
-                onMessageChange(reversedAllAssistantMessages[parseInt(value)])
-              }
+              onValueChange={(value) => {
+                if (value === null) return;
+                onMessageChange(
+                  reversedAllAssistantMessages[parseInt(value)],
+                );
+              }}
               disabled={disabledControls}
             >
               <SelectTrigger className="h-[38px] w-16 text-sm font-semibold !outline-none !ring-0 !ring-transparent">
@@ -340,7 +298,7 @@ export default function CodeViewer({
               <SelectContent>
                 {reversedAllAssistantMessages.map((msg, i) => (
                   <SelectItem key={i} value={i.toString()}>
-                    <div className="flex flex-col">
+                    <span className="flex flex-col">
                       <span className="font-semibold">
                         v
                         {(chat.assistantMessagesCountBefore || 0) +
@@ -350,7 +308,7 @@ export default function CodeViewer({
                       <span className="text-xs text-gray-500">
                         {timeAgo(msg.createdAt)}
                       </span>
-                    </div>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -393,8 +351,12 @@ export default function CodeViewer({
         </div>
       </div>
 
-      <div className="flex grow flex-col overflow-y-auto bg-white">
-        {activeTab === "code" ? (
+      <div className="relative flex grow flex-col overflow-y-auto bg-white">
+        <div
+          className={
+            activeTab === "code" ? "flex grow flex-col overflow-hidden" : "hidden"
+          }
+        >
           <StickToBottom
             className="relative grow overflow-hidden *:!h-[inherit]"
             resize="smooth"
@@ -417,19 +379,32 @@ export default function CodeViewer({
               />
             </StickToBottom.Content>
           </StickToBottom>
-        ) : (
-          <>
-            {files.length > 0 && (
-              <div className="flex h-full items-center justify-center">
-                <CodeRunner
-                  onRequestFix={onRequestFix}
-                  language={language}
-                  files={files.map((f) => ({ path: f.path, content: f.code }))}
-                  key={refresh}
-                />
-              </div>
-            )}
-          </>
+        </div>
+        {files.length > 0 && (
+          // Mounted as soon as files exist — even while streaming on the Code
+          // tab — so the preview pre-warms in the background (bundle, vendor
+          // fetches, tailwind CSS) and is ready the moment the tab opens.
+          // Auto-fix is disabled while streaming, so partial-bundle errors
+          // in the hidden runner are harmless.
+          <div
+            className={
+              activeTab === "preview"
+                ? "flex h-full items-center justify-center"
+                : "pointer-events-none absolute inset-0 flex h-full items-center justify-center opacity-0"
+            }
+            aria-hidden={activeTab !== "preview"}
+          >
+            <CodeRunner
+              onRequestFix={onRequestFix}
+              language={language}
+              files={files.map((f) => ({ path: f.path, content: f.code }))}
+              refreshNonce={refresh}
+              previewDebounceMs={streamText ? 400 : 0}
+              isFixPending={isFixPending}
+              allowAutoFix={allowAutoFix}
+              isActivePane={activeTab === "preview"}
+            />
+          </div>
         )}
       </div>
 

@@ -7,7 +7,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { ReactNode } from "react";
 
 export default function CodeViewerLayout({
@@ -24,12 +23,17 @@ export default function CodeViewerLayout({
   return (
     <>
       {isMobile ? (
-        <Drawer open={isShowing} onClose={onClose}>
+        <Drawer
+          open={isShowing}
+          onOpenChange={(open) => {
+            if (!open) onClose();
+          }}
+        >
           <DrawerContent>
-            <VisuallyHidden.Root>
+            <div className="sr-only">
               <DrawerTitle>Code</DrawerTitle>
               <DrawerDescription>Description</DrawerDescription>
-            </VisuallyHidden.Root>
+            </div>
 
             <div className="flex h-[90vh] flex-col overflow-y-scroll">
               {children}

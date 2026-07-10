@@ -8,6 +8,7 @@
 
 # testing
 /coverage
+/test-results
 
 # next.js
 /.next/
@@ -24,6 +25,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+/tmp
 
 # local env files
 .env*.local
@@ -35,3 +37,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/session-export-1783165362339
+
+benchmark-results/*
+
+public/preview-vendor/*
+
+*/node_modules

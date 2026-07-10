@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { memo } from "react";
 
 import GithubIcon from "@/components/icons/github-icon";
@@ -38,7 +37,7 @@ function Header() {
         >
           <GithubIcon className="h-[18px] w-[18px]" />
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-gray-900">6k stars</span>
+            <span className="font-semibold text-gray-900">7k stars</span>
           </div>
         </a>
       </div>

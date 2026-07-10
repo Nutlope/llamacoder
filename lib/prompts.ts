@@ -19,6 +19,8 @@ Guidelines:
 - ALWAYS plan for at least 3-5 files to ensure proper code organization and separation of concerns
 - You CANNOT use any other libraries or frameworks besides those specified above (such as React router)
 If given a description of a screenshot, produce an implementation plan based on trying to replicate it as closely as possible.
+
+**Scope constraints:** Keep the plan to 2-3 MVP features at most and no more than 5 files. Build a single page with no routing. Do not plan any backend or external API calls. Keep the plan itself concise — under roughly 300 words — so it stays well within the coding model's output budget.
 `;
 
 export const screenshotToCodePrompt = dedent`
@@ -80,8 +82,9 @@ export function getMainCodingPrompt() {
     Available: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, ArrowRight
     Import: \`import { IconName } from "lucide-react"\`
 
-  - **Charts:** Recharts (only for dashboards/graphs)
-    Import: \`import { LineChart, XAxis, ... } from "recharts"\`
+  - **Charts:** Recharts v3 (only for dashboards/graphs)
+    Import from the root package only: \`import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts"\`
+    Use current v3 composition: \`<ResponsiveContainer width="100%" height={320}><LineChart data={data}><XAxis dataKey="name" /><YAxis /><Tooltip /><Line type="monotone" dataKey="value" stroke="currentColor" /></LineChart></ResponsiveContainer>\`
 
   - **Animations:** Framer Motion
   - **Date Formatting:** date-fns (NOT date-fns-tz)

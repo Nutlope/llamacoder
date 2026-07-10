@@ -1,7 +1,7 @@
 export const name = "Button";
 
 export const importDocs = `
-import { Button } from "/components/ui/button"
+import { Button } from "@/components/ui/button"
 `;
 
 export const usageDocs = `

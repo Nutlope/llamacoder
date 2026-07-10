@@ -3,16 +3,20 @@
 
 import Fieldset from "@/components/fieldset";
 import ArrowRightIcon from "@/components/icons/arrow-right";
-import LightningBoltIcon from "@/components/icons/lightning-bolt";
 import LoadingButton from "@/components/loading-button";
 import Spinner from "@/components/spinner";
 import bgImg from "@/public/halo.png";
-import * as Select from "@radix-ui/react-select";
 import assert from "assert";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   use,
   useState,
@@ -37,7 +41,6 @@ export default function Home() {
   const [model, setModel] = useState(
     MODELS.find((m) => !m.hidden)?.value || MODELS[0].value,
   );
-  const [quality, setQuality] = useState("low");
   const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
     undefined,
   );
@@ -60,16 +63,8 @@ export default function Home() {
     [model],
   );
 
-  const qualityOptions = useMemo(
-    () => [
-      { value: "low", label: "Low quality [faster]" },
-      { value: "high", label: "High quality [slower]" },
-    ],
-    [],
-  );
   const handleScreenshotUpload = async (event: any) => {
     if (prompt.length === 0) setPrompt("Build this");
-    setQuality("low");
     setScreenshotLoading(true);
     let file = event.target.files[0];
     const { url } = await uploadToS3(file);
@@ -123,11 +118,10 @@ export default function Home() {
             className="relative w-full max-w-2xl pt-6 lg:pt-12"
             action={async (formData) => {
               startTransition(async () => {
-                const { prompt, model, quality } = Object.fromEntries(formData);
+                const { prompt, model } = Object.fromEntries(formData);
 
                 assert.ok(typeof prompt === "string");
                 assert.ok(typeof model === "string");
-                assert.ok(quality === "high" || quality === "low");
 
                 const response = await fetch("/api/create-chat", {
                   method: "POST",
@@ -137,7 +131,6 @@ export default function Home() {
                   body: JSON.stringify({
                     prompt,
                     model,
-                    quality,
                     screenshotUrl,
                   }),
                 });
@@ -280,88 +273,34 @@ export default function Home() {
                 </div>
                 <div className="absolute bottom-2 left-3 right-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Select.Root
+                    <Select
                       name="model"
                       value={model}
-                      onValueChange={setModel}
+                      onValueChange={(value) => {
+                        if (value !== null) setModel(value);
+                      }}
                     >
-                      <Select.Trigger className="inline-flex items-center gap-1 rounded-md p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
-                        <Select.Value aria-label={model}>
-                          <span>{selectedModel?.label}</span>
-                        </Select.Value>
-                        <Select.Icon>
-                          <ChevronDownIcon className="size-3" />
-                        </Select.Icon>
-                      </Select.Trigger>
-                      <Select.Portal>
-                        <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
-                          <Select.Viewport className="space-y-1 p-2">
-                            {MODELS.filter((m) => !m.hidden).map((m) => (
-                              <Select.Item
-                                key={m.value}
-                                value={m.value}
-                                className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
-                              >
-                                <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
-                                  {m.label}
-                                </Select.ItemText>
-                                <Select.ItemIndicator>
-                                  <CheckIcon className="size-3 text-blue-600" />
-                                </Select.ItemIndicator>
-                              </Select.Item>
-                            ))}
-                          </Select.Viewport>
-                          <Select.ScrollDownButton />
-                          <Select.Arrow />
-                        </Select.Content>
-                      </Select.Portal>
-                    </Select.Root>
+                      <SelectTrigger className="h-7 w-fit border-0 px-1 py-1 text-sm text-gray-400 shadow-none ring-0 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
+                        <SelectValue>{selectedModel?.label}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="space-y-1 bg-white p-2">
+                        {MODELS.filter((m) => !m.hidden).map((m) => (
+                          <SelectItem
+                            key={m.value}
+                            value={m.value}
+                            className="gap-2 text-gray-500"
+                          >
+                            <span>{m.label}</span>
+                            {m.note && (
+                              <span className="text-xs text-gray-400">
+                                {m.note}
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
-
-                    <Select.Root
-                      name="quality"
-                      value={quality}
-                      onValueChange={setQuality}
-                    >
-                      <Select.Trigger className="inline-flex items-center gap-1 rounded p-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
-                        <Select.Value aria-label={quality}>
-                          <span className="max-sm:hidden">
-                            {quality === "low"
-                              ? "Low quality [faster]"
-                              : "High quality [slower]"}
-                          </span>
-                          <span className="sm:hidden">
-                            <LightningBoltIcon className="size-3" />
-                          </span>
-                        </Select.Value>
-                        <Select.Icon>
-                          <ChevronDownIcon className="size-3" />
-                        </Select.Icon>
-                      </Select.Trigger>
-                      <Select.Portal>
-                        <Select.Content className="overflow-hidden rounded-md bg-white shadow ring-1 ring-black/5">
-                          <Select.Viewport className="space-y-1 p-2">
-                            {qualityOptions.map((q) => (
-                              <Select.Item
-                                key={q.value}
-                                value={q.value}
-                                className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
-                              >
-                                <Select.ItemText className="inline-flex items-center gap-2 text-gray-500">
-                                  {q.label}
-                                </Select.ItemText>
-                                <Select.ItemIndicator>
-                                  <CheckIcon className="size-3 text-blue-600" />
-                                </Select.ItemIndicator>
-                              </Select.Item>
-                            ))}
-                          </Select.Viewport>
-                          <Select.ScrollDownButton />
-                          <Select.Arrow />
-                        </Select.Content>
-                      </Select.Portal>
-                    </Select.Root>
                     <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
                     <div>
                       <label
@@ -402,7 +341,7 @@ export default function Home() {
 
                 {isPending && (
                   <LoadingMessage
-                    isHighQuality={quality === "high"}
+                    isHighQuality={false}
                     screenshotUrl={screenshotUrl}
                   />
                 )}
