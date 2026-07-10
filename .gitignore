@@ -44,3 +44,4 @@ benchmark-results/*
 public/preview-vendor/*
 
 */node_modules
+/.codex
