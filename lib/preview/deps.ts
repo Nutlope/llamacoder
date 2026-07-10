@@ -130,13 +130,13 @@ const BASE_UI_SUBPATHS = [
 ];
 
 const BASEUI_LOCAL_VENDOR_IMPORTS = buildBaseuiVendorImports(
-  "/preview-vendor/baseui",
+  "/preview-vendor-v2/baseui",
 );
 
 function getBaseuiVendorImports(vendor: "local" | "cdn" | "flat") {
   if (vendor === "local") return BASEUI_LOCAL_VENDOR_IMPORTS;
   if (vendor === "flat") {
-    return buildBaseuiVendorImports("/preview-vendor/baseui-flat");
+    return buildBaseuiVendorImports("/preview-vendor-v2/baseui-flat");
   }
   return {};
 }
@@ -247,7 +247,7 @@ const BASEUI_COMPONENT_VENDOR_PATHS = [
 ];
 
 const BASEUI_COMPONENT_VENDOR_IMPORTS = buildBaseuiComponentVendorImports(
-  "/preview-vendor/baseui-components",
+  "/preview-vendor-v2/baseui-components",
 );
 
 function buildBaseuiComponentVendorImports(prefix: string) {

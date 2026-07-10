@@ -1,7 +1,7 @@
 import * as esbuild from "esbuild-wasm";
 import { PREVIEW_CACHE_STORAGE } from "./cache-policy";
 
-const ESBUILD_WASM_URL = "/preview-vendor/esbuild/esbuild.wasm";
+const ESBUILD_WASM_URL = "/preview-vendor-v2/esbuild/esbuild.wasm";
 
 type OutputFile = { path: string; text: string };
 

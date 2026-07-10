@@ -31,7 +31,7 @@ console.log(THREE, confetti, again);`;
 
 test("relative and absolute paths are ignored", () => {
   const code = `import App from "./App";
-import vendor from "/preview-vendor/baseui-flat/react.js";
+import vendor from "/preview-vendor-v2/baseui-flat/react.js";
 export { helper } from "../lib/helper";
 console.log(App, vendor);`;
 

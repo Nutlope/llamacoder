@@ -27,9 +27,11 @@ const GENERATED_VENDOR_PRELOADS_PATH = path.join(
 );
 const TMP_ROOT = path.join(process.cwd(), ".tmp/preview-vendor");
 const TMP_DIR = path.join(TMP_ROOT, "baseui");
-const PUBLIC_URL_PREFIX = "/preview-vendor/baseui";
-const FLAT_PUBLIC_URL_PREFIX = "/preview-vendor/baseui-flat";
-const COMPONENTS_PUBLIC_URL_PREFIX = "/preview-vendor/baseui-components";
+// v2 is a one-time namespace escape from the old URLs, which were served as
+// immutable even though their contents could change between deploys.
+const PUBLIC_URL_PREFIX = "/preview-vendor-v2/baseui";
+const FLAT_PUBLIC_URL_PREFIX = "/preview-vendor-v2/baseui-flat";
+const COMPONENTS_PUBLIC_URL_PREFIX = "/preview-vendor-v2/baseui-components";
 const KIT_ROOT = path.join(process.cwd(), "preview-kits/baseui");
 const PRODUCTION_DEFINES = {
   "process.env.NODE_ENV": '"production"',
@@ -166,7 +168,7 @@ function flatSharedReactPlugin(entry: Entry, entryPath: string): Plugin {
       });
 
       buildApi.onResolve(
-        { filter: /^\/preview-vendor\/baseui-flat\// },
+        { filter: /^\/preview-vendor-v2\/baseui-flat\// },
         (args) => ({ path: args.path, external: true }),
       );
 

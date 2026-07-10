@@ -503,7 +503,7 @@ function getPreviewStyleAssets(
 
   if (vendor === "local" || vendor === "flat") {
     return {
-      tailwindBrowser: "/preview-vendor/styles/tailwind-browser.js",
+      tailwindBrowser: "/preview-vendor-v2/styles/tailwind-browser.js",
       tailwindCss: `${previewStyleAssetCss.twAnimateCss}\n${previewStyleAssetCss.shadcnTailwindCss}`,
     };
   }
