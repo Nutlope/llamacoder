@@ -617,5 +617,9 @@ function formatMessage(message: esbuild.Message): string {
     return message.text;
   }
 
-  return `${location.file}:${location.line}:${location.column}: ${message.text}`;
+  // Errors get fed back to the coding model verbatim via the fix flow; the
+  // esbuild `vfs:` namespace prefix is meaningless to it and reads like part
+  // of the file path, so strip it.
+  const file = location.file.replace(/^vfs:/, "");
+  return `${file}:${location.line}:${location.column}: ${message.text}`;
 }
