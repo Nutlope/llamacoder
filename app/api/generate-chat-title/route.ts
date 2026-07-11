@@ -12,7 +12,7 @@ import {
 } from "@/lib/braintrust";
 import type { Span } from "braintrust";
 
-const TITLE_MODEL = "Qwen/Qwen3-235B-A22B-Instruct-2507-tput";
+const TITLE_MODEL = "Qwen/Qwen3.5-9B";
 
 export async function POST(request: NextRequest) {
   const logger = getBraintrustLogger();
@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
         model: TITLE_MODEL,
         temperature: 0.2,
         max_tokens: 24,
+        chat_template_kwargs: { enable_thinking: false },
         messages: [
           {
             role: "system",
