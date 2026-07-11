@@ -12,6 +12,7 @@ export const MODEL_ALIASES: Record<string, string> = {
   "deepseek-ai/DeepSeek-V3.1": "moonshotai/Kimi-K2.7-Code",
   "Qwen/Qwen3-Coder-Next-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
   "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
+  "Qwen/Qwen3-235B-A22B-Instruct-2507-tput": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
 };
 
 export function resolveModel(model: string): string {
