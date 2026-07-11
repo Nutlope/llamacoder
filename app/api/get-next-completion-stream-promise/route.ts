@@ -247,10 +247,14 @@ export async function POST(req: Request) {
     .finalContent()
     .then(async (finalText) => {
       const usage = await stream.totalUsage().catch(() => undefined);
+      const completion = await stream.finalChatCompletion().catch(() => undefined);
+      const finishReason = completion?.choices?.[0]?.finish_reason ?? null;
       span?.log({
         output: finalText,
         metadata: {
-          completed: true,
+          completed: finishReason !== "length",
+          finish_reason: finishReason,
+          truncated: finishReason === "length",
           outputChars: finalText?.length ?? 0,
         },
         metrics: {

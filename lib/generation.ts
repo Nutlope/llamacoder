@@ -118,9 +118,8 @@ export async function generateApp(
   let planUsage: TokenUsage | undefined;
 
   // archMode "inline" behaves like "none" (no planning API call; the raw
-  // user prompt is the user message) but folds a short plan-first instruction
-  // into the system prompt so the model writes its brief plan inside the
-  // <thinking> block before the code files, all in one response.
+  // user prompt is the user message) but adds a short instruction to plan
+  // internally while keeping the response code-only.
   if (archMode === "separate") {
     const planResponse = await together.chat.completions.create({
       model: PLANNING_MODEL,

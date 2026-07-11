@@ -76,13 +76,12 @@ export const PRODUCTION_DESIGN_SECTION = dedent`
 `;
 
 /**
- * The "inline" architecture-mode instruction: the model writes a brief plan in
- * a <thinking> block, then the code — all in one response, no separate planning
- * API call. Shared verbatim by the benchmark harness (lib/generation.ts) and
- * production (app/api/create-chat) so the two never drift.
+ * The "inline" architecture-mode instruction: the model plans internally and
+ * emits only code — all in one response, no separate planning API call.
+ * Shared verbatim by the benchmark harness and production so they never drift.
  */
 export const INLINE_PLAN_INSTRUCTION =
-  "Before writing any code files, first write a brief implementation plan inside a single <thinking>...</thinking> block. List the MVP features you will build and the files you will create (with their paths), keeping it concise. After the closing </thinking>, emit all the code files in the fenced format above. Everything — the plan and the code — must be in this one response.";
+  "Plan internally before writing code, but never reveal your reasoning, planning, risk checks, tool commentary, or thinking tags. Emit only complete code files in the required fenced format.";
 
 // End-of-prompt self-check, production only (appended after the benchmarked
 // sections so their byte-identical variant outputs are untouched). GLM 5.2
@@ -237,7 +236,7 @@ export function buildMinimalCodingPrompt(config: PromptConfig): string {
 
     ## Reasoning
 
-    Put any reasoning or planning inside a single \`<thinking>...</thinking>\` block. Your final answer, after the closing \`</thinking>\`, must consist only of valid code files in the fence format above — no prose, no summaries, no file lists outside the fences.
+    Do not output internal reasoning, planning, risk checks, tool commentary, or thinking tags. Emit only valid code files in the fence format above — no prose, summaries, or file lists outside the fences.
   `;
 
   // Variant v2 differs from v1 (the default) in exactly two ways, applied here
@@ -455,11 +454,11 @@ function applyMinimalV6Tweaks(prompt: string): string {
   const selfCheckSection = dedent`
     ## Self-check
 
-    Inside the single <thinking> block, after the implementation plan, add a short "Risk check" with exactly two bullets:
+    Before emitting code, internally check:
     - Missing imports/files: verify every relative import resolves to a file you emit, and every @/components/ui or @/hooks import exists in the injected renderer. If unsure, use plain React and Tailwind instead.
     - Runtime states: identify the one interaction, empty state, or disabled state most likely to break, then handle it before emitting code.
 
-    Do not mention the risk check outside <thinking>; after </thinking>, output only code fences.
+    Do not emit the risk check; output only code fences.
   `;
   return prompt + "\n\n" + selfCheckSection;
 }
@@ -471,7 +470,7 @@ function applyMinimalV7Tweaks(prompt: string): string {
   const outputContractSection = dedent`
     ## Output contract
 
-    Follow this contract exactly after </thinking>:
+    Follow this contract exactly:
     - The first emitted file MUST be \`src/App.tsx\`. Do not emit \`src/main.tsx\`, \`main.tsx\`, \`index.tsx\`, or any custom React bootstrapping file; the renderer already mounts App.
     - Emit one fenced block per file, using exactly \`\`\`tsx{path=src/SomeFile.tsx}\` as the fence header. No markdown headings, bullets, filenames, explanations, or summaries outside fences.
     - Keep every emitted file path under \`src/\`. Do not emit duplicate paths or two files with the same component.

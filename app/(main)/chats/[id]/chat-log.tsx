@@ -5,6 +5,7 @@ import {
   parseReplySegments,
   extractFirstCodeBlock,
   extractAllCodeBlocks,
+  sanitizeAssistantOutput,
   toTitleCase,
 } from "@/lib/utils";
 import { Fragment } from "react";
@@ -124,6 +125,7 @@ function AssistantMessage({
   previousMessage?: Message;
   isStreaming?: boolean;
 }) {
+  content = sanitizeAssistantOutput(content);
   const allFiles = extractAllCodeBlocks(content);
   const segments = parseReplySegments(content);
   const fileSegments = segments.filter((s) => s.type === "file");

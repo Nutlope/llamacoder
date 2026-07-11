@@ -148,12 +148,34 @@ export function extractFirstCodeBlock(input: string) {
 // generation is truncated mid-thought the block never closes and everything
 // after `<thinking>` is an unreliable repetition loop. Strip terminated
 // blocks, and drop everything from an unterminated opener onward, before
-// extracting files. Display parsing (parseReplySegments) is left untouched.
+// extracting files. The same sanitizer is used for the user-visible reply so
+// a reasoning block cannot be hidden from file extraction but shown in chat.
 export function stripThinkingBlocks(markdown: string): string {
-  let out = markdown.replace(/<thinking>[\s\S]*?<\/thinking>/g, "");
-  const unterminated = out.indexOf("<thinking>");
+  let out = markdown.replace(
+    /<(?:thinking|think|analysis)>[\s\S]*?<\/(?:thinking|think|analysis)>/gi,
+    "",
+  );
+  const unterminated = out.search(/<(?:thinking|think|analysis)>/i);
   if (unterminated !== -1) out = out.slice(0, unterminated);
   return out;
+}
+
+/** Remove model planning artifacts before rendering or storing an assistant reply. */
+export function sanitizeAssistantOutput(markdown: string): string {
+  let out = stripThinkingBlocks(markdown);
+  const firstFence = out.indexOf("```");
+  const preamble = firstFence === -1 ? out : out.slice(0, firstFence);
+
+  if (
+    firstFence > 0 &&
+    /(?:^|\n)\s*(?:thinking process|implementation plan|reasoning|analysis)\s*:/i.test(
+      preamble,
+    )
+  ) {
+    out = out.slice(firstFence);
+  }
+
+  return out.trimStart();
 }
 
 export function extractAllCodeBlocks(input: string): Array<{
@@ -162,7 +184,7 @@ export function extractAllCodeBlocks(input: string): Array<{
   path: string;
   fullMatch: string;
 }> {
-  input = normalizeFenceOpeners(stripThinkingBlocks(input));
+  input = normalizeFenceOpeners(sanitizeAssistantOutput(input));
   const codeBlockRegex = /```([^\n]*)\n([\s\S]*?)\n```/g;
   const files: Array<{
     code: string;
@@ -234,7 +256,7 @@ export function normalizeFenceOpeners(markdown: string): string {
 }
 
 export function parseReplySegments(markdown: string): ReplySegment[] {
-  markdown = normalizeFenceOpeners(markdown);
+  markdown = normalizeFenceOpeners(sanitizeAssistantOutput(markdown));
   const segments: ReplySegment[] = [];
   const lines = markdown.split("\n");
   const fenceRegex = /^```([^\n]*)$/; // opening or closing fence line

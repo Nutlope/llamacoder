@@ -7,6 +7,7 @@ import {
   extractFirstCodeBlock,
   extractAllCodeBlocks,
   getFilesFromMessage,
+  sanitizeAssistantOutput,
 } from "@/lib/utils";
 import {
   FIX_REQUEST_PREFIX,
@@ -116,7 +117,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
 
       ChatCompletionStream.fromReadableStream(stream)
         .on("content", (delta, content) => {
-          setStreamText((text) => text + delta);
+          setStreamText(() => sanitizeAssistantOutput(content));
 
           if (
             !didPushToCode &&
@@ -138,6 +139,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
           }
         })
         .on("finalContent", async (finalText) => {
+          finalText = sanitizeAssistantOutput(finalText);
           startTransition(async () => {
             // Get all previous assistant messages with files
             const previousAssistantMessages = chat.messages.filter(

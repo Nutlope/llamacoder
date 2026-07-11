@@ -5,6 +5,7 @@ import {
   parseReplySegments,
   extractAllCodeBlocks,
   getFilesFromMessage,
+  sanitizeAssistantOutput,
   stripThinkingBlocks,
 } from "./utils";
 
@@ -269,6 +270,27 @@ test("stripThinkingBlocks drops everything after an unterminated opener", () => 
 test("stripThinkingBlocks leaves content without thinking tags untouched", () => {
   const md = `Prose.\n${B}tsx{path=src/App.tsx}\nexport default function App() { return null; }\n${B}`;
   assert.equal(stripThinkingBlocks(md), md);
+});
+
+test("sanitizeAssistantOutput removes leaked reasoning before visible code", () => {
+  const md = [
+    "Thinking Process: choose the architecture",
+    "1. Plan the files",
+    `${B}tsx{path=src/App.tsx}`,
+    "export default function App() { return null; }",
+    B,
+  ].join("\n");
+  assert.equal(sanitizeAssistantOutput(md), md.slice(md.indexOf(B)));
+});
+
+test("sanitizeAssistantOutput removes tagged reasoning from visible output", () => {
+  const md = [
+    "<thinking>private plan</thinking>",
+    `${B}tsx{path=src/App.tsx}`,
+    "export default function App() { return null; }",
+    B,
+  ].join("\n");
+  assert.doesNotMatch(sanitizeAssistantOutput(md), /thinking|private plan/i);
 });
 
 // Bare tagless blocks with distinct content get distinct intelligent names
