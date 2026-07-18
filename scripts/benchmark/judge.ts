@@ -132,7 +132,7 @@ function parseJsonObject(content: string): any {
 }
 
 function createTogetherJudgeRequest(): JudgeRequest {
-  const together = new Together(getTogetherOptions());
+  const together = new Together();
 
   return {
     create: async (options) => {
@@ -164,19 +164,6 @@ function createTogetherJudgeRequest(): JudgeRequest {
       });
 
       return response.choices[0].message?.content ?? "";
-    },
-  };
-}
-
-function getTogetherOptions(): ConstructorParameters<typeof Together>[0] {
-  if (!process.env.HELICONE_API_KEY) return {};
-
-  return {
-    baseURL: "https://together.helicone.ai/v1",
-    defaultHeaders: {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-appname": "LlamaCoder Benchmark Judge",
-      "Helicone-Session-Name": "LlamaCoder Benchmark Judge",
     },
   };
 }

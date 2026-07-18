@@ -98,19 +98,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ title: chat.title, skipped: true });
       }
 
-      let options: ConstructorParameters<typeof Together>[0] = {};
-      if (process.env.HELICONE_API_KEY) {
-        options.baseURL = "https://together.helicone.ai/v1";
-        options.defaultHeaders = {
-          "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-          "Helicone-Property-appname": "LlamaCoder",
-          "Helicone-Session-Id": chat.id,
-          "Helicone-Session-Name": "LlamaCoder Chat Title",
-        };
-      }
-
       const startedAt = performance.now();
-      const together = new Together(options);
+      const together = new Together();
       const response = await together.chat.completions.create({
         model: TITLE_MODEL,
         temperature: 0.2,

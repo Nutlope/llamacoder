@@ -40,7 +40,6 @@ export type GenerateAppConfig = {
   archMode?: ArchMode;
   temperature?: number;
   maxTokens?: number;
-  heliconeSessionId?: string;
   promptConfig?: PromptConfig;
 };
 
@@ -109,7 +108,7 @@ export async function generateApp(
     throw new Error(`Unsupported archMode: ${archMode}`);
   }
 
-  const together = new Together(getTogetherOptions(config.heliconeSessionId));
+  const together = new Together();
   const startedAt = performance.now();
 
   // archMode "none" mirrors the production default (quality "low"): the raw
@@ -265,22 +264,6 @@ export async function generateApp(
     tokens: {
       input: usage.prompt_tokens ?? 0,
       output: usage.completion_tokens ?? 0,
-    },
-  };
-}
-
-function getTogetherOptions(
-  heliconeSessionId: string | undefined,
-): ConstructorParameters<typeof Together>[0] {
-  if (!process.env.HELICONE_API_KEY) return {};
-
-  return {
-    baseURL: "https://together.helicone.ai/v1",
-    defaultHeaders: {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-appname": "LlamaCoder Benchmark",
-      "Helicone-Session-Id": heliconeSessionId ?? "benchmark-generate-app",
-      "Helicone-Session-Name": "LlamaCoder Benchmark",
     },
   };
 }
