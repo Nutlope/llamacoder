@@ -29,9 +29,9 @@ import {
 
 import { Context } from "./providers";
 import Header from "@/components/header";
-import { useS3Upload } from "next-s3-upload";
 import UploadIcon from "@/components/icons/upload-icon";
 import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
+import { uploadImage } from "@/lib/client-image-upload";
 
 export default function Home() {
   const { setStreamPromise } = use(Context);
@@ -41,12 +41,20 @@ export default function Home() {
   const [model, setModel] = useState(
     MODELS.find((m) => !m.hidden)?.value || MODELS[0].value,
   );
-  const [screenshotUrl, setScreenshotUrl] = useState<string | undefined>(
+  const [screenshotToken, setScreenshotToken] = useState<string | undefined>(
     undefined,
   );
+  const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
+    string | undefined
+  >(undefined);
   const [screenshotLoading, setScreenshotLoading] = useState(false);
+  const [screenshotError, setScreenshotError] = useState<string | undefined>(
+    undefined,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const screenshotUploadIdRef = useRef(0);
+  const screenshotUploadAbortRef = useRef<AbortController | null>(null);
 
   const [isPending, startTransition] = useTransition();
 
@@ -56,21 +64,77 @@ export default function Home() {
     }
   }, []);
 
-  const { uploadToS3 } = useS3Upload();
-
   const selectedModel = useMemo(
     () => MODELS.find((m) => m.value === model),
     [model],
   );
 
   const handleScreenshotUpload = async (event: any) => {
+    const file = event.target.files?.[0] as File | undefined;
+    if (!file) return;
+
+    screenshotUploadAbortRef.current?.abort();
+    const uploadId = ++screenshotUploadIdRef.current;
+    const abortController = new AbortController();
+    screenshotUploadAbortRef.current = abortController;
+
     if (prompt.length === 0) setPrompt("Build this");
     setScreenshotLoading(true);
-    let file = event.target.files[0];
-    const { url } = await uploadToS3(file);
-    setScreenshotUrl(url);
-    setScreenshotLoading(false);
+    setScreenshotError(undefined);
+    setScreenshotToken(undefined);
+    setScreenshotPreviewUrl(URL.createObjectURL(file));
+
+    try {
+      const { token } = await uploadImage(file, abortController.signal);
+      if (uploadId === screenshotUploadIdRef.current) {
+        setScreenshotToken(token);
+      }
+    } catch (error) {
+      if (
+        abortController.signal.aborted ||
+        uploadId !== screenshotUploadIdRef.current
+      ) {
+        return;
+      }
+      setScreenshotPreviewUrl(undefined);
+      setScreenshotError(
+        error instanceof Error ? error.message : "Failed to upload image",
+      );
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } finally {
+      if (uploadId === screenshotUploadIdRef.current) {
+        setScreenshotLoading(false);
+        screenshotUploadAbortRef.current = null;
+      }
+    }
   };
+
+  const clearScreenshot = () => {
+    screenshotUploadIdRef.current += 1;
+    screenshotUploadAbortRef.current?.abort();
+    screenshotUploadAbortRef.current = null;
+    setScreenshotLoading(false);
+    setScreenshotToken(undefined);
+    setScreenshotPreviewUrl(undefined);
+    setScreenshotError(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  useEffect(() => {
+    return () => screenshotUploadAbortRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (screenshotPreviewUrl) {
+        URL.revokeObjectURL(screenshotPreviewUrl);
+      }
+    };
+  }, [screenshotPreviewUrl]);
 
   const textareaResizePrompt = useMemo(
     () =>
@@ -131,7 +195,7 @@ export default function Home() {
                   body: JSON.stringify({
                     prompt,
                     model,
-                    screenshotUrl,
+                    screenshotToken,
                   }),
                 });
 
@@ -175,27 +239,24 @@ export default function Home() {
                       </div>
                     </div>
                   )}
-                  {screenshotUrl && (
+                  {screenshotPreviewUrl && (
                     <div
                       className={`${isPending ? "invisible" : ""} relative mx-3 mt-3`}
                     >
                       <div className="rounded-xl">
                         <img
                           alt="screenshot"
-                          src={screenshotUrl}
+                          src={screenshotPreviewUrl}
+                          data-testid="screenshot-preview"
                           className="group relative mb-2 h-16 w-[68px] rounded object-cover"
                         />
                       </div>
                       <button
                         type="button"
                         id="x-circle-icon"
+                        aria-label="Remove screenshot"
                         className="absolute -right-3 -top-4 left-14 z-10 size-5 rounded-full bg-white text-gray-900 hover:text-gray-500"
-                        onClick={() => {
-                          setScreenshotUrl(undefined);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = "";
-                          }
-                        }}
+                        onClick={clearScreenshot}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -213,6 +274,11 @@ export default function Home() {
                         </svg>
                       </button>
                     </div>
+                  )}
+                  {screenshotError && (
+                    <p className="mx-3 mt-2 text-xs text-red-600">
+                      {screenshotError}
+                    </p>
                   )}
                   <div className="relative max-h-48 overflow-hidden">
                     <div className="p-3">
@@ -322,6 +388,7 @@ export default function Home() {
                         type="file"
                         accept="image/png, image/jpeg, image/webp"
                         onChange={handleScreenshotUpload}
+                        disabled={screenshotLoading}
                         className="hidden"
                         ref={fileInputRef}
                       />
@@ -344,7 +411,7 @@ export default function Home() {
                 {isPending && (
                   <LoadingMessage
                     isHighQuality={false}
-                    screenshotUrl={screenshotUrl}
+                    hasScreenshot={Boolean(screenshotToken)}
                   />
                 )}
               </div>
@@ -442,10 +509,10 @@ const Footer = memo(() => {
 
 function LoadingMessage({
   isHighQuality,
-  screenshotUrl,
+  hasScreenshot,
 }: {
   isHighQuality: boolean;
-  screenshotUrl: string | undefined;
+  hasScreenshot: boolean;
 }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white px-1 py-3 md:px-3">
@@ -453,7 +520,7 @@ function LoadingMessage({
         <span className="animate-pulse text-balance text-center text-sm md:text-base">
           {isHighQuality
             ? `Coming up with project plan, may take 15 seconds...`
-            : screenshotUrl
+            : hasScreenshot
               ? "Analyzing your screenshot..."
               : `Creating your app...`}
         </span>

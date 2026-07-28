@@ -12,6 +12,7 @@ import {
   serializeBraintrustError,
 } from "@/lib/braintrust";
 import type { Span } from "braintrust";
+import { createValidatedImageDownloadUrl } from "@/lib/s3-image-storage";
 
 export async function POST(request: NextRequest) {
   const logger = getBraintrustLogger();
@@ -19,18 +20,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { prompt, model, screenshotUrl } = body;
+    const { prompt, model, screenshotToken } = body;
     const resolvedModel = resolveModel(model);
     const chatId = createId();
 
     const createChat = async (rootSpan?: Span) => {
       let fullScreenshotDescription;
-      if (screenshotUrl) {
+      if (screenshotToken) {
         try {
           const describeScreenshot = async (span?: Span) => {
             const startedAt = performance.now();
             const screenshotModel = "moonshotai/Kimi-K2.7-Code";
             const together = new Together();
+            const screenshotUrl =
+              await createValidatedImageDownloadUrl(screenshotToken);
+
             const screenshotResponse = await together.chat.completions.create({
               model: screenshotModel,
               reasoning: { enabled: false },
@@ -171,7 +175,7 @@ export async function POST(request: NextRequest) {
         input: {
           prompt,
           requestedModel: model,
-          hasScreenshot: Boolean(screenshotUrl),
+          hasScreenshot: Boolean(screenshotToken),
         },
         metadata: {
           chatId,
