@@ -6,25 +6,9 @@ import { NextRequest } from "next/server";
 import sharp from "sharp";
 import { POST } from "@/app/api/s3-upload/complete/route";
 import { verifyValidatedImageToken } from "@/lib/image-upload-token";
+import { setUpS3TestEnv } from "@/lib/test/s3-env";
 
-const originalEnv = {
-  key: process.env.S3_UPLOAD_KEY,
-  secret: process.env.S3_UPLOAD_SECRET,
-  bucket: process.env.S3_UPLOAD_BUCKET,
-  region: process.env.S3_UPLOAD_REGION,
-};
-
-process.env.S3_UPLOAD_KEY = "test-access-key";
-process.env.S3_UPLOAD_SECRET = "test-secret-key";
-process.env.S3_UPLOAD_BUCKET = "test-bucket";
-process.env.S3_UPLOAD_REGION = "us-east-1";
-
-test.after(() => {
-  restoreEnv("S3_UPLOAD_KEY", originalEnv.key);
-  restoreEnv("S3_UPLOAD_SECRET", originalEnv.secret);
-  restoreEnv("S3_UPLOAD_BUCKET", originalEnv.bucket);
-  restoreEnv("S3_UPLOAD_REGION", originalEnv.region);
-});
+test.after(setUpS3TestEnv());
 
 test("completing an upload validates one S3 object without writing another", async () => {
   const bytes = await sharp({
@@ -80,11 +64,3 @@ test("completing an upload validates one S3 object without writing another", asy
 
   mock.restoreAll();
 });
-
-function restoreEnv(name: string, value: string | undefined) {
-  if (value === undefined) {
-    delete process.env[name];
-  } else {
-    process.env[name] = value;
-  }
-}

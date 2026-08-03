@@ -31,6 +31,12 @@ const IMAGE_TYPES: Record<SupportedImageType, ImageTypeSpec> = {
   },
 };
 
+const CONTENT_TYPE_BY_EXTENSION = Object.fromEntries(
+  Object.entries(IMAGE_TYPES).flatMap(([contentType, spec]) =>
+    spec.acceptedExtensions.map((extension) => [extension, contentType]),
+  ),
+) as Record<string, SupportedImageType>;
+
 export class ImageUploadError extends Error {
   constructor(
     message: string,
@@ -151,16 +157,11 @@ export function imageContentDisposition(
 }
 
 function contentTypeForExtension(extension: string): SupportedImageType {
-  switch (extension.toLowerCase()) {
-    case "jpg":
-      return "image/jpeg";
-    case "png":
-      return "image/png";
-    case "webp":
-      return "image/webp";
-    default:
-      throw new ImageUploadError("Invalid upload key", 400);
+  const contentType = CONTENT_TYPE_BY_EXTENSION[extension.toLowerCase()];
+  if (!contentType) {
+    throw new ImageUploadError("Invalid upload key", 400);
   }
+  return contentType;
 }
 
 function isSupportedImageType(value: string): value is SupportedImageType {

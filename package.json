@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1094.0",
-    "@aws-sdk/s3-presigned-post": "^3.1094.0",
     "@aws-sdk/s3-request-presigner": "^3.1094.0",
     "@babel/runtime": "7.29.2",
     "@base-ui/react": "1.6.0",

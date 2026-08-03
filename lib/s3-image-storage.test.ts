@@ -3,25 +3,9 @@ import test, { mock } from "node:test";
 import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createValidatedImageToken } from "@/lib/image-upload-token";
 import { createValidatedImageDownloadUrl } from "@/lib/s3-image-storage";
+import { setUpS3TestEnv } from "@/lib/test/s3-env";
 
-const originalEnv = {
-  key: process.env.S3_UPLOAD_KEY,
-  secret: process.env.S3_UPLOAD_SECRET,
-  bucket: process.env.S3_UPLOAD_BUCKET,
-  region: process.env.S3_UPLOAD_REGION,
-};
-
-process.env.S3_UPLOAD_KEY = "test-access-key";
-process.env.S3_UPLOAD_SECRET = "test-secret-key";
-process.env.S3_UPLOAD_BUCKET = "test-bucket";
-process.env.S3_UPLOAD_REGION = "us-east-1";
-
-test.after(() => {
-  restoreEnv("S3_UPLOAD_KEY", originalEnv.key);
-  restoreEnv("S3_UPLOAD_SECRET", originalEnv.secret);
-  restoreEnv("S3_UPLOAD_BUCKET", originalEnv.bucket);
-  restoreEnv("S3_UPLOAD_REGION", originalEnv.region);
-});
+test.after(setUpS3TestEnv());
 
 test.afterEach(() => {
   mock.restoreAll();
@@ -64,11 +48,3 @@ test("a validated image token creates a signed URL for the unchanged object", as
   );
   assert.ok(url.searchParams.has("X-Amz-Signature"));
 });
-
-function restoreEnv(name: string, value: string | undefined) {
-  if (value === undefined) {
-    delete process.env[name];
-  } else {
-    process.env[name] = value;
-  }
-}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ImageUploadError } from "@/lib/image-upload";
+import { imageUploadErrorResponse } from "@/lib/image-upload-route";
 import { validateUploadedImage } from "@/lib/image-verification";
 
 export const runtime = "nodejs";
@@ -22,17 +23,6 @@ export async function POST(request: NextRequest) {
     const image = await validateUploadedImage(key);
     return NextResponse.json(image);
   } catch (error) {
-    if (error instanceof ImageUploadError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status },
-      );
-    }
-
-    console.error("Failed to verify image upload:", error);
-    return NextResponse.json(
-      { error: "Failed to verify image upload" },
-      { status: 500 },
-    );
+    return imageUploadErrorResponse(error, "Failed to verify image upload");
   }
 }

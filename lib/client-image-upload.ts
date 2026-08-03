@@ -1,6 +1,6 @@
-type PresignedPostResponse = {
+type PresignedUploadResponse = {
   url: string;
-  fields: Record<string, string>;
+  headers: Record<string, string>;
   key: string;
 };
 
@@ -31,26 +31,26 @@ export async function uploadImage(
     );
   }
 
-  const post = (await signResponse.json()) as PresignedPostResponse;
-  const form = new FormData();
-  for (const [name, value] of Object.entries(post.fields)) {
-    form.append(name, value);
-  }
-  form.append("file", file);
+  const upload = (await signResponse.json()) as PresignedUploadResponse;
 
-  const uploadResponse = await fetch(post.url, {
-    method: "POST",
-    body: form,
+  const uploadResponse = await fetch(upload.url, {
+    method: "PUT",
+    headers: upload.headers,
+    body: file,
     signal,
   });
   if (!uploadResponse.ok) {
-    throw new Error("Failed to upload image");
+    throw new Error(
+      uploadResponse.status === 412
+        ? "This image upload was already used"
+        : "Failed to upload image",
+    );
   }
 
   const completeResponse = await fetch("/api/s3-upload/complete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key: post.key }),
+    body: JSON.stringify({ key: upload.key }),
     signal,
   });
   if (!completeResponse.ok) {
