@@ -46,4 +46,3 @@ public/preview-vendor/*
 */node_modules
 /.codex
 app/(main)/apps/*
-ISSUES.md

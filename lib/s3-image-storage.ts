@@ -44,8 +44,6 @@ export async function createImageUploadPost(request: ImageUploadRequest) {
   return {
     ...post,
     key,
-    expiresIn: IMAGE_UPLOAD_EXPIRY_SECONDS,
-    maxBytes: MAX_IMAGE_UPLOAD_BYTES,
   };
 }
 
