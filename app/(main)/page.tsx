@@ -4,6 +4,7 @@
 import Fieldset from "@/components/fieldset";
 import ArrowRightIcon from "@/components/icons/arrow-right";
 import LoadingButton from "@/components/loading-button";
+import ScreenshotAttachment from "@/components/screenshot-attachment";
 import Spinner from "@/components/spinner";
 import bgImg from "@/public/halo.png";
 import assert from "assert";
@@ -230,51 +231,12 @@ export default function Home() {
                 className={`relative flex w-full max-w-2xl rounded-xl border border-gray-300 bg-white pb-10 transition-[height] ${isPending ? "h-28 overflow-hidden" : ""}`}
               >
                 <div className="w-full">
-                  {screenshotLoading && (
-                    <div className="relative mx-3 mt-3">
-                      <div className="rounded-xl">
-                        <div className="group mb-2 flex h-16 w-[68px] animate-pulse items-center justify-center rounded bg-gray-200">
-                          <Spinner />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {screenshotPreviewUrl && (
-                    <div
-                      className={`${isPending ? "invisible" : ""} relative mx-3 mt-3`}
-                    >
-                      <div className="rounded-xl">
-                        <img
-                          alt="screenshot"
-                          src={screenshotPreviewUrl}
-                          data-testid="screenshot-preview"
-                          className="group relative mb-2 h-16 w-[68px] rounded object-cover"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        id="x-circle-icon"
-                        aria-label="Remove screenshot"
-                        className="absolute -right-3 -top-4 left-14 z-10 size-5 rounded-full bg-white text-gray-900 hover:text-gray-500"
-                        onClick={clearScreenshot}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="size-6"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
+                  <ScreenshotAttachment
+                    hidden={isPending}
+                    loading={screenshotLoading}
+                    onRemove={clearScreenshot}
+                    previewUrl={screenshotPreviewUrl}
+                  />
                   {screenshotError && (
                     <p className="mx-3 mt-2 text-xs text-red-600">
                       {screenshotError}
