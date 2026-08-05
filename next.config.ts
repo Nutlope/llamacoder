@@ -6,6 +6,24 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/chats/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
+        source: "/share/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
         source: "/preview-vendor/:path*",
         headers: [
           {
