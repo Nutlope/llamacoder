@@ -20,9 +20,10 @@
 
 1. Clone the repo: `git clone https://github.com/Nutlope/llamacoder`
 2. Create a `.env` file and add your API keys:
-   - **[Together AI API key](https://dub.sh/together-ai/?utm_source=example-app\&utm_medium=llamacoder\&utm_campaign=llamacoder-app-signup)**: `TOGETHER_API_KEY=<your_together_ai_api_key>`
+   - **[Together AI API key](https://dub.sh/together-ai/?utm_source=example-app&utm_medium=llamacoder&utm_campaign=llamacoder-app-signup)**: `TOGETHER_API_KEY=<your_together_ai_api_key>`
    - **Database URL**: Use [Neon](https://neon.tech) to set up your PostgreSQL database and add the Prisma connection string: `DATABASE_URL=<your_database_url>`
    - **Braintrust API key** (optional, for observability): `BRAINTRUST_API_KEY=<your_braintrust_api_key>`
+   - **Screenshot uploads**: Configure `S3_UPLOAD_KEY`, `S3_UPLOAD_SECRET`, `S3_UPLOAD_BUCKET`, `S3_UPLOAD_REGION`, and `IMAGE_UPLOAD_TOKEN_SECRET`. The uploader uses the existing bucket as-is; it does not require bucket policy, CORS, lifecycle, delete-permission, or second-bucket changes.
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
 ## Contributing
