@@ -32,6 +32,7 @@ export async function createImageUploadUrl(request: ImageUploadRequest) {
       CacheControl: UPLOAD_CACHE_CONTROL,
       ContentLength: request.size,
       ChecksumSHA256: request.checksum,
+      // The signed request itself is write-once; no bucket-policy change is needed.
       IfNoneMatch: "*",
     }),
     {
