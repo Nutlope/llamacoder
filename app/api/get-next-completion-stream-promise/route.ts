@@ -1,15 +1,17 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool } from "@neondatabase/serverless";
 import { z } from "zod";
 import Together from "together-ai";
 import { resolveModel } from "@/lib/constants";
+import {
+  GENERATION_DEADLINE_MS,
+  superviseCompletionStream,
+} from "@/lib/completion-stream-lifecycle";
 import {
   flushBraintrustSpan,
   logBraintrustFailure,
   serializeBraintrustError,
   startBraintrustSpan,
 } from "@/lib/braintrust";
+import { getPrisma } from "@/lib/prisma";
 
 function optimizeMessagesForTokens(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -43,10 +45,6 @@ const requestSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const neon = new Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaNeon(neon);
-  const prisma = new PrismaClient({ adapter });
-
   const parsed = requestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     await logBraintrustFailure(
@@ -65,6 +63,7 @@ export async function POST(req: Request) {
     return new Response("Invalid request", { status: 400 });
   }
   const { messageId, model } = parsed.data;
+  const prisma = getPrisma();
 
   let message;
   try {
@@ -162,7 +161,8 @@ export async function POST(req: Request) {
   // cap mid-file on a detailed prompt, truncating the last fence — the file
   // was dropped and the preview failed with "Cannot resolve". A cap is not a
   // target, so typical generations are unaffected; only would-be truncations
-  // keep streaming (still well under the 300s maxDuration).
+  // keep streaming. The lifecycle deadline below stops unusually long runs
+  // before Vercel's hard timeout and lets the client retain completed files.
   const maxTokens = 20000;
   const inputMessages = messages.map((m) => ({
     role: m.role,
@@ -201,13 +201,16 @@ export async function POST(req: Request) {
 
   let stream: ReturnType<typeof together.chat.completions.stream>;
   try {
-    stream = together.chat.completions.stream({
-      model: resolvedModel,
-      reasoning: { enabled: false },
-      messages: inputMessages,
-      temperature,
-      max_tokens: maxTokens,
-    });
+    stream = together.chat.completions.stream(
+      {
+        model: resolvedModel,
+        reasoning: { enabled: false },
+        messages: inputMessages,
+        temperature,
+        max_tokens: maxTokens,
+      },
+      { signal: req.signal },
+    );
   } catch (error) {
     span?.log({
       error: serializeBraintrustError(error),
@@ -232,8 +235,13 @@ export async function POST(req: Request) {
     }
   });
 
-  stream
-    .finalContent()
+  let didHitGenerationDeadline = false;
+  superviseCompletionStream(stream, {
+    timeoutMs: GENERATION_DEADLINE_MS,
+    onTimeout: () => {
+      didHitGenerationDeadline = true;
+    },
+  })
     .then(async (finalText) => {
       const usage = await stream.totalUsage().catch(() => undefined);
       const completion = await stream.finalChatCompletion().catch(() => undefined);
@@ -260,6 +268,10 @@ export async function POST(req: Request) {
     .catch(async (error) => {
       span?.log({
         error: serializeBraintrustError(error),
+        metadata: {
+          generationDeadlineMs: GENERATION_DEADLINE_MS,
+          timedOut: didHitGenerationDeadline,
+        },
         metrics: {
           first_token_ms: firstTokenMs,
           total_generation_ms: performance.now() - startedAt,

@@ -111,12 +111,82 @@ export default function PageClient({ chat }: { chat: Chat }) {
       isHandlingStreamRef.current = true;
       context.setStreamPromise(undefined);
 
-      const stream = await streamPromise;
+      const resetStream = () => {
+        isHandlingStreamRef.current = false;
+        setStreamText("");
+        setStreamPromise(undefined);
+      };
+
+      let stream: ReadableStream;
+      try {
+        stream = await streamPromise;
+      } catch {
+        resetStream();
+        return;
+      }
+
       let didPushToCode = false;
       let didPushToPreview = false;
+      let didFinalize = false;
+      let latestContent = "";
+
+      const persistResponse = (rawText: string) => {
+        if (didFinalize) return;
+        didFinalize = true;
+
+        const finalText = sanitizeAssistantOutput(rawText);
+        if (!finalText.trim()) {
+          resetStream();
+          return;
+        }
+
+        startTransition(async () => {
+          // Get all previous assistant messages with files
+          const previousAssistantMessages = chat.messages.filter(
+            (m) =>
+              m.role === "assistant" &&
+              extractAllCodeBlocks(m.content).length > 0,
+          );
+
+          // Extract files from both prior messages and the response. For an
+          // interrupted response, completed fences remain usable while an
+          // unfinished trailing fence is safely ignored.
+          const previousFiles = previousAssistantMessages.flatMap((msg) =>
+            extractAllCodeBlocks(msg.content),
+          );
+          const currentFiles = extractAllCodeBlocks(finalText);
+
+          // Merge files (current overrides previous for same paths)
+          const fileMap = new Map();
+          previousFiles.forEach((file) => fileMap.set(file.path, file));
+          currentFiles.forEach((file) => fileMap.set(file.path, file));
+          const allFiles = Array.from(fileMap.values());
+
+          const message = await createMessage(
+            chat.id,
+            finalText, // Store original AI response content (only changed files)
+            "assistant",
+            allFiles, // Store cumulative files
+          );
+
+          startTransition(() => {
+            resetStream();
+            setActiveMessage(message);
+            // When streaming finishes, switch to preview mode and keep the viewer open
+            setIsShowingCodeViewer(true);
+            setActiveTab("preview");
+            router.refresh();
+          });
+        });
+      };
+
+      const recoverPartialResponse = () => {
+        persistResponse(latestContent);
+      };
 
       ChatCompletionStream.fromReadableStream(stream)
         .on("content", (delta, content) => {
+          latestContent = content;
           setStreamText(() => sanitizeAssistantOutput(content));
 
           if (
@@ -138,49 +208,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
             setIsShowingCodeViewer(true);
           }
         })
-        .on("finalContent", async (finalText) => {
-          finalText = sanitizeAssistantOutput(finalText);
-          startTransition(async () => {
-            // Get all previous assistant messages with files
-            const previousAssistantMessages = chat.messages.filter(
-              (m) =>
-                m.role === "assistant" &&
-                extractAllCodeBlocks(m.content).length > 0,
-            );
-
-            // Extract all files from previous messages
-            const previousFiles = previousAssistantMessages.flatMap((msg) =>
-              extractAllCodeBlocks(msg.content),
-            );
-
-            // Extract files from current AI response
-            const currentFiles = extractAllCodeBlocks(finalText);
-
-            // Merge files (current overrides previous for same paths)
-            const fileMap = new Map();
-            previousFiles.forEach((file) => fileMap.set(file.path, file));
-            currentFiles.forEach((file) => fileMap.set(file.path, file));
-            const allFiles = Array.from(fileMap.values());
-
-            const message = await createMessage(
-              chat.id,
-              finalText, // Store original AI response content (only changed files)
-              "assistant",
-              allFiles, // Store cumulative files
-            );
-
-            startTransition(() => {
-              isHandlingStreamRef.current = false;
-              setStreamText("");
-              setStreamPromise(undefined);
-              setActiveMessage(message);
-              // When streaming finishes, switch to preview mode and keep the viewer open
-              setIsShowingCodeViewer(true);
-              setActiveTab("preview");
-              router.refresh();
-            });
-          });
-        });
+        .on("finalContent", persistResponse)
+        .on("abort", recoverPartialResponse)
+        .on("error", recoverPartialResponse);
     }
 
     f();
@@ -231,6 +261,9 @@ export default function PageClient({ chat }: { chat: Chat }) {
             }),
           },
         ).then((res) => {
+          if (!res.ok) {
+            throw new Error(`Generation request failed (${res.status})`);
+          }
           if (!res.body) {
             throw new Error("No body on response");
           }
