@@ -213,6 +213,9 @@ export default function Home() {
                     body: JSON.stringify({ messageId: lastMessageId, model }),
                   },
                 ).then((res) => {
+                  if (!res.ok) {
+                    throw new Error(`Generation request failed (${res.status})`);
+                  }
                   if (!res.body) {
                     throw new Error("No body on response");
                   }
