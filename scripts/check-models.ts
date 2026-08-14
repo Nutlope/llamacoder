@@ -11,7 +11,11 @@
 //   node --env-file=.env scripts/check-models.ts
 // (Node 23.6+ runs .ts/.mts directly via type stripping; this repo's Node is 26.)
 
-import { MODELS, resolveModel } from "../lib/constants.ts";
+import {
+  MODELS,
+  resolveModel,
+  SCREENSHOT_MODEL,
+} from "../lib/constants.ts";
 
 const API_BASE = "https://api.together.xyz/v1";
 const COMPLETIONS_URL = `${API_BASE}/chat/completions`;
@@ -228,7 +232,7 @@ async function mapLimit<T, R>(
 
 // Models the app uses internally but that are NOT on the homepage MODELS list.
 const INTERNAL_MODELS: { label: string; value: string }[] = [
-  { label: "Kimi K2.7-Code (screenshot→code)", value: "moonshotai/Kimi-K2.7-Code" },
+  { label: "Screenshot analysis", value: SCREENSHOT_MODEL },
   {
     label: "Qwen3-Coder-Next (high-quality plan)",
     value: "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",

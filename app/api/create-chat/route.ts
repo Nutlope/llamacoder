@@ -3,7 +3,7 @@ import { getPrisma } from "@/lib/prisma";
 import { screenshotToCodePrompt } from "@/lib/prompts";
 import { buildProductionCodingPrompt } from "@/lib/prompt-config";
 import Together from "together-ai";
-import { resolveModel } from "@/lib/constants";
+import { resolveModel, SCREENSHOT_MODEL } from "@/lib/constants";
 import { createLocalChatTitle } from "@/lib/chat-title";
 import {
   flushBraintrust,
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         try {
           const describeScreenshot = async (span?: Span) => {
             const startedAt = performance.now();
-            const screenshotModel = "moonshotai/Kimi-K2.7-Code";
+            const screenshotModel = SCREENSHOT_MODEL;
             const together = new Together();
             const screenshotUrl =
               await createValidatedImageDownloadUrl(screenshotToken);

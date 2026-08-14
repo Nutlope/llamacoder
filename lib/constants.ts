@@ -1,4 +1,5 @@
 export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731";
+export const SCREENSHOT_MODEL = "google/gemma-4-31B-it";
 
 // Legacy model IDs all resolve to the current fallback so existing chats/DB
 // rows never depend on retired or unreliable serverless models.
@@ -7,6 +8,7 @@ export const MODEL_ALIASES: Record<string, string> = {
   "zai-org/GLM-5": FALLBACK_MODEL,
   "zai-org/GLM-5.1": FALLBACK_MODEL,
   "moonshotai/Kimi-K2.6": FALLBACK_MODEL,
+  "moonshotai/Kimi-K2.7-Code": FALLBACK_MODEL,
   "nvidia/nemotron-3-ultra-550b-a55b": FALLBACK_MODEL,
   "Qwen/Qwen2.5-Coder-32B-Instruct": FALLBACK_MODEL,
   "MiniMaxAI/MiniMax-M2.5": FALLBACK_MODEL,
@@ -49,10 +51,6 @@ export const MODELS: ModelOption[] = [
   {
     label: "GLM 5.2",
     value: "zai-org/GLM-5.2",
-  },
-  {
-    label: "Kimi K2.7 Code",
-    value: "moonshotai/Kimi-K2.7-Code",
   },
   {
     label: "Qwen3.7 Max",
