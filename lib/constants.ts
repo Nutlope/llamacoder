@@ -1,18 +1,22 @@
-// Legacy model IDs → current serverless replacements. resolveModel() maps these
-// so existing chats/DB rows that reference an old ID keep working.
+export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731";
+
+// Legacy model IDs all resolve to the current fallback so existing chats/DB
+// rows never depend on retired or unreliable serverless models.
 export const MODEL_ALIASES: Record<string, string> = {
-  "zai-org/GLM-4.6": "zai-org/GLM-5.2",
-  "zai-org/GLM-5": "zai-org/GLM-5.2",
-  "zai-org/GLM-5.1": "zai-org/GLM-5.2",
-  "Qwen/Qwen2.5-Coder-32B-Instruct": "zai-org/GLM-5.2",
-  "MiniMaxAI/MiniMax-M2.5": "MiniMaxAI/MiniMax-M3",
-  "MiniMaxAI/MiniMax-M2.7": "MiniMaxAI/MiniMax-M3",
-  "moonshotai/Kimi-K2.5": "moonshotai/Kimi-K2.7-Code",
-  "moonshotai/Kimi-K2-Instruct-0905": "moonshotai/Kimi-K2.7-Code",
-  "deepseek-ai/DeepSeek-V3.1": "moonshotai/Kimi-K2.7-Code",
-  "Qwen/Qwen3-Coder-Next-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
-  "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
-  "Qwen/Qwen3-235B-A22B-Instruct-2507-tput": "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
+  "zai-org/GLM-4.6": FALLBACK_MODEL,
+  "zai-org/GLM-5": FALLBACK_MODEL,
+  "zai-org/GLM-5.1": FALLBACK_MODEL,
+  "moonshotai/Kimi-K2.6": FALLBACK_MODEL,
+  "nvidia/nemotron-3-ultra-550b-a55b": FALLBACK_MODEL,
+  "Qwen/Qwen2.5-Coder-32B-Instruct": FALLBACK_MODEL,
+  "MiniMaxAI/MiniMax-M2.5": FALLBACK_MODEL,
+  "MiniMaxAI/MiniMax-M2.7": FALLBACK_MODEL,
+  "moonshotai/Kimi-K2.5": FALLBACK_MODEL,
+  "moonshotai/Kimi-K2-Instruct-0905": FALLBACK_MODEL,
+  "deepseek-ai/DeepSeek-V3.1": FALLBACK_MODEL,
+  "Qwen/Qwen3-Coder-Next-FP8": FALLBACK_MODEL,
+  "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": FALLBACK_MODEL,
+  "Qwen/Qwen3-235B-A22B-Instruct-2507-tput": FALLBACK_MODEL,
 };
 
 export function resolveModel(model: string): string {
@@ -32,12 +36,16 @@ export type ModelOption = {
   note?: string;
 };
 
-// Selectable (non-hidden) models are the fast, reliable set plus Nemotron 3
-// Ultra (fast on serverless). Qwen3.7 Max, MiniMax M3 and the old Qwen 3 235B
-// were dropped from the picker for slow/inconsistent serverless throughput,
-// but stay here as hidden entries so existing chats and MODEL_ALIASES keep
-// resolving them.
+// Selectable (non-hidden) models are the fast, reliable set, ordered as they
+// appear in the picker. The first visible entry is also the default model.
+// Qwen3.7 Max, MiniMax M3 and the old Qwen 3 235B were dropped from the picker
+// for slow/inconsistent serverless throughput, but stay here as hidden entries
+// so existing chats and MODEL_ALIASES keep resolving them.
 export const MODELS: ModelOption[] = [
+  {
+    label: "DeepSeek V4 Flash",
+    value: FALLBACK_MODEL,
+  },
   {
     label: "GLM 5.2",
     value: "zai-org/GLM-5.2",
@@ -45,14 +53,6 @@ export const MODELS: ModelOption[] = [
   {
     label: "Kimi K2.7 Code",
     value: "moonshotai/Kimi-K2.7-Code",
-  },
-  {
-    label: "Kimi K2.6",
-    value: "moonshotai/Kimi-K2.6",
-  },
-  {
-    label: "Nemotron 3 Ultra",
-    value: "nvidia/nemotron-3-ultra-550b-a55b",
   },
   {
     label: "Qwen3.7 Max",
