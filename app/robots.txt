@@ -1,1 +1,5 @@
-Allow: /api/og/*
+User-agent: *
+Allow: /
+Disallow: /chats/
+Disallow: /share/
+Disallow: /api/og

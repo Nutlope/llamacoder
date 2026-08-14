@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import PlausibleProvider from "next-plausible";
+import { aeonik, aeonikMono } from "./fonts";
 import "./globals.css";
 
 let title = "Llama Coder – AI Code Generator";
@@ -38,7 +39,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html
+      lang="en"
+      className={`${aeonik.variable} ${aeonikMono.variable} h-full antialiased`}
+    >
       <head>
         <PlausibleProvider domain="llamacoder.io" />
       </head>

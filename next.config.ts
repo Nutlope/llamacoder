@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.trycloudflare.com"],
+  images: {
+    qualities: [50, 75],
+  },
   async headers() {
     return [
       {
@@ -15,6 +18,15 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/share/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
+        source: "/api/og",
         headers: [
           {
             key: "X-Robots-Tag",

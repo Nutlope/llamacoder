@@ -1,16 +1,22 @@
-import { memo } from "react";
-
 import GithubIcon from "@/components/icons/github-icon";
+import Image from "next/image";
 import Link from "next/link";
 
 function Header() {
   return (
     <header className="relative mx-auto flex w-full shrink-0 items-center justify-center py-6">
-      <Link href="/" className="flex flex-row items-center gap-3">
-        <img
+      <Link
+        href="/"
+        className="flex flex-row items-center gap-3"
+        aria-label="LlamaCoder home"
+      >
+        <Image
           src="/fullLogo.png"
           alt=""
-          className="mx-auto h-7 object-contain"
+          width={404}
+          height={72}
+          sizes="157px"
+          className="mx-auto h-7 w-auto object-contain"
         />
         <svg
           width="1"
@@ -22,10 +28,12 @@ function Header() {
           <path d="M0.25 0V19.5" stroke="#C2C2C2" strokeWidth="0.5" />
         </svg>
 
-        <img
+        <Image
           src="/together.svg"
           alt=""
-          className="mx-auto h-[30px] object-contain"
+          width={79}
+          height={24}
+          className="mx-auto h-[30px] w-auto object-contain"
         />
       </Link>
 
@@ -45,4 +53,4 @@ function Header() {
   );
 }
 
-export default memo(Header);
+export default Header;

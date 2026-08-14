@@ -1,151 +1,11 @@
-/* eslint-disable @next/next/no-img-element */
-"use client";
-
-import Fieldset from "@/components/fieldset";
-import ArrowRightIcon from "@/components/icons/arrow-right";
-import LoadingButton from "@/components/loading-button";
-import ScreenshotAttachment from "@/components/screenshot-attachment";
-import Spinner from "@/components/spinner";
+import Header from "@/components/header";
 import bgImg from "@/public/halo.png";
-import assert from "assert";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  use,
-  useState,
-  useRef,
-  useTransition,
-  useEffect,
-  useMemo,
-  memo,
-} from "react";
 
-import { Context } from "./providers";
-import Header from "@/components/header";
-import UploadIcon from "@/components/icons/upload-icon";
-import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
-import { uploadImage } from "@/lib/client-image-upload";
+import PromptForm from "./prompt-form";
 
 export default function Home() {
-  const { setStreamPromise } = use(Context);
-  const router = useRouter();
-
-  const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState(
-    MODELS.find((m) => !m.hidden)?.value || MODELS[0].value,
-  );
-  const [screenshotToken, setScreenshotToken] = useState<string | undefined>(
-    undefined,
-  );
-  const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
-    string | undefined
-  >(undefined);
-  const [screenshotLoading, setScreenshotLoading] = useState(false);
-  const [screenshotError, setScreenshotError] = useState<string | undefined>(
-    undefined,
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const screenshotUploadIdRef = useRef(0);
-  const screenshotUploadAbortRef = useRef<AbortController | null>(null);
-
-  const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, []);
-
-  const selectedModel = useMemo(
-    () => MODELS.find((m) => m.value === model),
-    [model],
-  );
-
-  const handleScreenshotUpload = async (event: any) => {
-    const file = event.target.files?.[0] as File | undefined;
-    if (!file) return;
-
-    screenshotUploadAbortRef.current?.abort();
-    const uploadId = ++screenshotUploadIdRef.current;
-    const abortController = new AbortController();
-    screenshotUploadAbortRef.current = abortController;
-
-    if (prompt.length === 0) setPrompt("Build this");
-    setScreenshotLoading(true);
-    setScreenshotError(undefined);
-    setScreenshotToken(undefined);
-    setScreenshotPreviewUrl(URL.createObjectURL(file));
-
-    try {
-      const { token } = await uploadImage(file, abortController.signal);
-      if (uploadId === screenshotUploadIdRef.current) {
-        setScreenshotToken(token);
-      }
-    } catch (error) {
-      if (
-        abortController.signal.aborted ||
-        uploadId !== screenshotUploadIdRef.current
-      ) {
-        return;
-      }
-      setScreenshotPreviewUrl(undefined);
-      setScreenshotError(
-        error instanceof Error ? error.message : "Failed to upload image",
-      );
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    } finally {
-      if (uploadId === screenshotUploadIdRef.current) {
-        setScreenshotLoading(false);
-        screenshotUploadAbortRef.current = null;
-      }
-    }
-  };
-
-  const clearScreenshot = () => {
-    screenshotUploadIdRef.current += 1;
-    screenshotUploadAbortRef.current?.abort();
-    screenshotUploadAbortRef.current = null;
-    setScreenshotLoading(false);
-    setScreenshotToken(undefined);
-    setScreenshotPreviewUrl(undefined);
-    setScreenshotError(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  useEffect(() => {
-    return () => screenshotUploadAbortRef.current?.abort();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (screenshotPreviewUrl) {
-        URL.revokeObjectURL(screenshotPreviewUrl);
-      }
-    };
-  }, [screenshotPreviewUrl]);
-
-  const textareaResizePrompt = useMemo(
-    () =>
-      prompt
-        .split("\n")
-        .map((text) => (text === "" ? "a" : text))
-        .join("\n"),
-    [prompt],
-  );
-
   return (
     <div className="relative flex grow flex-col">
       <div className="absolute inset-0 flex justify-center">
@@ -153,23 +13,25 @@ export default function Home() {
           src={bgImg}
           alt=""
           className="max-h-[953px] w-full max-w-[1200px] object-cover object-top mix-blend-screen"
-          priority
+          sizes="(max-width: 1200px) 100vw, 1200px"
+          quality={50}
+          preload
         />
       </div>
 
       <div className="isolate flex h-full grow flex-col">
         <Header />
 
-        <div className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
+        <main className="mt-10 flex grow flex-col items-center px-4 lg:mt-16">
           <a
             className="mb-4 inline-flex shrink-0 items-center rounded-full border-[0.5px] border-[#BABABA] px-3.5 py-1.5 text-xs text-black transition-shadow"
             href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
             target="_blank"
+            rel="noreferrer"
           >
             <span className="text-center">
               Powered by <span className="font-semibold">Together AI</span>.
-              Used by
-              <span className="font-semibold"> 1.1M+ users. </span>
+              Used by <span className="font-semibold">1.1M+ users.</span>
             </span>
           </a>
 
@@ -179,235 +41,8 @@ export default function Home() {
             <span className="text-blue-500">app</span>
           </h1>
 
-          <form
-            className="relative w-full max-w-2xl pt-6 lg:pt-12"
-            action={async (formData) => {
-              startTransition(async () => {
-                const { prompt, model } = Object.fromEntries(formData);
-
-                assert.ok(typeof prompt === "string");
-                assert.ok(typeof model === "string");
-
-                const response = await fetch("/api/create-chat", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    prompt,
-                    model,
-                    screenshotToken,
-                  }),
-                });
-
-                if (!response.ok) {
-                  throw new Error("Failed to create chat");
-                }
-
-                const { chatId, lastMessageId } = await response.json();
-
-                const streamPromise = fetch(
-                  "/api/get-next-completion-stream-promise",
-                  {
-                    method: "POST",
-                    body: JSON.stringify({ messageId: lastMessageId, model }),
-                  },
-                ).then((res) => {
-                  if (!res.ok) {
-                    throw new Error(`Generation request failed (${res.status})`);
-                  }
-                  if (!res.body) {
-                    throw new Error("No body on response");
-                  }
-                  return res.body;
-                });
-
-                startTransition(() => {
-                  setStreamPromise(streamPromise);
-                  router.push(`/chats/${chatId}`);
-                });
-              });
-            }}
-          >
-            <Fieldset>
-              <div
-                className={`relative flex w-full max-w-2xl rounded-xl border border-gray-300 bg-white pb-10 transition-[height] ${isPending ? "h-28 overflow-hidden" : ""}`}
-              >
-                <div className="w-full">
-                  <ScreenshotAttachment
-                    hidden={isPending}
-                    loading={screenshotLoading}
-                    onRemove={clearScreenshot}
-                    previewUrl={screenshotPreviewUrl}
-                  />
-                  {screenshotError && (
-                    <p className="mx-3 mt-2 text-xs text-red-600">
-                      {screenshotError}
-                    </p>
-                  )}
-                  <div className="relative max-h-48 overflow-hidden">
-                    <div className="p-3">
-                      <p className="invisible max-h-48 w-full overflow-hidden whitespace-pre-wrap">
-                        {textareaResizePrompt}
-                      </p>
-                    </div>
-                    <textarea
-                      ref={textareaRef}
-                      placeholder="Build me a budgeting app..."
-                      required
-                      name="prompt"
-                      rows={2}
-                      className="peer absolute bottom-1 left-0 right-1 top-1 resize-none overflow-y-auto bg-transparent px-4 py-2 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      onPaste={(e) => {
-                        // Clean up pasted text
-                        e.preventDefault();
-                        const pastedText = e.clipboardData.getData("text");
-
-                        // Normalize line endings and clean up whitespace
-                        const cleanedText = pastedText
-                          .replace(/\r\n/g, "\n") // Convert Windows line endings
-                          .replace(/\r/g, "\n") // Convert old Mac line endings
-                          .replace(/\n{3,}/g, "\n\n") // Max 2 consecutive newlines
-                          .trim(); // Remove leading/trailing whitespace
-
-                        // Insert the cleaned text at cursor position
-                        const textarea = e.target as HTMLTextAreaElement;
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const newValue =
-                          prompt.slice(0, start) +
-                          cleanedText +
-                          prompt.slice(end);
-
-                        setPrompt(newValue);
-
-                        // Set cursor position after the pasted text
-                        setTimeout(() => {
-                          if (textareaRef.current) {
-                            textareaRef.current.selectionStart =
-                              start + cleanedText.length;
-                            textareaRef.current.selectionEnd =
-                              start + cleanedText.length;
-                          }
-                        }, 0);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" && !event.shiftKey) {
-                          event.preventDefault();
-                          const target = event.target;
-                          if (!(target instanceof HTMLTextAreaElement)) return;
-                          target.closest("form")?.requestSubmit();
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="absolute bottom-2 left-3 right-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Select
-                      name="model"
-                      value={model}
-                      onValueChange={(value) => {
-                        if (value !== null) setModel(value);
-                      }}
-                    >
-                      <SelectTrigger className="h-7 w-fit border-0 px-1 py-1 text-sm text-gray-400 shadow-none ring-0 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
-                        <SelectValue>{selectedModel?.label}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="space-y-1 bg-white p-2">
-                        {MODELS.filter((m) => !m.hidden).map((m) => (
-                          <SelectItem
-                            key={m.value}
-                            value={m.value}
-                            className="gap-2 text-gray-500"
-                          >
-                            <span>{m.label}</span>
-                            {m.note && (
-                              <span className="text-xs text-gray-400">
-                                {m.note}
-                              </span>
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <div className="h-4 w-px bg-gray-200 max-sm:hidden" />
-                    <div>
-                      <label
-                        htmlFor="screenshot"
-                        className="flex cursor-pointer gap-2 text-sm text-gray-400 hover:underline"
-                      >
-                        <div className="flex size-6 items-center justify-center rounded bg-black hover:bg-gray-700">
-                          <UploadIcon className="size-4" />
-                        </div>
-                        <div className="flex items-center justify-center transition hover:text-gray-700">
-                          Attach
-                        </div>
-                      </label>
-                      <input
-                        // name="screenshot"
-                        id="screenshot"
-                        type="file"
-                        accept="image/png, image/jpeg, image/webp"
-                        onChange={handleScreenshotUpload}
-                        disabled={screenshotLoading}
-                        className="hidden"
-                        ref={fileInputRef}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="relative flex shrink-0 has-[:disabled]:opacity-50">
-                    <div className="pointer-events-none absolute inset-0 -bottom-[1px] rounded bg-blue-500" />
-
-                    <LoadingButton
-                      className="relative inline-flex size-6 items-center justify-center rounded bg-blue-500 font-medium text-white shadow-lg outline-blue-300 hover:bg-blue-500/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-90"
-                      type="submit"
-                      disabled={screenshotLoading || prompt.length === 0}
-                    >
-                      <ArrowRightIcon />
-                    </LoadingButton>
-                  </div>
-                </div>
-
-                {isPending && (
-                  <LoadingMessage
-                    isHighQuality={false}
-                    hasScreenshot={Boolean(screenshotToken)}
-                  />
-                )}
-              </div>
-              <div className="mt-4 flex w-full flex-wrap justify-between gap-2.5">
-                {SUGGESTED_PROMPTS.map((v) => (
-                  <button
-                    key={v.title}
-                    type="button"
-                    onClick={() => {
-                      setPrompt(v.description);
-                      // Refocus the textarea after setting the prompt
-                      setTimeout(() => {
-                        textareaRef.current?.focus();
-                        // Position cursor at the end
-                        if (textareaRef.current) {
-                          textareaRef.current.selectionStart =
-                            textareaRef.current.value.length;
-                          textareaRef.current.selectionEnd =
-                            textareaRef.current.value.length;
-                        }
-                      }, 0);
-                    }}
-                    className="rounded bg-[#E5E9EF] px-2.5 py-1.5 text-xs tracking-[0%] transition-colors hover:bg-[#cccfd5]"
-                  >
-                    {v.title}
-                  </button>
-                ))}
-              </div>
-            </Fieldset>
-          </form>
-        </div>
+          <PromptForm />
+        </main>
 
         <Footer />
       </div>
@@ -415,31 +50,35 @@ export default function Home() {
   );
 }
 
-const Footer = memo(() => {
+function Footer() {
   return (
     <footer className="flex w-full flex-col items-center justify-between space-y-3 px-5 pb-3 pt-5 text-center sm:flex-row sm:pt-2">
-      <div>
-        <div className="font-medium">
-          Built with{" "}
-          <a
-            href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
-            className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
-          >
-            Llama
-          </a>{" "}
-          and{" "}
-          <a
-            href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
-            className="font-semibold text-blue-600 underline-offset-4 transition hover:text-gray-700 hover:underline"
-          >
-            Together AI
-          </a>
-          .
-        </div>
+      <div className="font-medium">
+        Built with{" "}
+        <a
+          href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
+          className="font-semibold text-blue-600 underline-offset-4 transition-colors hover:text-gray-700 hover:underline"
+        >
+          Llama
+        </a>{" "}
+        and{" "}
+        <a
+          href="https://togetherai.link/?utm_source=llamacoder&utm_medium=referral&utm_campaign=example-app"
+          className="font-semibold text-blue-600 underline-offset-4 transition-colors hover:text-gray-700 hover:underline"
+        >
+          Together AI
+        </a>
+        .
       </div>
+
       <div className="flex items-center gap-4 pb-4 sm:pb-0">
-        <Link href="https://x.com/nutlope" className="group" aria-label="">
+        <Link
+          href="https://x.com/nutlope"
+          className="group"
+          aria-label="Nutlope on X"
+        >
           <svg
+            aria-hidden="true"
             width="16"
             height="16"
             viewBox="0 0 16 16"
@@ -451,14 +90,13 @@ const Footer = memo(() => {
               fillRule="evenodd"
               clipRule="evenodd"
               d="M10.7465 16L6.8829 10.2473L2.04622 16H0L5.97508 8.89534L0 0H5.25355L8.8949 5.42183L13.4573 0H15.5036L9.80578 6.77562L16 16H10.7465ZM13.0252 14.3782H11.6475L2.92988 1.62182H4.30767L7.79916 6.72957L8.40293 7.6159L13.0252 14.3782Z"
-              fill="#71717a"
             />
           </svg>
         </Link>
         <Link
           href="https://github.com/Nutlope/llamacoder"
           className="group"
-          aria-label=""
+          aria-label="LlamaCoder source code on GitHub"
         >
           <svg
             aria-hidden="true"
@@ -469,30 +107,6 @@ const Footer = memo(() => {
         </Link>
       </div>
     </footer>
-  );
-});
-
-function LoadingMessage({
-  isHighQuality,
-  hasScreenshot,
-}: {
-  isHighQuality: boolean;
-  hasScreenshot: boolean;
-}) {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white px-1 py-3 md:px-3">
-      <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
-        <span className="animate-pulse text-balance text-center text-sm md:text-base">
-          {isHighQuality
-            ? `Coming up with project plan, may take 15 seconds...`
-            : hasScreenshot
-              ? "Analyzing your screenshot..."
-              : `Creating your app...`}
-        </span>
-
-        <Spinner />
-      </div>
-    </div>
   );
 }
 
