@@ -1,5 +1,5 @@
 import Header from "@/components/header";
-import bgImg from "@/public/halo.png";
+import bgImg from "@/public/halo.webp";
 import Image from "next/image";
 import Link from "next/link";
 
