@@ -16,6 +16,6 @@ test("retired Kimi models are migrated instead of exposed", () => {
   );
 });
 
-test("screenshot analysis uses the benchmarked Gemma replacement", () => {
-  assert.equal(SCREENSHOT_MODEL, "google/gemma-4-31B-it");
+test("screenshot analysis uses the supported Gemma replacement", () => {
+  assert.equal(SCREENSHOT_MODEL, "zai-org/GLM-5.3-Flash");
 });

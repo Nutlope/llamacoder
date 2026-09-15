@@ -1,5 +1,5 @@
 export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731";
-export const SCREENSHOT_MODEL = "google/gemma-4-31B-it";
+export const SCREENSHOT_MODEL = "zai-org/GLM-5.3-Flash";
 
 // Legacy model IDs all resolve to the current fallback so existing chats/DB
 // rows never depend on retired or unreliable serverless models.
