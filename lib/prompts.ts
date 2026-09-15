@@ -24,13 +24,7 @@ If given a description of a screenshot, produce an implementation plan based on 
 `;
 
 export const screenshotToCodePrompt = dedent`
-Describe the attached screenshot in detail. I will send what you give me to a developer to recreate the original screenshot of a website that I sent you. Please listen very carefully. It's very important for my job that you follow these instructions:
-
-- Think step by step and describe the UI in great detail.
-- Make sure to describe where everything is in the UI so the developer can recreate it and if how elements are aligned
-- Pay close attention to background color, text color, font size, font family, padding, margin, border, etc. Match the colors and sizes exactly.
-- Make sure to mention every part of the screenshot including any headers, footers, sidebars, etc.
-- Make sure to use the exact text from the screenshot.
+Describe this screenshot for a frontend developer recreating it. In at most 180 words, cover the overall layout, every major region in reading order, key visible text and numbers, colors, alignment, and controls. Prioritize distinguishing details over generic styling advice. Do not explain your reasoning, add an introduction, or invent unseen elements. Return only the description.
 `;
 
 export function getMainCodingPrompt() {
