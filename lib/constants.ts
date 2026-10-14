@@ -1,4 +1,4 @@
-export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731";
+export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash";
 export const SCREENSHOT_MODEL = "zai-org/GLM-5.3-Flash";
 
 // Legacy model IDs all resolve to the current fallback so existing chats/DB
@@ -19,6 +19,8 @@ export const MODEL_ALIASES: Record<string, string> = {
   "Qwen/Qwen3-Coder-Next-FP8": FALLBACK_MODEL,
   "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": FALLBACK_MODEL,
   "Qwen/Qwen3-235B-A22B-Instruct-2507-tput": FALLBACK_MODEL,
+  "deepseek-ai/DeepSeek-V4-Flash-0731": FALLBACK_MODEL,
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo": FALLBACK_MODEL,
 };
 
 export function resolveModel(model: string): string {
@@ -75,11 +77,6 @@ export const MODELS: ModelOption[] = [
   {
     label: "Qwen 3 235B",
     value: "Qwen/Qwen3-235B-A22B-Instruct-2507-tput",
-    hidden: true,
-  },
-  {
-    label: "Llama 3.3 70B",
-    value: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     hidden: true,
   },
 ];
