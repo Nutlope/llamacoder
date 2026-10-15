@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 
 const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
 const project = process.env.BRAINTRUST_PROJECT ?? "llamacoder";
-const model = process.env.E2E_MODEL ?? "zai-org/GLM-5.2";
+const model = process.env.E2E_MODEL ?? "zai-org/GLM-5.3";
 const marker = `BT-E2E-${randomUUID()}`;
 const prompt = `Build a tiny trace verification app with a counter and reset button. Verification marker ${marker}.`;
 

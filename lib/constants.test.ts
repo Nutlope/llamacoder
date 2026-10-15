@@ -28,6 +28,10 @@ test("deprecated and non-serverless models resolve to the fallback", () => {
   );
 });
 
+test("GLM 5.2 chats are upgraded to GLM 5.3", () => {
+  assert.equal(resolveModel("zai-org/GLM-5.2"), "zai-org/GLM-5.3");
+});
+
 test("screenshot analysis uses the supported Gemma replacement", () => {
   assert.equal(SCREENSHOT_MODEL, "zai-org/GLM-5.3-Flash");
 });

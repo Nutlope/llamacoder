@@ -1,9 +1,11 @@
 export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash";
 export const SCREENSHOT_MODEL = "zai-org/GLM-5.3-Flash";
+export const GLM_MODEL = "zai-org/GLM-5.3";
 
-// Legacy model IDs all resolve to the current fallback so existing chats/DB
-// rows never depend on retired or unreliable serverless models.
+// Legacy model IDs resolve to a current model (usually the fallback) so
+// existing chats/DB rows never depend on retired or unreliable serverless models.
 export const MODEL_ALIASES: Record<string, string> = {
+  "zai-org/GLM-5.2": GLM_MODEL,
   "zai-org/GLM-4.6": FALLBACK_MODEL,
   "zai-org/GLM-5": FALLBACK_MODEL,
   "zai-org/GLM-5.1": FALLBACK_MODEL,
@@ -32,7 +34,7 @@ export function resolveModel(model: string): string {
 // create-chat. Must support non-streaming completions (create-chat calls it
 // with stream=false). Qwen3-Coder-* and Qwen3 235B FP8 are now non-serverless
 // on Together.
-export const PLANNING_MODEL = "zai-org/GLM-5.2";
+export const PLANNING_MODEL = GLM_MODEL;
 
 export type ModelOption = {
   label: string;
@@ -58,8 +60,13 @@ export const MODELS: ModelOption[] = [
     hidden: true,
   },
   {
+    label: "GLM 5.3",
+    value: GLM_MODEL,
+  },
+  {
     label: "GLM 5.2",
     value: "zai-org/GLM-5.2",
+    hidden: true,
   },
   {
     label: "Qwen3.7 Max",
