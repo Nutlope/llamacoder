@@ -1,4 +1,4 @@
-export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731";
+export const FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash";
 export const SCREENSHOT_MODEL = "zai-org/GLM-5.3-Flash";
 
 // Legacy model IDs all resolve to the current fallback so existing chats/DB
@@ -19,6 +19,9 @@ export const MODEL_ALIASES: Record<string, string> = {
   "Qwen/Qwen3-Coder-Next-FP8": FALLBACK_MODEL,
   "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": FALLBACK_MODEL,
   "Qwen/Qwen3-235B-A22B-Instruct-2507-tput": FALLBACK_MODEL,
+  "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8": FALLBACK_MODEL,
+  "deepseek-ai/DeepSeek-V3": FALLBACK_MODEL,
+  "deepseek-ai/DeepSeek-V4-Flash-0731": FALLBACK_MODEL,
 };
 
 export function resolveModel(model: string): string {
@@ -27,8 +30,9 @@ export function resolveModel(model: string): string {
 
 // Model used for the high-quality "software architect" plan step in
 // create-chat. Must support non-streaming completions (create-chat calls it
-// with stream=false). Qwen3-Coder-* are now non-serverless on Together.
-export const PLANNING_MODEL = "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8";
+// with stream=false). Qwen3-Coder-* and Qwen3 235B FP8 are now non-serverless
+// on Together.
+export const PLANNING_MODEL = "zai-org/GLM-5.2";
 
 export type ModelOption = {
   label: string;
@@ -45,8 +49,13 @@ export type ModelOption = {
 // so existing chats and MODEL_ALIASES keep resolving them.
 export const MODELS: ModelOption[] = [
   {
-    label: "DeepSeek V4 Flash",
+    label: "DeepSeek V4.1 Flash",
     value: FALLBACK_MODEL,
+  },
+  {
+    label: "DeepSeek V4 Flash",
+    value: "deepseek-ai/DeepSeek-V4-Flash-0731",
+    hidden: true,
   },
   {
     label: "GLM 5.2",

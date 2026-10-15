@@ -13,6 +13,7 @@
 
 import {
   MODELS,
+  PLANNING_MODEL,
   resolveModel,
   SCREENSHOT_MODEL,
 } from "../lib/constants.ts";
@@ -233,10 +234,7 @@ async function mapLimit<T, R>(
 // Models the app uses internally but that are NOT on the homepage MODELS list.
 const INTERNAL_MODELS: { label: string; value: string }[] = [
   { label: "Screenshot analysis", value: SCREENSHOT_MODEL },
-  {
-    label: "Qwen3-Coder-Next (high-quality plan)",
-    value: "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8",
-  },
+  { label: "Planning (benchmark archMode=separate)", value: PLANNING_MODEL },
 ];
 
 interface Spec {
