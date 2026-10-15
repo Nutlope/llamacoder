@@ -16,6 +16,18 @@ test("retired Kimi models are migrated instead of exposed", () => {
   );
 });
 
+test("deprecated and non-serverless models resolve to the fallback", () => {
+  assert.equal(resolveModel("deepseek-ai/DeepSeek-V3"), FALLBACK_MODEL);
+  assert.equal(
+    resolveModel("deepseek-ai/DeepSeek-V4-Flash-0731"),
+    FALLBACK_MODEL,
+  );
+  assert.equal(
+    resolveModel("Qwen/Qwen3-235B-A22B-Instruct-2507-FP8"),
+    FALLBACK_MODEL,
+  );
+});
+
 test("screenshot analysis uses the supported Gemma replacement", () => {
   assert.equal(SCREENSHOT_MODEL, "zai-org/GLM-5.3-Flash");
 });
