@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createMessage } from "../../actions";
 import { type Chat } from "./page";
 import { MODELS } from "@/lib/constants";
+import { generationRequestError } from "@/lib/rate-limit";
 
 export default function ChatBox({
   chat,
@@ -60,7 +61,7 @@ export default function ChatBox({
               },
             ).then((res) => {
               if (!res.ok) {
-                throw new Error(`Generation request failed (${res.status})`);
+                throw generationRequestError(res);
               }
               if (!res.body) {
                 throw new Error("No body on response");

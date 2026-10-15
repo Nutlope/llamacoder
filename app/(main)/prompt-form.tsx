@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { uploadImage } from "@/lib/client-image-upload";
 import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
+import { generationRequestError, showRateLimitToast } from "@/lib/rate-limit";
 import { useRouter } from "next/navigation";
 import {
   type ChangeEvent,
@@ -152,6 +153,10 @@ export default function PromptForm() {
             }),
           });
 
+          if (response.status === 429) {
+            showRateLimitToast();
+            return;
+          }
           if (!response.ok) throw new Error("Failed to create chat");
 
           const { chatId, lastMessageId } = await response.json();
@@ -166,9 +171,7 @@ export default function PromptForm() {
             },
           ).then((streamResponse) => {
             if (!streamResponse.ok) {
-              throw new Error(
-                `Generation request failed (${streamResponse.status})`,
-              );
+              throw generationRequestError(streamResponse);
             }
             if (!streamResponse.body) throw new Error("No body on response");
             return streamResponse.body;

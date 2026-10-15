@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Rate limit create-chat (minute)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "eq",
+            "type": "path",
+            "value": "/api/create-chat"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 10,
+          "window": 60
+        }
+      }
+    }
+  },
+  {
+    "name": "Rate limit create-chat (hour)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "eq",
+            "type": "path",
+            "value": "/api/create-chat"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "actionDuration": "1h",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 30,
+          "window": 3600
+        }
+      }
+    }
+  },
+  {
+    "name": "Rate limit generation stream (minute)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "eq",
+            "type": "path",
+            "value": "/api/get-next-completion-stream-promise"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 30,
+          "window": 60
+        }
+      }
+    }
+  }
+]

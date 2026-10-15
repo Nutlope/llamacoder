@@ -15,6 +15,11 @@ import {
   shouldAllowAutoFix,
 } from "@/lib/chat-auto-fix";
 import { createLocalChatTitle } from "@/lib/chat-title";
+import {
+  RateLimitError,
+  generationRequestError,
+  showRateLimitToast,
+} from "@/lib/rate-limit";
 import { useRouter } from "next/navigation";
 import {
   memo,
@@ -120,7 +125,8 @@ export default function PageClient({ chat }: { chat: Chat }) {
       let stream: ReadableStream;
       try {
         stream = await streamPromise;
-      } catch {
+      } catch (error) {
+        if (error instanceof RateLimitError) showRateLimitToast();
         resetStream();
         return;
       }
@@ -262,7 +268,7 @@ export default function PageClient({ chat }: { chat: Chat }) {
           },
         ).then((res) => {
           if (!res.ok) {
-            throw new Error(`Generation request failed (${res.status})`);
+            throw generationRequestError(res);
           }
           if (!res.body) {
             throw new Error("No body on response");
