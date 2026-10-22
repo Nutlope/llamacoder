@@ -1,5 +1,5 @@
 import Together from "together-ai";
-import { PLANNING_MODEL, resolveModel } from "./constants";
+import { PLANNING_MODEL, resolveModelAlias } from "./constants";
 import {
   getMainCodingPrompt,
   softwareArchitectPrompt,
@@ -220,7 +220,7 @@ export async function generateApp(
   }
 
   const stream = together.chat.completions.stream({
-    model: resolveModel(model),
+    model: resolveModelAlias(model),
     reasoning: { enabled: false },
     messages: [
       { role: "system", content: systemPrompt },

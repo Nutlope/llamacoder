@@ -14,7 +14,7 @@
 import {
   MODELS,
   PLANNING_MODEL,
-  resolveModel,
+  resolveModelAlias,
   SCREENSHOT_MODEL,
 } from "../lib/constants.ts";
 
@@ -268,7 +268,7 @@ console.log(
 const catalog = await fetchCatalog();
 
 const results: Result[] = await mapLimit(specs, CONCURRENCY, async (spec) => {
-  const resolved = resolveModel(spec.model);
+  const resolved = resolveModelAlias(spec.model);
   const probed = await probe(resolved);
   let outcome = probed.outcome;
   // Catalog fallback: if the model is gone from the catalog AND the API gave a
