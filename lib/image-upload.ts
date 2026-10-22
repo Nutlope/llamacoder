@@ -1,7 +1,7 @@
 export const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 40_000_000;
 export const MAX_IMAGE_DIMENSION = 8_192;
-export const IMAGE_UPLOAD_EXPIRY_SECONDS = 5 * 60;
+export const IMAGE_UPLOAD_EXPIRY_SECONDS = 2 * 60;
 
 export const UPLOADED_IMAGE_PREFIX = "next-s3-uploads/uploads/";
 

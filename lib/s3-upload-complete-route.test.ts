@@ -7,8 +7,10 @@ import sharp from "sharp";
 import { POST } from "@/app/api/s3-upload/complete/route";
 import { verifyValidatedImageToken } from "@/lib/image-upload-token";
 import { setUpS3TestEnv } from "@/lib/test/s3-env";
+import { mockRateLimitStore } from "@/lib/test/rate-limit-store";
 
 test.after(setUpS3TestEnv());
+test.beforeEach(() => mockRateLimitStore());
 
 test("completing an upload validates one S3 object without writing another", async () => {
   const bytes = await sharp({
