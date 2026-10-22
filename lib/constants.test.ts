@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   FALLBACK_MODEL,
+  MODEL_ALIASES,
   MODELS,
   resolveModel,
+  resolveModelAlias,
   SCREENSHOT_MODEL,
 } from "./constants";
 
@@ -34,4 +36,31 @@ test("GLM 5.2 chats are upgraded to GLM 5.3", () => {
 
 test("screenshot analysis uses the supported Gemma replacement", () => {
   assert.equal(SCREENSHOT_MODEL, "zai-org/GLM-5.3-Flash");
+});
+
+test("every approved model and alias resolves to a model in MODELS", () => {
+  for (const model of MODELS) {
+    assert.equal(resolveModel(model.value), resolveModelAlias(model.value));
+    assert.ok(MODELS.some((m) => m.value === resolveModel(model.value)));
+  }
+  for (const alias of Object.keys(MODEL_ALIASES)) {
+    assert.ok(MODELS.some((m) => m.value === resolveModel(alias)));
+  }
+});
+
+test("unknown or non-string models are rejected instead of passed through", () => {
+  for (const model of [
+    "meta-llama/Llama-3.1-405B-Instruct",
+    "deepseek-ai/DeepSeek-R1",
+    "",
+    "__proto__",
+    "constructor",
+    "toString",
+    undefined,
+    null,
+    42,
+    { value: FALLBACK_MODEL },
+  ]) {
+    assert.equal(resolveModel(model), null, String(model));
+  }
 });

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { uploadImage } from "@/lib/client-image-upload";
 import { MODELS, SUGGESTED_PROMPTS } from "@/lib/constants";
+import { MAX_PROMPT_CHARS } from "@/lib/input-limits";
 import { generationRequestError, showRateLimitToast } from "@/lib/rate-limit";
 import { useRouter } from "next/navigation";
 import {
@@ -210,6 +211,7 @@ export default function PromptForm() {
                 ref={textareaRef}
                 placeholder="Build me a budgeting app..."
                 required
+                maxLength={MAX_PROMPT_CHARS}
                 name="prompt"
                 rows={2}
                 className="peer absolute bottom-1 left-0 right-1 top-1 resize-none overflow-y-auto bg-transparent px-4 py-2 placeholder-gray-500 focus-visible:outline-none disabled:opacity-50"
@@ -227,7 +229,11 @@ export default function PromptForm() {
                   const start = textarea.selectionStart;
                   const end = textarea.selectionEnd;
                   setPrompt(
-                    prompt.slice(0, start) + cleanedText + prompt.slice(end),
+                    (
+                      prompt.slice(0, start) +
+                      cleanedText +
+                      prompt.slice(end)
+                    ).slice(0, MAX_PROMPT_CHARS),
                   );
                   setTimeout(() => {
                     if (textareaRef.current) {

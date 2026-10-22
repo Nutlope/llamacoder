@@ -579,7 +579,7 @@ function WasmReactCodeRunner({
     >
       <iframe
         ref={iframeRef}
-        sandbox="allow-scripts allow-forms allow-modals allow-popups"
+        sandbox="allow-scripts allow-forms"
         srcDoc={srcdoc}
         title="Preview"
         className="h-full w-full border-0"

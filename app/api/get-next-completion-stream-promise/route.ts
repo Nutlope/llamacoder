@@ -1,6 +1,6 @@
 import { z } from "zod";
 import Together from "together-ai";
-import { resolveModel } from "@/lib/constants";
+import { FALLBACK_MODEL, resolveModel } from "@/lib/constants";
 import {
   GENERATION_DEADLINE_MS,
   superviseCompletionStream,
@@ -12,6 +12,12 @@ import {
   startBraintrustSpan,
 } from "@/lib/braintrust";
 import { getPrisma } from "@/lib/prisma";
+import { completionRequestSchema } from "@/lib/input-limits";
+import {
+  claimOnce,
+  enforceRateLimit,
+  generationClaimKey,
+} from "@/lib/server-rate-limit";
 
 function optimizeMessagesForTokens(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -39,13 +45,13 @@ function optimizeMessagesForTokens(
   });
 }
 
-const requestSchema = z.object({
-  messageId: z.string().min(1),
-  model: z.string().min(1),
-});
-
 export async function POST(req: Request) {
-  const parsed = requestSchema.safeParse(await req.json().catch(() => null));
+  const limited = await enforceRateLimit("generation", req.headers);
+  if (limited) return limited;
+
+  const parsed = completionRequestSchema.safeParse(
+    await req.json().catch(() => null),
+  );
   if (!parsed.success) {
     await logBraintrustFailure(
       {
@@ -62,7 +68,7 @@ export async function POST(req: Request) {
     );
     return new Response("Invalid request", { status: 400 });
   }
-  const { messageId, model } = parsed.data;
+  const { messageId } = parsed.data;
   const prisma = getPrisma();
 
   let message;
@@ -73,6 +79,7 @@ export async function POST(req: Request) {
         chat: {
           select: {
             braintrustParent: true,
+            model: true,
           },
         },
       },
@@ -92,7 +99,7 @@ export async function POST(req: Request) {
       },
       error,
     );
-    throw error;
+    return new Response("Internal error", { status: 500 });
   }
 
   if (!message) {
@@ -111,6 +118,26 @@ export async function POST(req: Request) {
       new Error("Message not found"),
     );
     return new Response(null, { status: 404 });
+  }
+
+  // Generations only answer the newest user message, once. This stops replays
+  // of old or shared message ids from starting more paid generations.
+  if (message.role !== "user") {
+    return new Response("Invalid message", { status: 400 });
+  }
+  try {
+    const newerMessages = await prisma.message.count({
+      where: { chatId: message.chatId, position: { gt: message.position } },
+    });
+    if (newerMessages > 0) {
+      return new Response("Message already answered", { status: 409 });
+    }
+  } catch (error) {
+    console.error("Failed to check message position:", error);
+    return new Response("Internal error", { status: 500 });
+  }
+  if (!(await claimOnce(generationClaimKey(message.id)))) {
+    return new Response("Generation already started", { status: 409 });
   }
 
   let messages;
@@ -145,7 +172,7 @@ export async function POST(req: Request) {
       },
       error,
     );
-    throw error;
+    return new Response("Internal error", { status: 500 });
   }
 
   messages = optimizeMessagesForTokens(messages);
@@ -155,7 +182,14 @@ export async function POST(req: Request) {
   }
 
   const together = new Together();
-  const resolvedModel = resolveModel(model);
+  // Chats created before the allowlist may store arbitrary model ids.
+  const storedModel = resolveModel(message.chat.model);
+  if (!storedModel) {
+    console.warn(
+      `Chat ${message.chatId} has unapproved model; using ${FALLBACK_MODEL}`,
+    );
+  }
+  const resolvedModel = storedModel ?? FALLBACK_MODEL;
   const temperature = 0.4;
   // 20000, up from the benchmarked 13000: chat USzt_maT7friospM hit the 13k
   // cap mid-file on a detailed prompt, truncating the last fence — the file
@@ -187,7 +221,7 @@ export async function POST(req: Request) {
         route: "/api/get-next-completion-stream-promise",
         chatId: message.chatId,
         messageId,
-        requestedModel: model,
+        requestedModel: message.chat.model,
         resolvedModel,
         model: resolvedModel,
         provider: "together",
@@ -221,7 +255,8 @@ export async function POST(req: Request) {
     });
     span?.end();
     await flushBraintrustSpan(span);
-    throw error;
+    console.error("Failed to start generation:", error);
+    return new Response("Generation failed", { status: 502 });
   }
 
   stream.on("content", (delta) => {

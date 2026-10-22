@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { ImageUploadError } from "@/lib/image-upload";
 import { imageUploadErrorResponse } from "@/lib/image-upload-route";
 import { validateUploadedImage } from "@/lib/image-verification";
+import { enforceRateLimit } from "@/lib/server-rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(
+    "imageUploadComplete",
+    request.headers,
+  );
+  if (limited) return limited;
+
   try {
-    const body: unknown = await request.json();
+    const body: unknown = await request.json().catch(() => null);
     const key =
       typeof body === "object" &&
       body !== null &&

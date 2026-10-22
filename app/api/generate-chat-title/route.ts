@@ -11,16 +11,26 @@ import {
   logBraintrustFailure,
 } from "@/lib/braintrust";
 import type { Span } from "braintrust";
+import { chatTitleRequestSchema, MAX_PROMPT_CHARS } from "@/lib/input-limits";
+import {
+  chatTitleClaimKey,
+  claimOnce,
+  enforceRateLimit,
+} from "@/lib/server-rate-limit";
 
 const TITLE_MODEL = "Qwen/Qwen3.5-9B";
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit("chatTitle", request.headers);
+  if (limited) return limited;
+
   const logger = getBraintrustLogger();
 
   try {
-    const body = await request.json().catch(() => null);
-    const chatId = body?.chatId;
-    if (typeof chatId !== "string" || !chatId) {
+    const parsed = chatTitleRequestSchema.safeParse(
+      await request.json().catch(() => null),
+    );
+    if (!parsed.success) {
       await logBraintrustFailure(
         {
           name: "llamacoder.generate-chat-title",
@@ -36,6 +46,7 @@ export async function POST(request: NextRequest) {
       );
       return NextResponse.json({ error: "Missing chatId" }, { status: 400 });
     }
+    const { chatId } = parsed.data;
 
     const prisma = getPrisma();
     let chat;
@@ -98,6 +109,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ title: chat.title, skipped: true });
       }
 
+      // At most one paid title generation per chat, even under concurrency.
+      if (!(await claimOnce(chatTitleClaimKey(chat.id)))) {
+        span?.log({
+          output: chat.title,
+          metadata: {
+            skipped: true,
+            reason: "title-already-claimed",
+          },
+        });
+        return NextResponse.json({ title: chat.title, skipped: true });
+      }
+
       const startedAt = performance.now();
       const together = new Together();
       const response = await together.chat.completions.create({
@@ -113,7 +136,7 @@ export async function POST(request: NextRequest) {
           },
           {
             role: "user",
-            content: chat.prompt,
+            content: chat.prompt.slice(0, MAX_PROMPT_CHARS),
           },
         ],
       });

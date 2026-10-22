@@ -46,3 +46,12 @@ model Message {
   @@index([chatId])
   @@index([chatId, createdAt])
 }
+
+// Fixed-window request counters and one-shot claims (lib/server-rate-limit.ts).
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+
+  @@index([windowStart])
+}

@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  type GetObjectCommandOutput,
+  type S3Client,
+} from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import {
   ImageUploadError,
@@ -25,6 +30,36 @@ export async function validateUploadedImage(key: unknown) {
     }),
   );
 
+  try {
+    return await validateObject(object, contentType, uploadedKey);
+  } catch (error) {
+    if (error instanceof ImageUploadError) {
+      await deleteRejectedUpload(client, bucket, uploadedKey);
+    }
+    throw error;
+  }
+}
+
+// Objects that fail verification are never usable (no token is issued); also
+// delete them when the credentials allow it. A bucket lifecycle rule on
+// UPLOADED_IMAGE_PREFIX removes uploads that are never verified (README).
+async function deleteRejectedUpload(
+  client: S3Client,
+  bucket: string,
+  key: string,
+) {
+  try {
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  } catch (error) {
+    console.warn("Failed to delete rejected upload:", error);
+  }
+}
+
+async function validateObject(
+  object: GetObjectCommandOutput,
+  contentType: SupportedImageType,
+  uploadedKey: string,
+) {
   if (!object.Body) {
     throw new ImageUploadError("The uploaded image is missing", 400);
   }

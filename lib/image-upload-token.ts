@@ -125,12 +125,17 @@ function assertValidatedImage(input: unknown): asserts input is ValidatedImage {
 }
 
 function sign(payload: string) {
-  const rootSecret = process.env.IMAGE_UPLOAD_TOKEN_SECRET;
-  const s3Secret = process.env.S3_UPLOAD_SECRET;
-  const secret = rootSecret || s3Secret;
+  const secret = process.env.IMAGE_UPLOAD_TOKEN_SECRET;
 
-  if (!secret) {
-    throw new Error("Missing image upload token configuration");
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "IMAGE_UPLOAD_TOKEN_SECRET must be set to a random secret of at least 32 characters",
+    );
+  }
+  if (secret === process.env.S3_UPLOAD_SECRET) {
+    throw new Error(
+      "IMAGE_UPLOAD_TOKEN_SECRET must differ from S3_UPLOAD_SECRET",
+    );
   }
 
   const signingKey = createHmac("sha256", secret)

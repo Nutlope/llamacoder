@@ -3,6 +3,7 @@ const S3_ENV = {
   S3_UPLOAD_SECRET: "test-secret-key",
   S3_UPLOAD_BUCKET: "test-bucket",
   S3_UPLOAD_REGION: "us-east-1",
+  IMAGE_UPLOAD_TOKEN_SECRET: "test-image-upload-token-secret-0123456789",
 } as const;
 
 export function setUpS3TestEnv() {

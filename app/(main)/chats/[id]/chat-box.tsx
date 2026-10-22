@@ -7,7 +7,13 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createMessage } from "../../actions";
 import { type Chat } from "./page";
 import { MODELS } from "@/lib/constants";
-import { generationRequestError } from "@/lib/rate-limit";
+import { MAX_PROMPT_CHARS } from "@/lib/input-limits";
+import {
+  RateLimitError,
+  generationRequestError,
+  showRateLimitToast,
+  unwrapActionResult,
+} from "@/lib/rate-limit";
 
 export default function ChatBox({
   chat,
@@ -49,7 +55,16 @@ export default function ChatBox({
         className="relative flex w-full"
         action={async () => {
           startTransition(async () => {
-            const message = await createMessage(chat.id, prompt, "user");
+            let message;
+            try {
+              message = unwrapActionResult(
+                await createMessage(chat.id, prompt),
+              );
+            } catch (error) {
+              if (!(error instanceof RateLimitError)) throw error;
+              showRateLimitToast();
+              return;
+            }
             const streamPromise = fetch(
               "/api/get-next-completion-stream-promise",
               {
@@ -91,6 +106,7 @@ export default function ChatBox({
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 required
+                maxLength={MAX_PROMPT_CHARS}
                 name="prompt"
                 className="peer absolute bottom-1 left-0 right-1 top-1 resize-none overflow-y-auto bg-transparent px-2.5 py-1.5 placeholder-gray-500 focus:outline-none disabled:opacity-50"
                 onKeyDown={(event) => {

@@ -4,8 +4,10 @@ import { NextRequest } from "next/server";
 import { POST } from "@/app/api/s3-upload/route";
 import { MAX_IMAGE_UPLOAD_BYTES } from "@/lib/image-upload";
 import { setUpS3TestEnv } from "@/lib/test/s3-env";
+import { mockRateLimitStore } from "@/lib/test/rate-limit-store";
 
 test.after(setUpS3TestEnv());
+test.beforeEach(() => mockRateLimitStore());
 
 test("the upload signer rejects SVG files", async () => {
   const response = await requestUpload({
@@ -65,7 +67,7 @@ test("the upload signer creates a narrow conditional image PUT", async () => {
   assert.equal(body.headers["Cache-Control"], "no-store, max-age=0");
   assert.equal(body.headers["If-None-Match"], "*");
   assert.equal(body.headers["x-amz-checksum-sha256"], checksum);
-  assert.equal(url.searchParams.get("X-Amz-Expires"), "300");
+  assert.equal(url.searchParams.get("X-Amz-Expires"), "120");
   assert.equal(url.searchParams.has("x-amz-checksum-sha256"), false);
   assert.equal(
     url.searchParams.get("X-Amz-SignedHeaders"),

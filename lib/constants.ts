@@ -26,8 +26,19 @@ export const MODEL_ALIASES: Record<string, string> = {
   "deepseek-ai/DeepSeek-V4-Flash-0731": FALLBACK_MODEL,
 };
 
-export function resolveModel(model: string): string {
-  return MODEL_ALIASES[model] ?? model;
+// Maps a model id through MODEL_ALIASES without allowlisting. Only for local
+// benchmark scripts; request input must go through resolveModel.
+export function resolveModelAlias(model: string): string {
+  return Object.hasOwn(MODEL_ALIASES, model) ? MODEL_ALIASES[model] : model;
+}
+
+// Returns the Together model id for an approved model (an entry in MODELS or a
+// MODEL_ALIASES key), or null for anything else. Every caller-supplied or
+// stored model id must pass through here before it reaches Together.
+export function resolveModel(model: unknown): string | null {
+  if (typeof model !== "string") return null;
+  const resolved = resolveModelAlias(model);
+  return MODELS.some((option) => option.value === resolved) ? resolved : null;
 }
 
 // Model used for the high-quality "software architect" plan step in
