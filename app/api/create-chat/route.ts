@@ -13,15 +13,28 @@ import {
 } from "@/lib/braintrust";
 import type { Span } from "braintrust";
 import { createValidatedImageDownloadUrl } from "@/lib/s3-image-storage";
+import { createChatRequestSchema } from "@/lib/input-limits";
+import { enforceRateLimit } from "@/lib/server-rate-limit";
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit("createChat", request.headers);
+  if (limited) return limited;
+
   const logger = getBraintrustLogger();
   let traceStarted = false;
 
   try {
-    const body = await request.json();
-    const { prompt, model, screenshotToken } = body;
+    const parsed = createChatRequestSchema.safeParse(
+      await request.json().catch(() => null),
+    );
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+    const { prompt, model, screenshotToken } = parsed.data;
     const resolvedModel = resolveModel(model);
+    if (!resolvedModel) {
+      return NextResponse.json({ error: "Unknown model" }, { status: 400 });
+    }
     const chatId = createId();
 
     const createChat = async (rootSpan?: Span) => {
