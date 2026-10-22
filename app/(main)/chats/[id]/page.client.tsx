@@ -1,11 +1,14 @@
 "use client";
 
-import { createMessage } from "@/app/(main)/actions";
+import {
+  createMessage,
+  restoreMessageVersion,
+  saveAssistantMessage,
+} from "@/app/(main)/actions";
 import LogoSmall from "@/components/icons/logo-small";
 import {
   parseReplySegments,
   extractFirstCodeBlock,
-  extractAllCodeBlocks,
   getFilesFromMessage,
   sanitizeAssistantOutput,
 } from "@/lib/utils";
@@ -15,10 +18,12 @@ import {
   shouldAllowAutoFix,
 } from "@/lib/chat-auto-fix";
 import { createLocalChatTitle } from "@/lib/chat-title";
+import { MAX_PROMPT_CHARS } from "@/lib/input-limits";
 import {
   RateLimitError,
   generationRequestError,
   showRateLimitToast,
+  unwrapActionResult,
 } from "@/lib/rate-limit";
 import { useRouter } from "next/navigation";
 import {
@@ -147,33 +152,20 @@ export default function PageClient({ chat }: { chat: Chat }) {
         }
 
         startTransition(async () => {
-          // Get all previous assistant messages with files
-          const previousAssistantMessages = chat.messages.filter(
-            (m) =>
-              m.role === "assistant" &&
-              extractAllCodeBlocks(m.content).length > 0,
-          );
-
-          // Extract files from both prior messages and the response. For an
-          // interrupted response, completed fences remain usable while an
-          // unfinished trailing fence is safely ignored.
-          const previousFiles = previousAssistantMessages.flatMap((msg) =>
-            extractAllCodeBlocks(msg.content),
-          );
-          const currentFiles = extractAllCodeBlocks(finalText);
-
-          // Merge files (current overrides previous for same paths)
-          const fileMap = new Map();
-          previousFiles.forEach((file) => fileMap.set(file.path, file));
-          currentFiles.forEach((file) => fileMap.set(file.path, file));
-          const allFiles = Array.from(fileMap.values());
-
-          const message = await createMessage(
-            chat.id,
-            finalText, // Store original AI response content (only changed files)
-            "assistant",
-            allFiles, // Store cumulative files
-          );
+          // The server merges the cumulative files from prior replies and the
+          // response. For an interrupted response, completed fences remain
+          // usable while an unfinished trailing fence is safely ignored.
+          let message;
+          try {
+            message = unwrapActionResult(
+              await saveAssistantMessage(chat.id, finalText),
+            );
+          } catch (error) {
+            if (!(error instanceof RateLimitError)) throw error;
+            showRateLimitToast();
+            resetStream();
+            return;
+          }
 
           startTransition(() => {
             resetStream();
@@ -237,7 +229,11 @@ export default function PageClient({ chat }: { chat: Chat }) {
       const problem = previewedMessage
         ? describePathlessFenceProblem(previewedMessage.content)
         : null;
-      const newMessageText = `${FIX_REQUEST_PREFIX}\n\n${(problem ?? error).trimStart()}`;
+      const newMessageText =
+        `${FIX_REQUEST_PREFIX}\n\n${(problem ?? error).trimStart()}`.slice(
+          0,
+          MAX_PROMPT_CHARS,
+        );
       const optimistic: Message = {
         id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         role: "user",
@@ -251,7 +247,20 @@ export default function PageClient({ chat }: { chat: Chat }) {
       setOptimisticMessages((prev) => [...prev, optimistic]);
 
       startTransition(async () => {
-        const message = await createMessage(chat.id, newMessageText, "user");
+        let message;
+        try {
+          message = unwrapActionResult(
+            await createMessage(chat.id, newMessageText),
+          );
+        } catch (error) {
+          if (!(error instanceof RateLimitError)) throw error;
+          showRateLimitToast();
+          setOptimisticMessages((prev) =>
+            prev.filter((m) => m.id !== optimistic.id),
+          );
+          setIsFixPending(false);
+          return;
+        }
         autoFixMessageIdsRef.current.add(message.id);
         setOptimisticMessages((prev) =>
           prev.filter((m) => m.id !== optimistic.id),
@@ -366,23 +375,22 @@ export default function PageClient({ chat }: { chat: Chat }) {
                   const restoredFiles = getFilesFromMessage(message);
                   if (restoredFiles.length === 0) return;
 
-                  const explanation = `Version ${newVersion} was created by restoring version ${oldVersion}.`;
-                  const newContent =
-                    explanation +
-                    "\n\n" +
-                    restoredFiles
-                      .map(
-                        (file) =>
-                          `\`\`\`${file.language}{path=${file.path}}\n${file.code}\n\`\`\``,
-                      )
-                      .join("\n\n");
-
-                  const newMessage = await createMessage(
-                    chat.id,
-                    newContent,
-                    "assistant",
-                    restoredFiles,
-                  );
+                  let newMessage;
+                  try {
+                    newMessage = unwrapActionResult(
+                      await restoreMessageVersion(
+                        chat.id,
+                        message.id,
+                        oldVersion,
+                        newVersion,
+                      ),
+                    );
+                  } catch (error) {
+                    if (!(error instanceof RateLimitError)) throw error;
+                    showRateLimitToast();
+                    return;
+                  }
+                  if (!newMessage) return;
                   setActiveMessage(newMessage);
                   router.refresh();
                 });
