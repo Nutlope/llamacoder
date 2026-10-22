@@ -6,14 +6,21 @@ import {
   verifyValidatedImageToken,
 } from "@/lib/image-upload-token";
 
-const originalUploadSecret = process.env.S3_UPLOAD_SECRET;
+const TOKEN_SECRET = "test-image-upload-token-secret-0123456789";
+const originalEnv = {
+  IMAGE_UPLOAD_TOKEN_SECRET: process.env.IMAGE_UPLOAD_TOKEN_SECRET,
+  S3_UPLOAD_SECRET: process.env.S3_UPLOAD_SECRET,
+};
+process.env.IMAGE_UPLOAD_TOKEN_SECRET = TOKEN_SECRET;
 process.env.S3_UPLOAD_SECRET = "test-upload-secret";
 
 test.after(() => {
-  if (originalUploadSecret === undefined) {
-    delete process.env.S3_UPLOAD_SECRET;
-  } else {
-    process.env.S3_UPLOAD_SECRET = originalUploadSecret;
+  for (const [name, value] of Object.entries(originalEnv)) {
+    if (value === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = value;
+    }
   }
 });
 
@@ -45,6 +52,32 @@ test("a modified validated image token is rejected", () => {
       error.status === 400 &&
       error.message === "Invalid screenshot token",
   );
+});
+
+test("tokens are not signed without a dedicated secret", () => {
+  delete process.env.IMAGE_UPLOAD_TOKEN_SECRET;
+  try {
+    assert.throws(
+      () => createValidatedImageToken(image, 1_000),
+      /IMAGE_UPLOAD_TOKEN_SECRET must be set/,
+    );
+  } finally {
+    process.env.IMAGE_UPLOAD_TOKEN_SECRET = TOKEN_SECRET;
+  }
+});
+
+test("the S3 secret is never reused as the token secret", () => {
+  process.env.IMAGE_UPLOAD_TOKEN_SECRET = "s".repeat(40);
+  process.env.S3_UPLOAD_SECRET = "s".repeat(40);
+  try {
+    assert.throws(
+      () => createValidatedImageToken(image, 1_000),
+      /must differ from S3_UPLOAD_SECRET/,
+    );
+  } finally {
+    process.env.IMAGE_UPLOAD_TOKEN_SECRET = TOKEN_SECRET;
+    process.env.S3_UPLOAD_SECRET = "test-upload-secret";
+  }
 });
 
 test("an expired validated image token is rejected", () => {
