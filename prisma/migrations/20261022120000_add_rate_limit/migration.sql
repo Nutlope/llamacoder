@@ -1,4 +1,3 @@
- WARN  using --force I sure hope you know what you are doing
 -- CreateTable
 CREATE TABLE "RateLimit" (
     "key" TEXT NOT NULL,
