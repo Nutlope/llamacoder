@@ -86,5 +86,150 @@
         }
       }
     }
+  },
+  {
+    "name": "Rate limit chat title (minute)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "eq",
+            "type": "path",
+            "value": "/api/generate-chat-title"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 20,
+          "window": 60
+        }
+      }
+    }
+  },
+  {
+    "name": "Rate limit image upload sign (minute)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "eq",
+            "type": "path",
+            "value": "/api/s3-upload"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 10,
+          "window": 60
+        }
+      }
+    }
+  },
+  {
+    "name": "Rate limit image upload complete (minute)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "eq",
+            "type": "path",
+            "value": "/api/s3-upload/complete"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 10,
+          "window": 60
+        }
+      }
+    }
+  },
+  {
+    "name": "Rate limit og image (minute)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "eq",
+            "type": "path",
+            "value": "/api/og"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 60,
+          "window": 60
+        }
+      }
+    }
+  },
+  {
+    "name": "Rate limit server actions (minute)",
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "ex",
+            "type": "header",
+            "key": "next-action"
+          }
+        ]
+      }
+    ],
+    "action": {
+      "mitigate": {
+        "action": "rate_limit",
+        "rateLimit": {
+          "action": "rate_limit",
+          "algo": "fixed_window",
+          "keys": [
+            "ip"
+          ],
+          "limit": 60,
+          "window": 60
+        }
+      }
+    }
   }
 ]
